@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl } from "maplibre-gl";
 import { streetHeadline } from "@/lib/address";
+import { formatRentShort } from "@/lib/format";
 import { isClosedStatus, type Listing } from "@/lib/listing";
 import { mainCluster } from "@/lib/map-view";
 import { applyCoastalStyle, BASE_STYLE_URL } from "./map-style";
@@ -120,8 +121,8 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
       if (!marker) {
         const el = document.createElement("button");
         el.type = "button";
-        el.className = "corral-pin-wrap";
-        el.innerHTML = '<span class="corral-pin"></span>';
+        el.className = "corral-tag";
+        el.innerHTML = '<span class="corral-tag-label"></span>';
         el.addEventListener("click", (e) => {
           e.stopPropagation();
           latest.current.onSelect(l.id);
@@ -137,7 +138,13 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
         marker.setLngLat([l.lng, l.lat]);
       }
       const el = marker.getElement();
-      el.setAttribute("aria-label", selected ? `${label}, selected. Drag to move the pin.` : label);
+      const rent = formatRentShort(l.rentCents);
+      const rentWords = l.rentCents === null ? "rent unknown" : rent;
+      el.querySelector(".corral-tag-label")!.textContent = rent;
+      el.setAttribute(
+        "aria-label",
+        selected ? `${label}, ${rentWords}, selected. Drag to move the pin.` : `${label}, ${rentWords}`
+      );
       el.title = label;
       el.style.setProperty("--pin", STATUS_HEX[l.status]);
       el.style.zIndex = selected ? "3" : isClosedStatus(l.status) ? "1" : "2";

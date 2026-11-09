@@ -70,48 +70,77 @@ button:not(:disabled),
   background: rgb(232 115 90 / 25%);
 }
 
-/* Map pins: a teardrop in the place's status color, rendered as a MapLibre marker button. */
-.corral-pin-wrap {
+/* Map pins are rent tags: the place's rent on a status-colored tag with a pointer. */
+.corral-tag {
+  position: relative;
   display: block;
-  width: 24px;
-  height: 24px;
-  padding: 0;
+  padding: 0 0 7px;
   border: 0;
   background: none;
   cursor: pointer;
+  filter: drop-shadow(0 2px 3px rgb(27 43 54 / 30%));
 }
 
-.corral-pin-wrap.is-selected {
-  width: 34px;
-  height: 34px;
-  cursor: grab;
-}
-
-.corral-pin {
+.corral-tag-label {
   display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
+  min-width: 2.5rem;
+  padding: 3px 7px;
+  border-radius: 7px;
   background: var(--pin);
-  border: 2.5px solid var(--color-surface);
-  box-shadow: 0 2px 6px rgb(27 43 54 / 35%);
+  border: 1.5px solid var(--color-surface);
+  color: #fff;
+  font-family: var(--font-display);
+  font-variation-settings: "CASL" 0.65;
+  font-feature-settings: "tnum" 1;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.corral-pin-wrap.is-closed .corral-pin {
-  opacity: 0.6;
+/* The pointer: a small triangle under the tag, pointing at the exact spot. */
+.corral-tag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid var(--pin);
 }
 
-.corral-pin-wrap.is-selected .corral-pin {
+.corral-tag.is-closed {
+  opacity: 0.7;
+}
+
+.corral-tag.is-selected {
+  --pin: var(--color-coral) !important;
+  cursor: grab;
+  filter: drop-shadow(0 0 0 rgb(232 115 90 / 0%)) drop-shadow(0 4px 8px rgb(27 43 54 / 35%));
+}
+
+.corral-tag.is-selected .corral-tag-label {
+  padding: 5px 10px;
+  font-size: 14px;
+  color: var(--color-ink);
+  border-width: 2px;
+}
+
+.corral-tag:hover .corral-tag-label {
   border-color: var(--color-coral);
-  border-width: 4px;
-  box-shadow: 0 0 0 4px rgb(232 115 90 / 35%), 0 4px 10px rgb(27 43 54 / 35%);
 }
 
-.corral-pin-wrap:focus-visible {
+.corral-tag:focus-visible {
+  outline: none;
+}
+
+.corral-tag:focus-visible .corral-tag-label {
   outline: 2px solid var(--color-focus);
-  outline-offset: 3px;
-  border-radius: 50%;
+  outline-offset: 2px;
 }
 
 .maplibregl-map {
@@ -127,6 +156,71 @@ button:not(:disabled),
 .font-display {
   font-variation-settings: "CASL" 0.65;
   font-feature-settings: "tnum" 1;
+}
+
+/*
+ * Status menus: where the browser supports customizable <select>, the open
+ * menu matches the board (sand surface, status bars). Elsewhere it stays native.
+ */
+@supports (appearance: base-select) {
+  .status-select,
+  .status-select::picker(select) {
+    appearance: base-select;
+  }
+
+  .status-select::picker-icon {
+    display: none;
+  }
+
+  .status-select::picker(select) {
+    margin-top: 4px;
+    padding: 4px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .status-select option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--color-ink);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .status-select option::checkmark {
+    display: none;
+  }
+
+  .status-select option::before {
+    content: "";
+    width: 4px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--st);
+  }
+
+  .status-select option:checked {
+    font-weight: 700;
+    background: var(--color-sand);
+  }
+
+  .status-select option:hover,
+  .status-select option:focus-visible {
+    background: var(--color-sand-deep);
+    outline: none;
+  }
+
+  .status-select option[data-status="considering"] { --st: var(--color-st-considering); }
+  .status-select option[data-status="contacted"] { --st: var(--color-st-contacted); }
+  .status-select option[data-status="tour_scheduled"] { --st: var(--color-st-tour); }
+  .status-select option[data-status="applied"] { --st: var(--color-st-applied); }
+  .status-select option[data-status="passed"],
+  .status-select option[data-status="unavailable"] { --st: var(--color-st-closed); }
 }
 
 dialog::backdrop {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { List, Map as MapIcon, Plus, RotateCcw } from "lucide-react";
+import { Shoreline } from "@/components/brand/shoreline";
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -409,20 +410,6 @@ export function Board({ store }: { store: BoardStore }) {
         ) : null}
       </div>
     </div>
-  );
-}
-
-/** The board's signature rule: a gentle swell in ocean blue with a coral glint, drawn to any width. */
-function Shoreline({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" className={cn("block h-3 w-full", className)} preserveAspectRatio="none" viewBox="0 0 400 12">
-      <defs>
-        <pattern id="swell" width="40" height="12" patternUnits="userSpaceOnUse">
-          <path d="M0 6 Q10 0 20 6 T40 6" fill="none" stroke="var(--color-ocean)" strokeWidth="2" strokeLinecap="round" />
-        </pattern>
-      </defs>
-      <rect width="400" height="12" fill="url(#swell)" />
-    </svg>
   );
 }
 

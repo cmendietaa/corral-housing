@@ -54,3 +54,12 @@ export function centsToDollarsInput(cents: number | null): string {
   if (cents === null) return "";
   return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
 }
+
+/** Map-tag rent: "$5.4k", "$950", or "$?" when unknown. */
+export function formatRentShort(cents: number | null): string {
+  if (cents === null) return "$?";
+  const dollars = Math.round(cents / 100);
+  if (dollars < 1000) return `$${dollars}`;
+  const k = Math.round(dollars / 100) / 10;
+  return `$${Number.isInteger(k) ? k.toFixed(0) : k.toFixed(1)}k`;
+}

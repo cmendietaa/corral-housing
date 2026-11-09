@@ -14,13 +14,14 @@ Deployed project + public repo for the ACM.Industry 2027 application, due around
 | `next_actions` table | One next action per place, stored as columns on `listings` | The PRD defines one next action per place. Columns keep RLS to a single table check |
 | Roommate trial on days 11–15 | 30-minute hallway test with 1–2 friends | No time for a full trial |
 | Optional extras | Rent per person plus a per-person budget badge (unknown rent shows "Rent unknown", never "Within budget"), and a status filter | Cheap and visible |
-| Google fonts | System font stack | No build-time font fetches |
+| Google fonts | System font for body text; Recursive (OFL) self-hosted via @fontsource for display type and rents | No Google fetches; one distinctive face instead of a generic sans |
 | — | Footer: "Not affiliated with UCSB. Demo data is fictional." | Avoids implying an official product |
 
 ## Decisions
 - **Look: Coastal IV.** Sand background `#F7F1E8`, ocean-blue primary `#1F5F8B`, coral accent `#E8735A` for selection and highlights. Rounded cards, soft shadows, a wave mark in the header. Colors are Tailwind v4 `@theme` tokens in `app/globals.css`. Status chips are distinct but muted; Passed and Unavailable are grayed out.
 - **Layout: ledger list plus map, and a Status tab.** (Revised Nov 8 to avoid the generic card-grid look.)
-  - **Map view** (default): ledger rows left, map right (OSM tiles warmed toward sand); selecting a row or pin selects the other. On phones, a floating List/Map switch.
+  - **Map view** (default): ledger rows left, map right; selecting a row or rent tag selects the other. On phones, a floating List/Map switch.
+  - **Map look ("Coastal IV, bold"):** deep ocean-blue sea, sand land, wide white streets, ocean-blue street names, no POI/transit clutter. Pins are rent tags ("$5.4k") in the status color; the selected one turns coral. The map opens on the main cluster of places, with "Show all places" for outliers.
   - **Rows, not cards:** ruled rows with a status-colored edge, aligned rent, and a street-first headline ("Sabado Tarde, 6512") parsed from the address, with the nickname underneath. IV flavor comes from content and the map, not hard-coded geography.
   - **Grouping:** by status by default (In the running / Passed or unavailable), with an optional "Group by street" remembered per viewer.
   - **Status view**: kanban columns for the six statuses using the same `ListingCard`. Cards move with the status menu; drag-and-drop on desktop only if there's time.
@@ -29,7 +30,7 @@ Deployed project + public repo for the ACM.Industry 2027 application, due around
 - **Extras:** AI listing autofill only. Distance to campus, dark mode and an activity feed are out.
 
 ## Stack
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@supabase/ssr`, Google auth, Postgres, RLS) · react-leaflet + OpenStreetMap tiles · Zod · Vitest · Playwright · Vercel.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@supabase/ssr`, Google auth, Postgres, RLS) · MapLibre GL v5 + OpenFreeMap vector tiles (no API key), restyled to the Coastal IV palette · Zod · Vitest · Playwright · Vercel.
 
 ## Architecture
 - **Routes:** `/` landing (Try demo, Sign in). `/demo` fictional board in localStorage with Reset and a "Fictional data" banner. `/boards` your boards, `/boards/[id]` a private board. `/invite/[token]` redeems an invite or explains why it's invalid or expired. `/auth/callback` handles sign-in. `/api/parse-listing` runs AI autofill.
@@ -37,7 +38,8 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@
 - **Core types:** `lib/listing.ts` (Listing, Board, Member, statuses, parking/laundry enums, Zod schemas with an http(s)-only URL rule). `lib/compare.ts` (unknown-last sorting, rent per person, budget check where unknown never passes, compare rows, formatters).
 - **Components** (`components/board/`): `Board`, `ListingRow` (star, status, next action, compare checkbox, budget note), `ListingForm` (add/edit, Autofill box), `MapPanel`, `CompareView`, `NextActionEditor`, mobile List/Map toggle.
   - `MapPanel` loads via `next/dynamic` with `ssr: false` inside an error boundary, so a map failure never blocks the list.
-  - Pins use `L.divIcon`, colored by status. The selected pin can be dragged; "Place pin" mode handles places without coordinates.
+  - Rent-tag markers are HTML buttons (keyboard-focusable, labeled with street and rent). The selected tag can be dragged; selecting a place without coordinates and clicking the map places it.
+  - MapLibre is pinned to v5: v6 loads its worker from a separate ES module that Next's bundler doesn't emit, which left the map blank.
   - `CompareView` handles 2–3 places, shows "Unknown" explicitly, highlights the best value per row, and stacks rows on phones.
 - **Demo fixture (`lib/demo-fixture.ts`):** 6 fictional places on real IV and Goleta streets, 4 fictional roommates. Includes an unknown-rent place, one without a pin, a Passed place, one in Goleta, and the PRD example (Sabado Tarde, Contacted, "Ask whether parking is included", assigned to Maya, due Friday).
 - **Database (`supabase/migrations/`):**

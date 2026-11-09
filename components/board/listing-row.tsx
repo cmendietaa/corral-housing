@@ -42,7 +42,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
         onSelect();
       }}
       className={cn(
-        "relative scroll-mt-24 py-4 pl-5 pr-4 transition-colors sm:pr-5",
+        "group relative scroll-mt-24 py-4 pl-5 pr-4 transition-colors sm:pr-5",
         "before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-full",
         STATUS_STYLES[listing.status].edge,
         selected ? "bg-coral-soft/60" : "hover:bg-sand/70"
@@ -63,7 +63,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
               {headline}
             </button>
           </h3>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted/90">
             {showTitle ? <span>{listing.title}</span> : null}
             {listing.lat === null ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">
@@ -88,9 +88,9 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
               {formatRent(perPerson)} each
               {board.budgetPerPersonCents !== null ? (
                 meetsBudget(perPerson, board.budgetPerPersonCents) ? (
-                  <span className="ml-1.5 font-semibold text-st-applied">within budget</span>
+                  <span className="ml-1.5 font-medium text-st-applied">within budget</span>
                 ) : (
-                  <span className="ml-1.5 font-semibold text-danger">over budget</span>
+                  <span className="ml-1.5 font-medium text-danger">over budget</span>
                 )
               ) : null}
             </p>
@@ -111,13 +111,13 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
         </button>
       </div>
 
-      <p className={cn("mt-1.5 text-sm text-muted", closed && "opacity-55")}>
+      <p className={cn("mt-1 text-[13px] text-muted/80", closed && "opacity-55")}>
         {formatCount(listing.beds, "bed")}, {formatCount(listing.baths, "bath")}
         <span className="mx-2 text-line" aria-hidden="true">|</span>
         {formatLeasePhrase(listing.leaseStart, listing.leaseEnd)}
       </p>
 
-      <div className="mt-2.5">
+      <div className={cn("mt-3", listing.nextAction && "rounded-md bg-ocean-soft/70 px-3 py-2")}>
         <NextAction listing={listing} members={board.members} onSave={onPatch} />
       </div>
 
@@ -127,26 +127,35 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           label={`Status for ${headline}`}
           onChange={(status) => void onPatch({ status })}
         />
-        <a
-          href={listing.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-ocean transition hover:bg-ocean-soft focus-visible:outline-2 focus-visible:outline-focus"
+        <span
+          className={cn(
+            "ml-auto flex items-center gap-1 transition-opacity",
+            // On hover-capable screens, keep the row quiet until you point at it or tab into it.
+            !selected &&
+              "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100"
+          )}
         >
-          <span className="sm:hidden">Listing</span>
-          <span className="hidden sm:inline">Open listing</span>
-          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="sr-only">(opens in a new tab)</span>
-        </a>
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label={`Edit ${headline}`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-muted transition hover:bg-sand hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
-        >
-          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="hidden sm:inline">Edit</span>
-        </button>
+          <a
+            href={listing.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-ocean transition hover:bg-ocean-soft focus-visible:outline-2 focus-visible:outline-focus"
+          >
+            <span className="sm:hidden">Listing</span>
+            <span className="hidden sm:inline">Open listing</span>
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="sr-only">(opens in a new tab)</span>
+          </a>
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${headline}`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-muted transition hover:bg-sand hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
+        </span>
       </div>
     </article>
   );
