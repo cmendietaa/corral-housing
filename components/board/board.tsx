@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { ListingForm } from "./listing-form";
 import { ListingRow } from "./listing-row";
 import { MapBoundary } from "./map-boundary";
+import { StreetPhoto } from "./street-photo";
 
 const MapPanel = dynamic(() => import("./map-panel"), {
   ssr: false,
@@ -55,7 +56,8 @@ function groupListings(listings: Listing[], by: GroupBy): Group[] {
     .map(([key, ls]) => ({ key, label: key, listings: ls }));
 }
 
-export function Board({ store }: { store: BoardStore }) {
+/** `photos`: whether Street View is configured on this deployment. */
+export function Board({ store, photos = false }: { store: BoardStore; photos?: boolean }) {
   const [snap, setSnap] = useState<BoardSnapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -307,6 +309,7 @@ export function Board({ store }: { store: BoardStore }) {
                             }}
                             listing={l}
                             board={snap.board}
+                            photos={photos}
                             selected={selectedId === l.id}
                             onSelect={() => setSelectedId(l.id)}
                             onPatch={(changes) => patch(l.id, changes)}
@@ -343,10 +346,22 @@ export function Board({ store }: { store: BoardStore }) {
             </div>
             {selected && mobileView === "map" ? (
               <div className="absolute inset-x-3 top-24 z-[1050] rounded-lg border border-line bg-surface p-3 shadow-lift lg:hidden">
-                <p className="font-bold">{streetHeadline(selected.address, selected.title)}</p>
-                <p className="text-sm text-muted">
-                  {selected.rentCents === null ? "Rent unknown" : `${formatRent(selected.rentCents)}/mo`}
-                </p>
+                <div className="flex gap-3">
+                  {photos ? (
+                  <StreetPhoto
+                    lat={selected.lat}
+                    lng={selected.lng}
+                    label={streetHeadline(selected.address, selected.title)}
+                    className="h-16 w-24"
+                  />
+                  ) : null}
+                  <div className="min-w-0">
+                    <p className="font-display font-bold">{streetHeadline(selected.address, selected.title)}</p>
+                    <p className="text-sm text-muted">
+                      {selected.rentCents === null ? "Rent unknown" : `${formatRent(selected.rentCents)}/mo`}
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   className="mt-1 text-sm font-semibold text-ocean underline underline-offset-4"

@@ -9,6 +9,7 @@ import { isClosedStatus, type Board, type Listing, type ListingPatch } from "@/l
 import { cn } from "@/lib/utils";
 import { NextAction } from "./next-action";
 import { STATUS_STYLES, StatusSelect } from "./status";
+import { StreetPhoto } from "./street-photo";
 
 type Props = {
   listing: Listing;
@@ -17,6 +18,8 @@ type Props = {
   onSelect: () => void;
   onPatch: (patch: ListingPatch) => Promise<void>;
   onEdit: () => void;
+  /** Show a Street View thumbnail (only when Street View is configured). */
+  photos?: boolean;
 };
 
 /**
@@ -24,7 +27,7 @@ type Props = {
  * a status-colored edge, and the next step on its own line.
  */
 export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
-  { listing, board, selected, onSelect, onPatch, onEdit },
+  { listing, board, selected, onSelect, onPatch, onEdit, photos = false },
   ref
 ) {
   const closed = isClosedStatus(listing.status);
@@ -53,6 +56,14 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
       ) : null}
 
       <div className="flex items-start gap-3">
+        {photos ? (
+          <StreetPhoto
+            lat={listing.lat}
+            lng={listing.lng}
+            label={headline}
+            className={cn("h-14 w-14 sm:h-[4.5rem] sm:w-24", closed && "opacity-55 grayscale")}
+          />
+        ) : null}
         <div className={cn("min-w-0 flex-1", closed && "opacity-55")}>
           <h3 className="font-display text-lg font-bold leading-tight text-ink">
             <button

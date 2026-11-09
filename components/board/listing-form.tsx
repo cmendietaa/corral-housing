@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { Shoreline } from "@/components/brand/shoreline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { streetHeadline } from "@/lib/address";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
 import {
   emptyListingInput,
@@ -164,96 +166,127 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
       ref={dialogRef}
       onClose={onClose}
       aria-labelledby={`${id}-heading`}
-      className="m-auto w-[min(40rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-xl bg-surface p-0 text-ink shadow-lift"
+      className={cn(
+        "overflow-hidden bg-surface p-0 text-ink shadow-lift backdrop:bg-ink/40",
+        // Phones: a bottom sheet. Larger screens: a centered panel.
+        "max-sm:mb-0 max-sm:mt-auto max-sm:max-h-[92dvh] max-sm:w-full max-sm:max-w-none max-sm:rounded-t-xl",
+        "sm:m-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(42rem,calc(100vw-3rem))] sm:rounded-xl"
+      )}
     >
-      <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 id={`${id}-heading`} className="font-display text-xl font-bold">
-              {listing ? "Edit place" : "Add a place"}
+      <form onSubmit={handleSubmit} noValidate className="flex max-h-[inherit] flex-col">
+        <div className="shrink-0 px-5 pt-5 sm:px-7 sm:pt-6">
+          <div className="flex items-start justify-between gap-4">
+            <h2 id={`${id}-heading`} className="font-display text-2xl font-extrabold leading-tight">
+              {listing ? `Edit ${streetHeadline(listing.address, listing.title)}` : "Add a place"}
             </h2>
-            <p className="mt-1 text-sm text-muted">
-              Only the link and a name are needed. Leave anything you don&apos;t know blank.
-            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="-mr-2 -mt-1 rounded-full p-2 text-muted hover:bg-sand hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="-mr-2 -mt-1 rounded-full p-2 text-muted hover:bg-sand hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <Shoreline className="mt-3 max-w-[10rem]" />
+          <p className="mt-3 text-sm text-muted">
+            Only the link and a name are required. Leave anything you don&apos;t know blank and it shows as
+            unknown.
+          </p>
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Field label="Listing link" htmlFor={`${id}-url`} error={errors.url} errorId={`${id}-url-error`} wide>
-            <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" required />
-          </Field>
-          <Field label="Name" htmlFor={`${id}-title`} error={errors.title} errorId={`${id}-title-error`} hint="Address or a short nickname">
-            <Input {...field("title")} maxLength={120} placeholder="Sabado Tarde 4-bed" required />
-          </Field>
-          <Field label="Address" htmlFor={`${id}-address`} error={errors.address} errorId={`${id}-address-error`} optional>
-            <Input {...field("address")} maxLength={200} placeholder="6512 Sabado Tarde Rd" />
-          </Field>
-          <Field label="Rent for the whole place" htmlFor={`${id}-rent`} error={errors.rent} errorId={`${id}-rent-error`} optional>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-              <Input {...field("rent")} inputMode="decimal" placeholder="5400" className="pl-6 pr-12 tabular-nums" />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">/mo</span>
-            </div>
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Beds" htmlFor={`${id}-beds`} error={errors.beds} errorId={`${id}-beds-error`} optional>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 pb-6 pt-5 sm:px-7">
+          <Section title="The place">
+            <Field label="Listing link" htmlFor={`${id}-url`} error={errors.url} errorId={`${id}-url-error`} required wide>
+              <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" required />
+            </Field>
+            <Field
+              label="Name"
+              htmlFor={`${id}-title`}
+              error={errors.title}
+              errorId={`${id}-title-error`}
+              hint="A nickname the group will recognize"
+              required
+              wide
+            >
+              <Input {...field("title")} maxLength={120} placeholder="Upstairs 4-bed with a balcony" required />
+            </Field>
+            <Field label="Address" htmlFor={`${id}-address`} error={errors.address} errorId={`${id}-address-error`} wide>
+              <Input {...field("address")} maxLength={200} placeholder="6512 Sabado Tarde Rd" />
+            </Field>
+          </Section>
+
+          <Section title="Rent and size">
+            <Field
+              label="Rent for the whole place"
+              htmlFor={`${id}-rent`}
+              error={errors.rent}
+              errorId={`${id}-rent-error`}
+              wide
+            >
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                <Input {...field("rent")} inputMode="decimal" placeholder="5400" className="pl-6 pr-12 tabular-nums" />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">/mo</span>
+              </div>
+            </Field>
+            <Field label="Beds" htmlFor={`${id}-beds`} error={errors.beds} errorId={`${id}-beds-error`}>
               <Input {...field("beds")} inputMode="numeric" placeholder="4" />
             </Field>
-            <Field label="Baths" htmlFor={`${id}-baths`} error={errors.baths} errorId={`${id}-baths-error`} optional>
+            <Field label="Baths" htmlFor={`${id}-baths`} error={errors.baths} errorId={`${id}-baths-error`}>
               <Input {...field("baths")} inputMode="decimal" placeholder="2" />
             </Field>
-          </div>
-          <Field label="Lease starts" htmlFor={`${id}-leaseStart`} error={errors.leaseStart} errorId={`${id}-leaseStart-error`} optional>
-            <Input {...field("leaseStart")} type="date" />
-          </Field>
-          <Field label="Lease ends" htmlFor={`${id}-leaseEnd`} error={errors.leaseEnd} errorId={`${id}-leaseEnd-error`} optional>
-            <Input {...field("leaseEnd")} type="date" />
-          </Field>
-          <Field label="Parking" htmlFor={`${id}-parking`} optional>
-            <Select {...field("parking")}>
-              <option value="">Don&apos;t know yet</option>
-              {PARKING_OPTIONS.map((p) => (
-                <option key={p} value={p}>
-                  {PARKING_LABELS[p]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Laundry" htmlFor={`${id}-laundry`} optional>
-            <Select {...field("laundry")}>
-              <option value="">Don&apos;t know yet</option>
-              {LAUNDRY_OPTIONS.map((p) => (
-                <option key={p} value={p}>
-                  {LAUNDRY_LABELS[p]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Notes" htmlFor={`${id}-notes`} optional wide>
-            <textarea
-              {...field("notes")}
-              rows={3}
-              maxLength={2000}
-              className="w-full rounded-sm border border-line bg-surface px-3 py-2 text-sm hover:border-ocean/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            />
-          </Field>
+          </Section>
+
+          <Section title="Lease">
+            <Field label="Starts" htmlFor={`${id}-leaseStart`} error={errors.leaseStart} errorId={`${id}-leaseStart-error`}>
+              <Input {...field("leaseStart")} type="date" />
+            </Field>
+            <Field label="Ends" htmlFor={`${id}-leaseEnd`} error={errors.leaseEnd} errorId={`${id}-leaseEnd-error`}>
+              <Input {...field("leaseEnd")} type="date" />
+            </Field>
+          </Section>
+
+          <Section title="Extras">
+            <Field label="Parking" htmlFor={`${id}-parking`}>
+              <Select {...field("parking")}>
+                <option value="">Don&apos;t know yet</option>
+                {PARKING_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {PARKING_LABELS[p]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Laundry" htmlFor={`${id}-laundry`}>
+              <Select {...field("laundry")}>
+                <option value="">Don&apos;t know yet</option>
+                {LAUNDRY_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {LAUNDRY_LABELS[p]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Notes" htmlFor={`${id}-notes`} wide>
+              <textarea
+                {...field("notes")}
+                rows={3}
+                maxLength={2000}
+                placeholder="Anything the group should know: vibe, noise, landlord, deposit…"
+                className="w-full rounded-sm border border-line bg-surface px-3 py-2 text-sm placeholder:text-muted/70 hover:border-ocean/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              />
+            </Field>
+          </Section>
+
+          {formError ? (
+            <p role="alert" className="rounded-sm bg-coral-soft px-3 py-2 text-sm text-danger">
+              {formError}
+            </p>
+          ) : null}
         </div>
 
-        {formError ? (
-          <p role="alert" className="mt-4 rounded-sm bg-coral-soft px-3 py-2 text-sm text-danger">
-            {formError}
-          </p>
-        ) : null}
-
-        <div className="mt-6 flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-sand/60 px-5 py-3 sm:px-7">
           <Button type="submit" disabled={saving}>
             {listing ? "Save changes" : "Add place"}
           </Button>
@@ -277,13 +310,24 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="min-w-0">
+      <legend className="font-display mb-3 w-full border-b border-line pb-1.5 text-base font-bold text-ink">
+        {title}
+      </legend>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </fieldset>
+  );
+}
+
 function Field({
   label,
   htmlFor,
   error,
   errorId,
   hint,
-  optional,
+  required,
   wide,
   children
 }: {
@@ -292,16 +336,16 @@ function Field({
   error?: string;
   errorId?: string;
   hint?: string;
-  optional?: boolean;
+  required?: boolean;
   wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className={cn("min-w-0", wide && "sm:col-span-2")}>
-      <label htmlFor={htmlFor} className="mb-1 flex items-baseline gap-1.5 text-sm font-semibold text-ink">
+      <label htmlFor={htmlFor} className="mb-1 flex flex-wrap items-baseline gap-x-1.5 text-sm font-semibold text-ink">
         {label}
-        {optional ? <span className="text-xs font-normal text-muted">optional</span> : null}
-        {hint && !optional ? <span className="text-xs font-normal text-muted">{hint}</span> : null}
+        {required ? <span className="text-xs font-medium text-ocean">required</span> : null}
+        {hint ? <span className="text-xs font-normal text-muted">{hint}</span> : null}
       </label>
       {children}
       {error ? (

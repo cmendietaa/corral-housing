@@ -14,7 +14,8 @@ Deployed project + public repo for the ACM.Industry 2027 application, due around
 | `next_actions` table | One next action per place, stored as columns on `listings` | The PRD defines one next action per place. Columns keep RLS to a single table check |
 | Roommate trial on days 11–15 | 30-minute hallway test with 1–2 friends | No time for a full trial |
 | Optional extras | Rent per person plus a per-person budget badge (unknown rent shows "Rent unknown", never "Within budget"), and a status filter | Cheap and visible |
-| Google fonts | System font for body text; Recursive (OFL) self-hosted via @fontsource for display type and rents | No Google fetches; one distinctive face instead of a generic sans |
+| Google fonts | Recursive (OFL) everywhere, self-hosted via @fontsource: plain "linear" style for body text, a light casual touch for headlines and rents | No Google fetches; one family so names and descriptions don't clash |
+| — | Street View thumbnail per place via `/api/streetview` (key server-side, IV/Goleta area only, fixed size, metadata checked first) | A quick look at the street without leaving the board; hidden when no key is set |
 | — | Footer: "Not affiliated with UCSB. Demo data is fictional." | Avoids implying an official product |
 
 ## Decisions
@@ -66,6 +67,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@
 - [x] Supabase project created and linked; `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` set in Vercel
 - [ ] Google provider enabled in Supabase (client ID/secret, redirect URI `https://hdqguzucyunmtanmazst.supabase.co/auth/v1/callback`) and URL allow-list
 - [ ] Optional: `ANTHROPIC_API_KEY` in Vercel (added by the owner with `vercel env add`)
+- [ ] Optional: `GOOGLE_MAPS_API_KEY` (Street View Static API, server-only) in Vercel and `.env.local`, then redeploy. Photos stay hidden until it's set.
 
 ## Verification
 - Every commit: `npm run lint && npm test && npm run build`.

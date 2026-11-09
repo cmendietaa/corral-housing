@@ -83,7 +83,7 @@ export function BoardPreview({ className }: { className?: string }) {
                   fontSize="10.5"
                   fontWeight="800"
                   fill={sel ? "#1b2b36" : "#fff"}
-                  style={{ fontFamily: "var(--font-display)", fontVariationSettings: '"CASL" 0.65' }}
+                  style={{ fontFamily: "var(--font-display)", fontVariationSettings: '"CASL" 0.4' }}
                 >
                   {label}
                 </text>

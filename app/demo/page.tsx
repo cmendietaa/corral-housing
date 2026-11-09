@@ -7,5 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default function DemoPage() {
-  return <DemoBoard />;
+  // Read on the server; the key itself never reaches the browser. Adding the key needs a redeploy.
+  const photos = Boolean(process.env.GOOGLE_MAPS_API_KEY);
+  return <DemoBoard photos={photos} />;
 }
