@@ -19,8 +19,10 @@ Deployed project + public repo for the ACM.Industry 2027 application, due around
 
 ## Decisions
 - **Look: Coastal IV.** Sand background `#F7F1E8`, ocean-blue primary `#1F5F8B`, coral accent `#E8735A` for selection and highlights. Rounded cards, soft shadows, a wave mark in the header. Colors are Tailwind v4 `@theme` tokens in `app/globals.css`. Status chips are distinct but muted; Passed and Unavailable are grayed out.
-- **Layout: split view plus a Status tab.**
-  - **Map view** (default): cards left, map right; selecting either selects the other. On phones, a List/Map toggle.
+- **Layout: ledger list plus map, and a Status tab.** (Revised Nov 8 to avoid the generic card-grid look.)
+  - **Map view** (default): ledger rows left, map right (OSM tiles warmed toward sand); selecting a row or pin selects the other. On phones, a floating List/Map switch.
+  - **Rows, not cards:** ruled rows with a status-colored edge, aligned rent, and a street-first headline ("Sabado Tarde, 6512") parsed from the address, with the nickname underneath. IV flavor comes from content and the map, not hard-coded geography.
+  - **Grouping:** by status by default (In the running / Passed or unavailable), with an optional "Group by street" remembered per viewer.
   - **Status view**: kanban columns for the six statuses using the same `ListingCard`. Cards move with the status menu; drag-and-drop on desktop only if there's time.
   - Both tabs share the compare tray, shown once 2–3 places are checked.
 - **Scope:** the demo plus private boards (auth, invites, RLS).
@@ -33,7 +35,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@
 - **Routes:** `/` landing (Try demo, Sign in). `/demo` fictional board in localStorage with Reset and a "Fictional data" banner. `/boards` your boards, `/boards/[id]` a private board. `/invite/[token]` redeems an invite or explains why it's invalid or expired. `/auth/callback` handles sign-in. `/api/parse-listing` runs AI autofill.
 - **Storage split:** one `<Board>` client component receives a `BoardStore` (`load`, `addListing`, `updateListing`, `deleteListing`, optional `reset`). `lib/stores/local.ts` backs the demo; `lib/stores/supabase.ts` backs private boards. The demo store never imports the Supabase client.
 - **Core types:** `lib/listing.ts` (Listing, Board, Member, statuses, parking/laundry enums, Zod schemas with an http(s)-only URL rule). `lib/compare.ts` (unknown-last sorting, rent per person, budget check where unknown never passes, compare rows, formatters).
-- **Components** (`components/board/`): `Board`, `ListingCard` (star, status, next action, compare checkbox, budget badge), `ListingForm` (add/edit, Autofill box), `MapPanel`, `CompareView`, `NextActionEditor`, mobile List/Map toggle.
+- **Components** (`components/board/`): `Board`, `ListingRow` (star, status, next action, compare checkbox, budget note), `ListingForm` (add/edit, Autofill box), `MapPanel`, `CompareView`, `NextActionEditor`, mobile List/Map toggle.
   - `MapPanel` loads via `next/dynamic` with `ssr: false` inside an error boundary, so a map failure never blocks the list.
   - Pins use `L.divIcon`, colored by status. The selected pin can be dragged; "Place pin" mode handles places without coordinates.
   - `CompareView` handles 2–3 places, shows "Unknown" explicitly, highlights the best value per row, and stacks rows on phones.

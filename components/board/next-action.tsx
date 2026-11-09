@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState } from "react";
-import { CalendarClock, Pencil, Plus, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDue, isOverdue } from "@/lib/format";
@@ -14,6 +13,7 @@ type Props = {
   onSave: (patch: ListingPatch) => Promise<void> | void;
 };
 
+/** One line in a ledger row: "Next  Ask whether parking is included — Maya, by Fri, Nov 13". */
 export function NextAction({ listing, members, onSave }: Props) {
   const [editing, setEditing] = useState(false);
 
@@ -36,9 +36,9 @@ export function NextAction({ listing, members, onSave }: Props) {
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="flex w-full items-center gap-2 rounded-sm border border-dashed border-line px-3 py-2 text-left text-sm text-muted transition hover:border-ocean/40 hover:text-ocean focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        aria-label={`Add a next step for ${listing.title}`}
+        className="rounded-sm text-sm font-medium text-ocean underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
-        <Plus className="h-4 w-4" aria-hidden="true" />
         Add a next step
       </button>
     );
@@ -48,32 +48,28 @@ export function NextAction({ listing, members, onSave }: Props) {
   const overdue = listing.nextActionDue ? isOverdue(listing.nextActionDue) : false;
 
   return (
-    <div className="flex items-start gap-3 rounded-sm bg-sand px-3 py-2.5">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-ink">{listing.nextAction}</p>
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-          <span className="inline-flex items-center gap-1">
-            <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
-            {assignee ? assignee.name : "Unassigned"}
-          </span>
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      aria-label={`Edit next step for ${listing.title}: ${listing.nextAction}`}
+      className="group/next flex min-w-0 max-w-full items-baseline gap-2 rounded-sm text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+    >
+      <span className="shrink-0 font-semibold text-ocean">Next</span>
+      <span className="min-w-0">
+        <span className="text-ink group-hover/next:underline group-hover/next:underline-offset-4">
+          {listing.nextAction}
+        </span>
+        <span className="text-muted">
+          {" "}
+          — {assignee ? assignee.name : "unassigned"}
           {listing.nextActionDue ? (
-            <span className={cn("inline-flex items-center gap-1", overdue && "font-semibold text-danger")}>
-              <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
-              {overdue ? "Overdue · " : "Due "}
-              {formatDue(listing.nextActionDue)}
+            <span className={cn(overdue && "font-semibold text-danger")}>
+              , {overdue ? "overdue since" : "by"} {formatDue(listing.nextActionDue)}
             </span>
           ) : null}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        aria-label={`Edit next step for ${listing.title}`}
-        className="-mr-1 rounded-full p-1.5 text-muted transition hover:bg-sand-deep hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        <Pencil className="h-4 w-4" aria-hidden="true" />
-      </button>
-    </div>
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -105,7 +101,7 @@ function NextActionEditor({
 
   return (
     <form
-      className="space-y-2 rounded-sm border border-line bg-sand p-3"
+      className="w-full space-y-2 rounded-md border border-line bg-sand p-3"
       onSubmit={(e) => {
         e.preventDefault();
         const description = text.trim();
@@ -174,7 +170,7 @@ function NextActionEditor({
             type="button"
             size="sm"
             variant="ghost"
-            className="ml-auto text-danger hover:text-danger"
+            className="ml-auto"
             disabled={saving}
             onClick={() => void submit({ nextAction: null, nextActionAssignee: null, nextActionDue: null })}
           >

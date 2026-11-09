@@ -5,13 +5,13 @@ import { LISTING_STATUSES, STATUS_LABELS, type ListingStatus } from "@/lib/listi
 import { cn } from "@/lib/utils";
 
 /** Literal class strings so Tailwind can see them. */
-export const STATUS_STYLES: Record<ListingStatus, { chip: string; dot: string }> = {
-  considering: { chip: "bg-st-considering-bg text-st-considering", dot: "bg-st-considering" },
-  contacted: { chip: "bg-st-contacted-bg text-st-contacted", dot: "bg-st-contacted" },
-  tour_scheduled: { chip: "bg-st-tour-bg text-st-tour", dot: "bg-st-tour" },
-  applied: { chip: "bg-st-applied-bg text-st-applied", dot: "bg-st-applied" },
-  passed: { chip: "bg-st-closed-bg text-st-closed", dot: "bg-st-closed" },
-  unavailable: { chip: "bg-st-closed-bg text-st-closed", dot: "bg-st-closed" }
+export const STATUS_STYLES: Record<ListingStatus, { chip: string; dot: string; edge: string }> = {
+  considering: { chip: "bg-st-considering-bg text-st-considering", dot: "bg-st-considering", edge: "before:bg-st-considering" },
+  contacted: { chip: "bg-st-contacted-bg text-st-contacted", dot: "bg-st-contacted", edge: "before:bg-st-contacted" },
+  tour_scheduled: { chip: "bg-st-tour-bg text-st-tour", dot: "bg-st-tour", edge: "before:bg-st-tour" },
+  applied: { chip: "bg-st-applied-bg text-st-applied", dot: "bg-st-applied", edge: "before:bg-st-applied" },
+  passed: { chip: "bg-st-closed-bg text-st-closed", dot: "bg-st-closed", edge: "before:bg-st-closed" },
+  unavailable: { chip: "bg-st-closed-bg text-st-closed", dot: "bg-st-closed", edge: "before:bg-st-closed" }
 };
 
 /** Hex values for places that can't use classes (map pins). Keep in sync with globals.css. */
