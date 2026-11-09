@@ -54,7 +54,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
 
       <div className="flex items-start gap-3">
         <div className={cn("min-w-0 flex-1", closed && "opacity-55")}>
-          <h3 className="text-lg font-bold leading-tight tracking-tight text-ink">
+          <h3 className="font-display text-lg font-bold leading-tight text-ink">
             <button
               type="button"
               onClick={onSelect}
@@ -78,7 +78,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           {listing.rentCents === null ? (
             <p className="text-base font-semibold text-muted">Rent unknown</p>
           ) : (
-            <p className="text-xl font-bold tabular-nums tracking-tight text-ink">
+            <p className="font-display text-xl font-extrabold tabular-nums text-ink">
               {formatRent(listing.rentCents)}
               <span className="text-xs font-medium text-muted">/mo</span>
             </p>

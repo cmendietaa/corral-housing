@@ -169,7 +169,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
       <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id={`${id}-heading`} className="text-xl font-bold tracking-tight">
+            <h2 id={`${id}-heading`} className="font-display text-xl font-bold">
               {listing ? "Edit place" : "Add a place"}
             </h2>
             <p className="mt-1 text-sm text-muted">

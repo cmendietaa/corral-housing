@@ -2,6 +2,8 @@
 
 /* Coastal IV. Colors are defined once here and used as Tailwind utilities (bg-sand, text-ocean, ...). */
 @theme {
+  /* Recursive (OFL), self-hosted via @fontsource; casual axis for a hand-painted beach-sign feel. */
+  --font-display: "Recursive Variable", ui-sans-serif, system-ui, sans-serif;
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   --color-sand: #f7f1e8;
@@ -68,10 +70,21 @@ button:not(:disabled),
   background: rgb(232 115 90 / 25%);
 }
 
-/* Map pins: a teardrop in the place's status color, rendered by Leaflet divIcon. */
+/* Map pins: a teardrop in the place's status color, rendered as a MapLibre marker button. */
 .corral-pin-wrap {
-  background: none;
+  display: block;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.corral-pin-wrap.is-selected {
+  width: 34px;
+  height: 34px;
+  cursor: grab;
 }
 
 .corral-pin {
@@ -85,24 +98,35 @@ button:not(:disabled),
   box-shadow: 0 2px 6px rgb(27 43 54 / 35%);
 }
 
-.corral-pin.is-closed {
-  opacity: 0.55;
+.corral-pin-wrap.is-closed .corral-pin {
+  opacity: 0.6;
 }
 
-.corral-pin.is-selected {
+.corral-pin-wrap.is-selected .corral-pin {
   border-color: var(--color-coral);
   border-width: 4px;
-  box-shadow: 0 0 0 4px rgb(232 115 90 / 30%), 0 4px 10px rgb(27 43 54 / 35%);
+  box-shadow: 0 0 0 4px rgb(232 115 90 / 35%), 0 4px 10px rgb(27 43 54 / 35%);
 }
 
-.leaflet-container {
+.corral-pin-wrap:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+.maplibregl-map {
   font: inherit;
   background: var(--color-sand-deep);
 }
 
-.leaflet-container :focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+.maplibregl-ctrl-group {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.font-display {
+  font-variation-settings: "CASL" 0.65;
+  font-feature-settings: "tnum" 1;
 }
 
 dialog::backdrop {
@@ -118,14 +142,11 @@ dialog::backdrop {
   }
 }
 
-/* Warm the OpenStreetMap tiles toward the sand palette so the map reads as part of the board. */
-.leaflet-tile-pane {
-  filter: saturate(0.55) sepia(0.18) brightness(1.03);
-}
 
 /* Phones: keep the OpenStreetMap credit visible above the floating List/Map switch. */
 @media (max-width: 1023px) {
-  .leaflet-bottom {
+  .maplibregl-ctrl-bottom-right,
+  .maplibregl-ctrl-bottom-left {
     margin-bottom: 4.5rem;
   }
 }

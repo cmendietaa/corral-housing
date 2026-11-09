@@ -33,7 +33,7 @@ export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
       <WaveMark />
-      <span className="text-lg font-bold tracking-tight text-ink">Corral</span>
+      <span className="font-display text-xl font-extrabold tracking-tight text-ink">Corral</span>
     </span>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/recursive/casl.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

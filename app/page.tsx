@@ -21,7 +21,7 @@ export default function Home() {
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-10 px-4 py-14 sm:px-6">
         <div className="max-w-2xl space-y-5">
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-ink sm:text-6xl">
+          <h1 className="font-display text-4xl font-extrabold leading-[1.05] text-ink sm:text-6xl">
             Your roommate group&apos;s apartment hunt, on one board.
           </h1>
           <p className="max-w-xl text-lg leading-relaxed text-muted">

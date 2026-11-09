@@ -225,23 +225,27 @@ export function Board({ store }: { store: BoardStore }) {
               mobileView === "map" && "hidden lg:block"
             )}
           >
-            <div className="px-4 pb-24 pt-5 sm:px-6 lg:pb-10">
-              <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-                <div className="min-w-0">
-                  <h1 className="text-2xl font-bold tracking-tight sm:text-[1.75rem]">{snap.board.name}</h1>
-                  <p className="mt-1 text-sm text-muted">
-                    {snap.board.members.map((m) => m.name).join(", ")}
-                    <span className="mx-2 text-line" aria-hidden="true">|</span>
-                    {openCount} in the running
-                    {snap.board.budgetPerPersonCents !== null
-                      ? `, ${formatRent(snap.board.budgetPerPersonCents)} each max`
-                      : ""}
-                  </p>
-                </div>
-                <Button className="ml-auto" onClick={() => openForm({ mode: "add" })}>
-                  <Plus className="h-4 w-4" aria-hidden="true" />
-                  Add place
-                </Button>
+            <div className="px-4 pb-24 pt-6 sm:px-6 lg:pb-10">
+              <div className="min-w-0">
+                <h1 className="font-display text-[2rem] font-extrabold leading-[1.05] text-ink sm:text-[2.5rem]">
+                  {snap.board.name}
+                </h1>
+                <Shoreline className="mt-3" />
+                <p className="mt-3 text-sm text-muted">
+                  {snap.board.members.map((m) => m.name).join(", ")}
+                  <span className="mx-2 text-line" aria-hidden="true">|</span>
+                  <span className="font-display font-bold text-ink">{openCount}</span>{" "}
+                  {openCount === 1 ? "place" : "places"} in the running
+                  {snap.board.budgetPerPersonCents !== null ? (
+                    <>
+                      , up to{" "}
+                      <span className="font-display font-bold text-ink">
+                        {formatRent(snap.board.budgetPerPersonCents)}
+                      </span>{" "}
+                      each
+                    </>
+                  ) : null}
+                </p>
               </div>
 
               <div className="mt-5 flex items-center gap-2 text-sm">
@@ -264,6 +268,10 @@ export function Board({ store }: { store: BoardStore }) {
                     </button>
                   ))}
                 </div>
+                <Button className="ml-auto" size="sm" onClick={() => openForm({ mode: "add" })}>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Add place
+                </Button>
               </div>
 
               {groups.length === 0 ? (
@@ -401,6 +409,20 @@ export function Board({ store }: { store: BoardStore }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** The board's signature rule: a gentle swell in ocean blue with a coral glint, drawn to any width. */
+function Shoreline({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={cn("block h-3 w-full", className)} preserveAspectRatio="none" viewBox="0 0 400 12">
+      <defs>
+        <pattern id="swell" width="40" height="12" patternUnits="userSpaceOnUse">
+          <path d="M0 6 Q10 0 20 6 T40 6" fill="none" stroke="var(--color-ocean)" strokeWidth="2" strokeLinecap="round" />
+        </pattern>
+      </defs>
+      <rect width="400" height="12" fill="url(#swell)" />
+    </svg>
   );
 }
 

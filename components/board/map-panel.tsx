@@ -1,15 +1,16 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo, useRef } from "react";
-import L from "leaflet";
-import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { useEffect, useRef, useState } from "react";
+import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl } from "maplibre-gl";
 import { streetHeadline } from "@/lib/address";
 import { isClosedStatus, type Listing } from "@/lib/listing";
+import { mainCluster } from "@/lib/map-view";
+import { applyCoastalStyle, BASE_STYLE_URL } from "./map-style";
 import { STATUS_HEX } from "./status";
 
 /** Isla Vista, between campus and the cliffs. */
-export const IV_CENTER: [number, number] = [34.4123, -119.8605];
+const IV_CENTER: [number, number] = [-119.8605, 34.4123];
 
 export type MapPanelProps = {
   listings: Listing[];
@@ -19,143 +20,187 @@ export type MapPanelProps = {
   onMovePin: (id: string, lat: number, lng: number) => void;
 };
 
-function pinIcon(listing: Listing, selected: boolean) {
-  const color = STATUS_HEX[listing.status];
-  const classes = ["corral-pin", selected && "is-selected", isClosedStatus(listing.status) && "is-closed"]
-    .filter(Boolean)
-    .join(" ");
-  return L.divIcon({
-    className: "corral-pin-wrap",
-    html: `<span class="${classes}" style="--pin:${color}"></span>`,
-    iconSize: selected ? [34, 34] : [24, 24],
-    iconAnchor: selected ? [17, 34] : [12, 24]
-  });
-}
-
-/**
- * Leaflet measures its container once at mount. In a flex/grid layout (and when
- * the phone List/Map toggle reveals it) the real size arrives later, so watch
- * the container, re-measure, and fit the pins only once it has a real size.
- */
-function SizeAndFit({ listings }: { listings: Listing[] }) {
-  const map = useMap();
-  const fitted = useRef(false);
-  const latest = useRef(listings);
-  useEffect(() => {
-    latest.current = listings;
-  }, [listings]);
-
-  useEffect(() => {
-    const el = map.getContainer();
-    const fit = () => {
-      if (fitted.current || el.clientWidth === 0 || el.clientHeight === 0) return;
-      const points = latest.current
-        .filter((l) => l.lat !== null && l.lng !== null)
-        .map((l) => [l.lat!, l.lng!] as [number, number]);
-      fitted.current = true;
-      if (points.length > 0) map.fitBounds(L.latLngBounds(points), { padding: [56, 56], maxZoom: 16 });
-    };
-    const ro = new ResizeObserver(() => {
-      map.invalidateSize({ pan: false });
-      fit();
-    });
-    ro.observe(el);
-    map.invalidateSize({ pan: false });
-    fit();
-    return () => ro.disconnect();
-  }, [map]);
-  return null;
-}
-
-function FollowSelection({ listing }: { listing: Listing | undefined }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!listing || listing.lat === null || listing.lng === null) return;
-    const target = L.latLng(listing.lat, listing.lng);
-    if (!map.getBounds().pad(-0.15).contains(target)) {
-      map.panTo(target, { animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches });
-    }
-  }, [listing, map]);
-  return null;
-}
-
-function PlacePinOnClick({ listing, onMovePin }: { listing: Listing | undefined; onMovePin: MapPanelProps["onMovePin"] }) {
-  const placing = listing && listing.lat === null;
-  const map = useMapEvents({
-    click(e) {
-      if (placing) onMovePin(listing.id, round(e.latlng.lat), round(e.latlng.lng));
-    }
-  });
-  useEffect(() => {
-    map.getContainer().style.cursor = placing ? "crosshair" : "";
-  }, [map, placing]);
-  return null;
-}
-
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+type Mapped = Listing & { lat: number; lng: number };
+const isMapped = (l: Listing): l is Mapped => l.lat !== null && l.lng !== null;
+
+function boundsOf(points: { lat: number; lng: number }[]) {
+  const b = new LngLatBounds();
+  for (const p of points) b.extend([p.lng, p.lat]);
+  return b;
+}
 
 export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: MapPanelProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markers = useRef(new Map<string, Marker>());
+  const fitted = useRef(false);
+  const [ready, setReady] = useState(false);
+  const [hasOutside, setHasOutside] = useState(false);
+
+  // Latest props for map event handlers created once.
+  const latest = useRef({ listings, selectedId, onSelect, onMovePin });
+  useEffect(() => {
+    latest.current = { listings, selectedId, onSelect, onMovePin };
+  });
+
+  function fitToCluster(all: boolean) {
+    const map = mapRef.current;
+    const el = containerRef.current;
+    if (!map || !el || el.clientWidth === 0 || el.clientHeight === 0) return;
+    const points = latest.current.listings.filter(isMapped);
+    fitted.current = true;
+    const { cluster, outside } = mainCluster(points);
+    setHasOutside(outside.length > 0);
+    const target = all ? points : cluster;
+    if (target.length === 0) return;
+    map.fitBounds(boundsOf(target), {
+      padding: { top: 72, bottom: 72, left: 56, right: 56 },
+      maxZoom: 16.5,
+      animate: all && !reducedMotion()
+    });
+  }
+
+  // Create the map once.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const map = new MapLibreMap({
+      container: el,
+      style: BASE_STYLE_URL,
+      center: IV_CENTER,
+      zoom: 15,
+      attributionControl: { compact: false },
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false
+    });
+    map.touchZoomRotate.disableRotation();
+    map.addControl(new NavigationControl({ showCompass: false }), "top-left");
+    map.on("style.load", () => applyCoastalStyle(map));
+    map.on("load", () => setReady(true));
+    map.on("click", (e) => {
+      const { listings: ls, selectedId: sel, onMovePin: move } = latest.current;
+      const placing = ls.find((l) => l.id === sel && l.lat === null);
+      if (placing) move(placing.id, round(e.lngLat.lat), round(e.lngLat.lng));
+    });
+    mapRef.current = map;
+
+    // The container's real size arrives after layout (and after the phone
+    // List/Map switch reveals it). Re-measure, and fit once it's real.
+    const ro = new ResizeObserver(() => {
+      map.resize();
+      if (!fitted.current) fitToCluster(false);
+    });
+    ro.observe(el);
+
+    const currentMarkers = markers.current;
+    return () => {
+      ro.disconnect();
+      currentMarkers.forEach((m) => m.remove());
+      currentMarkers.clear();
+      map.remove();
+      mapRef.current = null;
+    };
+    // Created once; handlers read the latest props through refs.
+  }, []);
+
+  // Keep markers in sync with listings and selection.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const seen = new Set<string>();
+    for (const l of listings.filter(isMapped)) {
+      seen.add(l.id);
+      const selected = l.id === selectedId;
+      const label = streetHeadline(l.address, l.title);
+      let marker = markers.current.get(l.id);
+      if (!marker) {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "corral-pin-wrap";
+        el.innerHTML = '<span class="corral-pin"></span>';
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          latest.current.onSelect(l.id);
+        });
+        const created = new Marker({ element: el, anchor: "bottom" }).setLngLat([l.lng, l.lat]).addTo(map);
+        created.on("dragend", () => {
+          const p = created.getLngLat();
+          latest.current.onMovePin(l.id, round(p.lat), round(p.lng));
+        });
+        markers.current.set(l.id, created);
+        marker = created;
+      } else {
+        marker.setLngLat([l.lng, l.lat]);
+      }
+      const el = marker.getElement();
+      el.setAttribute("aria-label", selected ? `${label}, selected. Drag to move the pin.` : label);
+      el.title = label;
+      el.style.setProperty("--pin", STATUS_HEX[l.status]);
+      el.style.zIndex = selected ? "3" : isClosedStatus(l.status) ? "1" : "2";
+      el.classList.toggle("is-selected", selected);
+      el.classList.toggle("is-closed", isClosedStatus(l.status));
+      marker.setDraggable(selected);
+    }
+    for (const [id, marker] of markers.current) {
+      if (!seen.has(id)) {
+        marker.remove();
+        markers.current.delete(id);
+      }
+    }
+    if (!fitted.current) fitToCluster(false);
+    else setHasOutside(mainCluster(listings.filter(isMapped)).outside.length > 0);
+  }, [listings, selectedId, ready]);
+
+  // Bring the selected pin into view, and show a crosshair while placing one.
   const selected = listings.find((l) => l.id === selectedId);
-  const mapped = useMemo(() => listings.filter((l) => l.lat !== null && l.lng !== null), [listings]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getCanvas().style.cursor = selected && selected.lat === null ? "crosshair" : "";
+    if (!selected || !isMapped(selected)) return;
+    const b = map.getBounds();
+    const latPad = (b.getNorth() - b.getSouth()) * 0.15;
+    const lngPad = (b.getEast() - b.getWest()) * 0.15;
+    const inside =
+      selected.lat < b.getNorth() - latPad &&
+      selected.lat > b.getSouth() + latPad &&
+      selected.lng < b.getEast() - lngPad &&
+      selected.lng > b.getWest() + lngPad;
+    if (!inside) {
+      const center: [number, number] = [selected.lng, selected.lat];
+      if (reducedMotion()) map.jumpTo({ center });
+      else map.easeTo({ center, duration: 500 });
+    }
+  }, [selected, ready]);
+
   const placing = selected && selected.lat === null;
 
   return (
     <div className="relative h-full w-full">
-      <MapContainer
-        center={IV_CENTER}
-        zoom={15}
-        scrollWheelZoom
-        className="h-full w-full"
-        attributionControl
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-        />
-        <SizeAndFit listings={listings} />
-        <FollowSelection listing={selected} />
-        <PlacePinOnClick listing={selected} onMovePin={onMovePin} />
-        {mapped.map((l) => {
-          const isSel = l.id === selectedId;
-          return (
-            <Marker
-              key={`${l.id}-${isSel ? "sel" : "pin"}`}
-              position={[l.lat!, l.lng!]}
-              icon={pinIcon(l, isSel)}
-              draggable={isSel}
-              zIndexOffset={isSel ? 1000 : isClosedStatus(l.status) ? -100 : 0}
-              title={streetHeadline(l.address, l.title)}
-              alt={streetHeadline(l.address, l.title)}
-              keyboard
-              eventHandlers={{
-                click: () => onSelect(l.id),
-                keypress: (e) => {
-                  const key = (e.originalEvent as KeyboardEvent).key;
-                  if (key === "Enter" || key === " ") onSelect(l.id);
-                },
-                dragend: (e) => {
-                  const p = (e.target as L.Marker).getLatLng();
-                  onMovePin(l.id, round(p.lat), round(p.lng));
-                }
-              }}
-            >
-              <Tooltip direction="top" offset={[0, isSel ? -30 : -20]} opacity={1}>
-                {streetHeadline(l.address, l.title)}
-              </Tooltip>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+      <div ref={containerRef} className="h-full w-full" />
 
       {placing ? (
-        <p className="pointer-events-none absolute inset-x-3 top-3 z-[500] rounded-md bg-ink/90 px-3 py-2 text-center text-sm font-medium text-sand shadow-lift">
+        <p className="pointer-events-none absolute inset-x-3 top-3 z-10 rounded-md bg-ink/90 px-3 py-2 text-center text-sm font-medium text-sand shadow-lift sm:left-14">
           Click the map to place {streetHeadline(selected.address, selected.title)}
         </p>
       ) : selected && selected.lat !== null ? (
-        <p className="pointer-events-none absolute right-3 top-3 z-[500] rounded-md bg-surface/95 px-2.5 py-1.5 text-xs text-muted shadow-soft">
+        <p className="pointer-events-none absolute right-3 top-3 z-10 rounded-md bg-surface/95 px-2.5 py-1.5 text-xs text-muted shadow-soft">
           Drag the highlighted pin to fix its spot
         </p>
+      ) : null}
+
+      {hasOutside ? (
+        <button
+          type="button"
+          onClick={() => fitToCluster(true)}
+          className="absolute bottom-10 right-3 z-10 rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ocean shadow-soft transition hover:bg-ocean-soft focus-visible:outline-2 focus-visible:outline-focus max-lg:bottom-28"
+        >
+          Show all places
+        </button>
       ) : null}
     </div>
   );
