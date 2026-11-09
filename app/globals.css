@@ -1,36 +1,55 @@
 @import "tailwindcss";
 
+/* Coastal IV. Colors are defined once here and used as Tailwind utilities (bg-sand, text-ocean, ...). */
 @theme {
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --color-background: #f7f8fa;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f0f3f5;
-  --color-ink: #18201d;
-  --color-muted: #66716d;
-  --color-line: #dfe5dd;
-  --color-moss: #567568;
-  --color-coral: #d66f5f;
-  --color-gold: #c99a2e;
-  --color-sky: #5e8fbf;
-  --color-focus: #246bfe;
-  --shadow-soft: 0 14px 40px rgb(24 32 29 / 8%);
-  --shadow-panel: 0 18px 60px rgb(24 32 29 / 10%);
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --color-sand: #f7f1e8;
+  --color-sand-deep: #efe5d6;
+  --color-surface: #fffdf9;
+  --color-line: #e6dccb;
+  --color-ink: #1b2b36;
+  --color-muted: #5b6a73;
+  --color-ocean: #1f5f8b;
+  --color-ocean-deep: #174a6d;
+  --color-ocean-soft: #e3edf4;
+  --color-coral: #e8735a;
+  --color-coral-soft: #fbe6e0;
+  --color-danger: #b4432e;
+  --color-focus: #1f5f8b;
+
+  /* Status swatches: muted and distinct; passed/unavailable are grays. */
+  --color-st-considering: #546876;
+  --color-st-considering-bg: #e9eef1;
+  --color-st-contacted: #1f5f8b;
+  --color-st-contacted-bg: #dde9f2;
+  --color-st-tour: #8a5e10;
+  --color-st-tour-bg: #f5ead3;
+  --color-st-applied: #3f7552;
+  --color-st-applied-bg: #e0eee3;
+  --color-st-closed: #6e6e69;
+  --color-st-closed-bg: #ecebe7;
+
+  --shadow-soft: 0 1px 2px rgb(27 43 54 / 6%), 0 8px 24px rgb(27 43 54 / 7%);
+  --shadow-lift: 0 2px 4px rgb(27 43 54 / 8%), 0 16px 40px rgb(27 43 54 / 12%);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
 }
 
 :root {
   color-scheme: light;
-  background: var(--color-background);
+  background: var(--color-sand);
   color: var(--color-ink);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--color-background);
+  background: var(--color-sand);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -46,5 +65,18 @@ button:not(:disabled),
 }
 
 ::selection {
-  background: rgb(94 143 191 / 24%);
+  background: rgb(232 115 90 / 25%);
+}
+
+dialog::backdrop {
+  background: rgb(27 43 54 / 40%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

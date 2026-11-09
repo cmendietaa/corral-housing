@@ -1,90 +1,70 @@
-# Corral build plan (supersedes the original BUILD-PLAN)
+# Corral build plan (v2, supersedes v1)
 
-## Context
-You need a live, deployed project plus its public GitHub repo for the ACM.Industry 2027 application, due in about 10 days (around Nov 18–19). The ChatGPT PRD and build plan are solid but sized for 2–3 weeks, and they skip the "technically interesting" angle reviewers mention. This plan keeps the PRD's core: a private shared board, quick capture, a linked map, comparison, and status plus next action. It also:
-- compresses the schedule to 10 days with a hard feature freeze,
-- adds one stretch feature, **AI listing import**: paste a listing's text and get structured fields back to review before saving,
-- removes steps that are risky on a short timeline,
-- lives in its own repo (`cmendietaa/corral-housing`).
+Deployed project + public repo for the ACM.Industry 2027 application, due around Nov 18–19. Day numbers are a guide, not a deadline: finishing early is better.
 
-## Changes to the PRD and build plan
+- Production: https://corral-housing.vercel.app (auto-deploys from `main`)
+- Repo: https://github.com/cmendietaa/corral-housing
+- Supabase project: `corral-housing` (ref `hdqguzucyunmtanmazst`, us-west-1)
+
+## Changes to the PRD and original build plan
 | Original | Change | Why |
 |---|---|---|
-| Sign-in method left open | **Google OAuth through Supabase only** | Supabase's built-in email sender is limited to a few emails per hour, so magic links would break during review. You already set up Google OAuth for FlowState. |
-| "Add a listing URL" only | URL **plus optional "paste listing text → Autofill"** | Speeds up the PRD's under-30-seconds capture goal and adds the AI/structured-output work. It parses pasted text only and never scrapes URLs: listing sites block scrapers, and the PRD defers scraping. |
-| Days 11–15 roommate trial | 30-minute hallway test with 1–2 friends on day 7 | There isn't time for a full trial. |
-| Demo uses localStorage | Same, plus a **Reset demo** button and a "Fictional data" banner | Required by the PRD's demo acceptance check. |
-| Filters and rent split are optional | Equal-share rent per person on cards (cheap) and a status filter, only if done by day 8 | Low cost and visible value. |
-| Realtime and notifications | Still deferred | Not worth the time. Members refresh to see changes. |
+| Sign-in method left open | Google OAuth through Supabase only | Supabase's built-in email sender is rate-limited, so magic links would break during review |
+| URL capture only | Optional "paste listing text → Autofill". Claude Haiku returns structured JSON; a regex fallback parser runs when there's no key or the rate limit is hit | Supports the under-30-seconds capture goal and adds the AI angle. Parses pasted text only, never scrapes |
+| `next_actions` table | One next action per place, stored as columns on `listings` | The PRD defines one next action per place. Columns keep RLS to a single table check |
+| Roommate trial on days 11–15 | 30-minute hallway test with 1–2 friends | No time for a full trial |
+| Optional extras | Rent per person plus a per-person budget badge (unknown rent shows "Rent unknown", never "Within budget"), and a status filter | Cheap and visible |
+| Google fonts | System font stack | No build-time font fetches |
+| — | Footer: "Not affiliated with UCSB. Demo data is fictional." | Avoids implying an official product |
+
+## Decisions
+- **Look: Coastal IV.** Sand background `#F7F1E8`, ocean-blue primary `#1F5F8B`, coral accent `#E8735A` for selection and highlights. Rounded cards, soft shadows, a wave mark in the header. Colors are Tailwind v4 `@theme` tokens in `app/globals.css`. Status chips are distinct but muted; Passed and Unavailable are grayed out.
+- **Layout: split view plus a Status tab.**
+  - **Map view** (default): cards left, map right; selecting either selects the other. On phones, a List/Map toggle.
+  - **Status view**: kanban columns for the six statuses using the same `ListingCard`. Cards move with the status menu; drag-and-drop on desktop only if there's time.
+  - Both tabs share the compare tray, shown once 2–3 places are checked.
+- **Scope:** the demo plus private boards (auth, invites, RLS).
+- **Extras:** AI listing autofill only. Distance to campus, dark mode and an activity feed are out.
 
 ## Stack
-- Next.js (App Router) + TypeScript + Tailwind v4, matching FlowState's versions in its `package.json`.
-- Supabase Auth (Google) + Postgres + RLS, using `@supabase/ssr` so access is checked on the server.
-- react-leaflet with OpenStreetMap or MapTiler tiles and visible attribution. Pins are placed by hand: click the map to set or correct a pin's coordinates.
-- Zod schemas shared by the forms, the API and the AI output.
-- AI autofill uses the Claude API or OpenAI, whichever key you have, with structured JSON output. If there's no key, a deterministic regex parser takes over. FlowState's `app/api/parse-task/route.ts` already uses this AI-plus-fallback pattern (see `fallbackParsedTask`), so reuse it. The public demo can run on the fallback parser at no cost, and the AI path is rate-limited.
-- Vitest for unit tests and Playwright for end-to-end tests. Both are already available in this environment.
-- Vercel for deployment from GitHub.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@supabase/ssr`, Google auth, Postgres, RLS) · react-leaflet + OpenStreetMap tiles · Zod · Vitest · Playwright · Vercel.
 
-### Reusable from FlowState (copy, don't link)
-- `components/ui/*`: the button, badge, input, panel and skeleton primitives
-- `lib/utils.ts`: the `cn` helper
-- `lib/supabase.ts`: the env-var fallback that switches to demo mode when Supabase keys are missing
-- `supabase/schema.sql`: the pattern for policies that are safe to rerun
+## Architecture
+- **Routes:** `/` landing (Try demo, Sign in). `/demo` fictional board in localStorage with Reset and a "Fictional data" banner. `/boards` your boards, `/boards/[id]` a private board. `/invite/[token]` redeems an invite or explains why it's invalid or expired. `/auth/callback` handles sign-in. `/api/parse-listing` runs AI autofill.
+- **Storage split:** one `<Board>` client component receives a `BoardStore` (`load`, `addListing`, `updateListing`, `deleteListing`, optional `reset`). `lib/stores/local.ts` backs the demo; `lib/stores/supabase.ts` backs private boards. The demo store never imports the Supabase client.
+- **Core types:** `lib/listing.ts` (Listing, Board, Member, statuses, parking/laundry enums, Zod schemas with an http(s)-only URL rule). `lib/compare.ts` (unknown-last sorting, rent per person, budget check where unknown never passes, compare rows, formatters).
+- **Components** (`components/board/`): `Board`, `ListingCard` (star, status, next action, compare checkbox, budget badge), `ListingForm` (add/edit, Autofill box), `MapPanel`, `CompareView`, `NextActionEditor`, mobile List/Map toggle.
+  - `MapPanel` loads via `next/dynamic` with `ssr: false` inside an error boundary, so a map failure never blocks the list.
+  - Pins use `L.divIcon`, colored by status. The selected pin can be dragged; "Place pin" mode handles places without coordinates.
+  - `CompareView` handles 2–3 places, shows "Unknown" explicitly, highlights the best value per row, and stacks rows on phones.
+- **Demo fixture (`lib/demo-fixture.ts`):** 6 fictional places on real IV and Goleta streets, 4 fictional roommates. Includes an unknown-rent place, one without a pin, a Passed place, one in Goleta, and the PRD example (Sabado Tarde, Contacted, "Ask whether parking is included", assigned to Maya, due Friday).
+- **Database (`supabase/migrations/`):**
+  - `boards`, `board_members(board_id, user_id, display_name, role)`, `invites(token, board_id, expires_at, revoked)`, `listings` (with next-action columns, `url check (url ~ '^https?://')`, status enum).
+  - RLS on every table: `exists (select 1 from board_members where board_id = … and user_id = auth.uid())`. No direct inserts into `board_members`; `security definer` functions `create_board()` and `redeem_invite(token)` are the only way in.
+- **AI route:** server-only `ANTHROPIC_API_KEY`, `claude-haiku-5-5`, JSON output validated with Zod. Pasted text capped at ~8k chars, ~10 calls/hour per IP, falls back to `lib/parse-listing.ts` on any error. Autofilled fields are always reviewed before saving.
 
-## Data model (`supabase/migrations/0001_init.sql`)
-- `boards(id, name, lease_year, created_by, created_at)`
-- `board_members(board_id, user_id, role, joined_at)`, primary key `(board_id, user_id)`
-- `invites(token uuid, board_id, created_by, expires_at, revoked)`
-- `listings(id, board_id, title, address, url check (url ~ '^https?://'), rent_cents null, beds null, baths null, lease_start, lease_end, parking, laundry, lat, lng, status enum, starred bool, notes, updated_by, updated_at)`
-- `next_actions(id, listing_id, description, assignee_id null, due_date null, done)`
-- RLS: every table allows a read or write only when the user is a member, checked by `exists (select 1 from board_members where board_id = … and user_id = auth.uid())`. Invites are redeemed through a `security definer` function `redeem_invite(token)` that checks the expiry date and inserts the membership. Users can't insert into `board_members` directly.
-
-## App structure
-- `/`: landing page with a **Try demo** button and a sign-in button
-- `/demo`: the fictional board, stored in localStorage
-- `/boards` (list) and `/boards/[id]` (private board)
-- `/invite/[token]`: redeems an invite, or shows a clear message for an invalid or expired one
-- One `<Board>` UI component takes a `BoardStore` interface with two implementations, `localStore` and `supabaseStore`. The demo and private boards share all their UI, and the demo never touches the database.
-- Components: `ListingList`, `ListingCard`, `MapPanel` (loaded client-side only, so a map failure doesn't block the list), `QuickAddDialog` (with the Autofill box), `CompareView` (2–3 places, fixed row order, "Unknown" for missing values, stacked layout on phones), `StatusSelect`, `NextActionEditor`, and a mobile toggle between List and Map.
-- `lib/compare.ts`: sorting where unknown rent sorts last and never passes a budget check, plus rent per person. It gets unit tests.
-
-## Schedule (today is Nov 9)
-| Days | Build | Checkpoint |
+## Schedule
+| Day | Build | Checkpoint |
 |---|---|---|
-| 1 (Nov 9–10) | Create the repo, scaffold, write `CLAUDE.md` and PRD.md, connect Vercel, deploy a hello page | The production URL opens in incognito |
-| 2–3 | Demo board: fixture of 6 IV/Goleta places, list, quick add, status, next action, star, localStorage, reset | Add, edit and change a status, refresh, and the data persists |
-| 3–4 | Linked map and compare view, mobile layout | Clicking a pin selects its card and the reverse; comparison works at 375px |
-| 5–6 | Supabase schema and RLS, Google sign-in, boards, invites, `supabaseStore` | Two accounts collaborate; a third is denied by URL **and** by a direct REST call |
-| 7 | AI autofill and fallback parser; hallway test | Paste a Craigslist-style listing and the fields fill in |
-| 8 | Polish from the test, rent split and status filter if time allows | |
-| 9 | **Feature freeze.** Playwright E2E tests, security review, README with screenshots, architecture, tradeoffs | |
-| 10 | Production checks on phone and desktop while logged out, then submit | |
+| 1 | Theme tokens, fixture, local store, list, quick add, status, next action, star, reset. Vercel connected | Production `/demo` opens in incognito; add a place, refresh, it persists |
+| 2 | Linked map with pin placement and dragging; compare tray and view | Pin and card select each other both ways; comparison readable at 375px |
+| 3 | Status (kanban) tab and mobile List/Map toggle | Changing a status moves the card; the whole demo works at iPhone size |
+| 4–6 | Supabase schema and RLS, Google sign-in, boards, invites, Supabase store | Two accounts collaborate; a third is denied by URL and by direct REST call |
+| 7 | Fallback parser with unit tests, then the AI route. Hallway test | Paste a Craigslist-style listing and the fields fill in |
+| 8 | Fixes from the hallway test, design polish, kanban drag-and-drop if time | — |
+| 9 | Feature freeze. Playwright E2E, security review of RLS and invites, README with screenshots, architecture and tradeoffs | — |
+| 10 | Production checks on phone and desktop while logged out, then submit | — |
 
-Cut order if behind: filter, rent split, AI autofill (keep the fallback parser), mobile polish. Never cut the demo, map, comparison or next actions.
+**Cut order if behind:** kanban drag-and-drop, status filter, AI route (keep fallback parser), Status tab, mobile polish. Never cut the demo, map, comparison or next actions. If private boards aren't solid by day 8, ship the demo plus sign-in and describe private boards honestly in the README.
 
-## Plugins and tools
-**Install these in your Claude Code (claude.ai → plugins). All are in the Anthropic Directory:**
-1. **frontend-design** (Anthropic): helps the UI look designed rather than generic. Use it on day 8 polish and the compare view.
-2. **supabase** (official, Supabase): Postgres and RLS best-practice skills, plus an MCP server. Point it at a dev project in read-only mode, and keep schema changes in migration files.
-3. **vercel** (official, Vercel): env vars, deploy status and Next.js best-practice skills. It helps on day 1 and when debugging deploys.
-
-**Built into Claude Code:**
-- `/security-review` and `/code-review`: run them before the freeze, focused on RLS and the invite function
-- Playwright (dev dependency): run the app and take screenshots to verify each milestone
-
-Skip these: Figma and similar connectors aren't needed, and community Supabase plugins duplicate the official one.
-
-## What you'll need to do yourself
-1. ~~Create the GitHub repo~~ Done: `cmendietaa/corral-housing`.
-2. Create a Supabase project, enable the Google provider, and add the Vercel and localhost URLs to its redirect allow-list.
-3. Import the repo into Vercel and set the env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and an optional LLM key.
-4. Optionally create a MapTiler key restricted to your domain. Otherwise use OSM tiles.
+## Setup status
+- [x] GitHub repo, Vercel project linked with Git auto-deploys
+- [x] Supabase project created and linked; `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` set in Vercel
+- [ ] Google provider enabled in Supabase (client ID/secret, redirect URI `https://hdqguzucyunmtanmazst.supabase.co/auth/v1/callback`) and URL allow-list
+- [ ] Optional: `ANTHROPIC_API_KEY` in Vercel (added by the owner with `vercel env add`)
 
 ## Verification
-- `npm run lint && npm test && npm run build` pass every day.
-- Playwright (`e2e/`):
-  1. Demo flow: add a place, compare it, set a next action, reload and it persists, then reset.
-  2. Outsider denied: a seeded third user gets no data on `/boards/[id]` and a 0-row or 403 response from the Supabase REST API.
-  3. An expired invite shows an error.
-- Manual check before submitting: incognito on desktop and phone (Playwright iPhone emulation plus a real phone), and verify the repo has no `.env*` secrets.
+- Every commit: `npm run lint && npm test && npm run build`.
+- Vitest: `lib/compare.ts`, `lib/listing.ts` (rejects `javascript:` URLs), `lib/stores/local.ts`, `lib/parse-listing.ts`.
+- Playwright (`e2e/`): demo flow at desktop and iPhone sizes (add, compare, next action, reload persists, reset); two browser contexts have isolated demo data; invalid invite shows the error page; an outsider gets 0 rows from the REST API for another board and is refused on writes.
+- Before submitting: incognito on a real phone and desktop; `git ls-files | grep -i '\.env'` shows only `.env.example`.
