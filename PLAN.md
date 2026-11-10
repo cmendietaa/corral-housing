@@ -66,7 +66,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@
 - [x] Supabase project created and linked; `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` set in Vercel
 - [x] Google provider enabled in Supabase (client ID/secret, redirect URI `https://hdqguzucyunmtanmazst.supabase.co/auth/v1/callback`) and URL allow-list
 - [x] Schema and RLS applied (`supabase/migrations/`); `supabase/tests/rls_check.sql` passes against the project (owner, invited member, outsider, anon)
-- [ ] Optional: `ANTHROPIC_API_KEY` in Vercel (added by the owner with `vercel env add`)
+- [ ] Optional: `ANTHROPIC_API_KEY` in Vercel (added by the owner with `vercel env add`) — autofill is built (`/api/parse-listing`, `lib/parse-listing.ts`, `lib/ai-extract.ts`); without a key it uses the parser
 - [ ] Optional: `GOOGLE_MAPS_API_KEY` (Street View Static API, server-only) in Vercel and `.env.local`, then redeploy. Photos stay hidden until it's set.
 
 ## Verification

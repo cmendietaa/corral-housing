@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { streetHeadline } from "@/lib/address";
@@ -16,6 +16,7 @@ import {
   type Listing,
   type ListingInput
 } from "@/lib/listing";
+import type { ParsedListing } from "@/lib/parse-listing";
 import { cn } from "@/lib/utils";
 
 type Draft = {
@@ -76,6 +77,15 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // Autofill from pasted listing text (add mode opens it by default).
+  const [pasteOpen, setPasteOpen] = useState(!listing);
+  const [pasteText, setPasteText] = useState("");
+  const [autofill, setAutofill] = useState<{ busy: boolean; message: string | null; error: boolean }>({
+    busy: false,
+    message: null,
+    error: false
+  });
+  const [filled, setFilled] = useState<Set<keyof Draft>>(new Set());
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -84,7 +94,65 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const set = (key: keyof Draft) => (value: string) => setDraft((d) => ({ ...d, [key]: value }));
+  const set = (key: keyof Draft) => (value: string) => {
+    setDraft((d) => ({ ...d, [key]: value }));
+    setFilled((f) => {
+      if (!f.has(key)) return f;
+      const next = new Set(f);
+      next.delete(key);
+      return next;
+    });
+  };
+
+  /** Ask the server to read the pasted text, then fill only the fields that are still empty. */
+  async function runAutofill() {
+    setAutofill({ busy: true, message: null, error: false });
+    try {
+      const res = await fetch("/api/parse-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: pasteText })
+      });
+      const body = (await res.json()) as { fields?: ParsedListing; source?: "ai" | "parser"; note?: string; error?: string };
+      if (!res.ok || !body.fields) {
+        setAutofill({ busy: false, message: body.error ?? "Couldn't read that text. Fill the fields in below.", error: true });
+        return;
+      }
+      const f = body.fields;
+      const incoming: Partial<Draft> = {
+        url: f.url ?? undefined,
+        title: f.title ?? undefined,
+        address: f.address ?? undefined,
+        rent: f.rentCents === null ? undefined : centsToDollarsInput(f.rentCents),
+        beds: f.beds === null ? undefined : String(f.beds),
+        baths: f.baths === null ? undefined : String(f.baths),
+        leaseStart: f.leaseStart ?? undefined,
+        leaseEnd: f.leaseEnd ?? undefined,
+        parking: f.parking ?? undefined,
+        laundry: f.laundry ?? undefined
+      };
+      // Computed here (not inside a state updater) so the count below is right.
+      const changed = new Set<keyof Draft>();
+      const next = { ...draft };
+      for (const [k, v] of Object.entries(incoming) as [keyof Draft, string | undefined][]) {
+        // Never overwrite something the person already typed.
+        if (v !== undefined && v !== "" && next[k].trim() === "") {
+          next[k] = v;
+          changed.add(k);
+        }
+      }
+      setDraft(next);
+      setFilled(changed);
+      const how = body.source === "ai" ? "with AI" : "with the basic reader";
+      const message =
+        changed.size === 0
+          ? "Didn't find anything new to fill in. Add the details below."
+          : `Filled ${changed.size} ${changed.size === 1 ? "field" : "fields"} ${how}. Check them before saving.`;
+      setAutofill({ busy: false, message: body.note ? `${message} ${body.note}` : message, error: false });
+    } catch {
+      setAutofill({ busy: false, message: "Couldn't reach the server. Fill the fields in below.", error: true });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -194,13 +262,58 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
         </div>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 pb-6 pt-5 sm:px-7">
+          <div className="rounded-[22px] bg-sea-100 p-4">
+            <button
+              type="button"
+              aria-expanded={pasteOpen}
+              onClick={() => setPasteOpen((o) => !o)}
+              className="flex w-full items-center gap-2 text-left"
+            >
+              <Sparkles className="h-4 w-4 text-sea-700" strokeWidth={2.75} aria-hidden="true" />
+              <span className="font-display text-base text-tar">Autofill from the listing</span>
+              <span className="ml-auto text-xs font-semibold text-sea-700">{pasteOpen ? "Hide" : "Show"}</span>
+            </button>
+            {pasteOpen ? (
+              <div className="mt-3 space-y-2.5">
+                <label htmlFor={`${id}-paste`} className="block text-sm text-stone-800">
+                  Paste the listing&apos;s text (the post, an email, a description). Corral fills in what it can; you check it
+                  before saving. Links aren&apos;t opened.
+                </label>
+                <textarea
+                  id={`${id}-paste`}
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  rows={4}
+                  maxLength={8000}
+                  placeholder={"4BR/2BA duplex near Pardall, $5,400/mo\nAvailable Sept 1, 12-month lease. W/D in unit."}
+                  className="w-full rounded-[18px] border border-divider bg-shell-light px-4 py-3 text-sm placeholder:text-stone-600"
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="sea"
+                    size="sm"
+                    disabled={autofill.busy || pasteText.trim().length < 10}
+                    onClick={() => void runAutofill()}
+                  >
+                    {autofill.busy ? "Reading…" : "Autofill"}
+                  </Button>
+                  <span aria-live="polite" className={cn("text-sm", autofill.error ? "font-semibold text-danger" : "text-sea-900")}>
+                    {autofill.message}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <Section title="The place">
-            <Field label="Listing link" htmlFor={`${id}-url`} error={errors.url} errorId={`${id}-url-error`} required wide>
+            <Field label="Listing link" htmlFor={`${id}-url`} filled={filled.has("url")} error={errors.url} errorId={`${id}-url-error`} required wide>
               <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" required />
             </Field>
             <Field
               label="Name"
               htmlFor={`${id}-title`}
+              filled={filled.has("title")}
               error={errors.title}
               errorId={`${id}-title-error`}
               hint="A nickname the group will recognize"
@@ -209,7 +322,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
             >
               <Input {...field("title")} maxLength={120} placeholder="Upstairs 4-bed with a balcony" required />
             </Field>
-            <Field label="Address" htmlFor={`${id}-address`} error={errors.address} errorId={`${id}-address-error`} wide>
+            <Field label="Address" htmlFor={`${id}-address`} filled={filled.has("address")} error={errors.address} errorId={`${id}-address-error`} wide>
               <Input {...field("address")} maxLength={200} placeholder="6512 Sabado Tarde Rd" />
             </Field>
           </Section>
@@ -218,6 +331,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
             <Field
               label="Rent for the whole place"
               htmlFor={`${id}-rent`}
+              filled={filled.has("rent")}
               error={errors.rent}
               errorId={`${id}-rent-error`}
               wide
@@ -228,25 +342,25 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">/mo</span>
               </div>
             </Field>
-            <Field label="Beds" htmlFor={`${id}-beds`} error={errors.beds} errorId={`${id}-beds-error`}>
+            <Field label="Beds" htmlFor={`${id}-beds`} filled={filled.has("beds")} error={errors.beds} errorId={`${id}-beds-error`}>
               <Input {...field("beds")} inputMode="numeric" placeholder="4" />
             </Field>
-            <Field label="Baths" htmlFor={`${id}-baths`} error={errors.baths} errorId={`${id}-baths-error`}>
+            <Field label="Baths" htmlFor={`${id}-baths`} filled={filled.has("baths")} error={errors.baths} errorId={`${id}-baths-error`}>
               <Input {...field("baths")} inputMode="decimal" placeholder="2" />
             </Field>
           </Section>
 
           <Section title="Lease">
-            <Field label="Starts" htmlFor={`${id}-leaseStart`} error={errors.leaseStart} errorId={`${id}-leaseStart-error`}>
+            <Field label="Starts" htmlFor={`${id}-leaseStart`} filled={filled.has("leaseStart")} error={errors.leaseStart} errorId={`${id}-leaseStart-error`}>
               <Input {...field("leaseStart")} type="date" />
             </Field>
-            <Field label="Ends" htmlFor={`${id}-leaseEnd`} error={errors.leaseEnd} errorId={`${id}-leaseEnd-error`}>
+            <Field label="Ends" htmlFor={`${id}-leaseEnd`} filled={filled.has("leaseEnd")} error={errors.leaseEnd} errorId={`${id}-leaseEnd-error`}>
               <Input {...field("leaseEnd")} type="date" />
             </Field>
           </Section>
 
           <Section title="Extras">
-            <Field label="Parking" htmlFor={`${id}-parking`}>
+            <Field label="Parking" htmlFor={`${id}-parking`} filled={filled.has("parking")}>
               <Select {...field("parking")}>
                 <option value="">Don&apos;t know yet</option>
                 {PARKING_OPTIONS.map((p) => (
@@ -256,7 +370,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
                 ))}
               </Select>
             </Field>
-            <Field label="Laundry" htmlFor={`${id}-laundry`}>
+            <Field label="Laundry" htmlFor={`${id}-laundry`} filled={filled.has("laundry")}>
               <Select {...field("laundry")}>
                 <option value="">Don&apos;t know yet</option>
                 {LAUNDRY_OPTIONS.map((p) => (
@@ -266,7 +380,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
                 ))}
               </Select>
             </Field>
-            <Field label="Notes" htmlFor={`${id}-notes`} wide>
+            <Field label="Notes" htmlFor={`${id}-notes`} filled={filled.has("notes")} wide>
               <textarea
                 {...field("notes")}
                 rows={3}
@@ -327,6 +441,7 @@ function Field({
   hint,
   required,
   wide,
+  filled,
   children
 }: {
   label: string;
@@ -336,13 +451,22 @@ function Field({
   hint?: string;
   required?: boolean;
   wide?: boolean;
+  /** Set by Autofill; shows a tag and tints the input until the person edits it. */
+  filled?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("min-w-0", wide && "sm:col-span-2")}>
+    <div
+      className={cn(
+        "min-w-0",
+        wide && "sm:col-span-2",
+        filled && "[&_input]:!border-sea-500 [&_input]:!bg-sea-100 [&_select]:!border-sea-500 [&_select]:!bg-sea-100"
+      )}
+    >
       <label htmlFor={htmlFor} className="mb-1 flex flex-wrap items-baseline gap-x-1.5 text-sm font-semibold text-ink">
         {label}
         {required ? <span className="text-xs font-medium text-ocean">required</span> : null}
+        {filled ? <span className="text-xs font-semibold text-sea-700">autofilled</span> : null}
         {hint ? <span className="text-xs font-normal text-muted">{hint}</span> : null}
       </label>
       {children}
