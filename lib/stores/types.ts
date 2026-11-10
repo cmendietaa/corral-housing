@@ -14,4 +14,6 @@ export interface BoardStore {
   updateListing(id: string, patch: ListingPatch): Promise<Listing>;
   deleteListing(id: string): Promise<void>;
   reset?(): Promise<BoardSnapshot>;
+  /** Live updates: calls onChange when someone else changes the board. Returns an unsubscribe. */
+  subscribe?(onChange: () => void): () => void;
 }

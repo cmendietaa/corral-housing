@@ -1,4 +1,5 @@
 import type { Listing } from "./listing";
+import { commuteToCampus } from "./commute";
 
 export const UNKNOWN = "Unknown";
 
@@ -68,6 +69,8 @@ type ComparePlace = Pick<
   | "nextAction"
   | "nextActionAssignee"
   | "nextActionDue"
+  | "lat"
+  | "lng"
 >;
 
 const PARKING_RANK: Record<NonNullable<Listing["parking"]>, number> = { garage: 3, driveway: 2, street: 1, none: 0 };
@@ -95,7 +98,7 @@ function withBest(cells: CompareCell[], values: (number | null)[], better: "low"
 
 /**
  * The comparison table, always in the same row order: Rent / mo, Per person,
- * Budget, Bedrooms, Bathrooms, Lease, Parking, Laundry, Next step.
+ * Budget, Bedrooms, Bathrooms, To campus, Lease, Parking, Laundry, Next step.
  */
 export function buildComparison(
   places: ComparePlace[],
@@ -110,6 +113,7 @@ export function buildComparison(
 ): CompareRow[] {
   const rents = places.map((p) => p.rentCents);
   const perPerson = places.map((p) => rentPerPerson(p.rentCents, opts.people));
+  const commutes = places.map((p) => commuteToCampus(p.lat, p.lng));
 
   return [
     {
@@ -157,6 +161,15 @@ export function buildComparison(
         places.map((p) => (p.baths === null ? unknown() : { text: String(p.baths) })),
         places.map((p) => p.baths),
         "high"
+      )
+    },
+    {
+      key: "commute",
+      label: "To campus",
+      cells: withBest(
+        commutes.map((c) => (c === null ? unknown("No pin") : { text: `~${c.bikeMin} min bike`, short: `~${c.bikeMin}m` })),
+        commutes.map((c) => c?.bikeMin ?? null),
+        "low"
       )
     },
     {

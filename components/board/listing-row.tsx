@@ -5,6 +5,7 @@ import { Check, Star } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
 import { formatRent, rentPerPerson } from "@/lib/compare";
 import { formatBedsBaths } from "@/lib/format";
+import { commuteToCampus } from "@/lib/commute";
 import { isClosedStatus, type Board, type Listing, type ListingPatch } from "@/lib/listing";
 import { cn } from "@/lib/utils";
 import { ownerDue } from "./next-action";
@@ -68,7 +69,12 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
   const area = areaLabel(listing.address);
   const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
   const od = ownerDue(listing, board.members);
-  const meta = [headline !== listing.title ? listing.title : null, formatBedsBaths(listing.beds, listing.baths) || null]
+  const commute = commuteToCampus(listing.lat, listing.lng);
+  const meta = [
+    headline !== listing.title ? listing.title : null,
+    formatBedsBaths(listing.beds, listing.baths) || null,
+    commute ? `~${commute.bikeMin} min bike to UCSB` : null
+  ]
     .filter(Boolean)
     .join(" · ");
   const toggleStar = () => void onPatch({ starred: !listing.starred });

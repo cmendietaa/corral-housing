@@ -24,6 +24,8 @@ describe("buildComparison", () => {
     nextAction: null,
     nextActionAssignee: null,
     nextActionDue: null,
+    lat: null,
+    lng: null,
     ...o
   });
   const rows = buildComparison(
@@ -45,7 +47,7 @@ describe("buildComparison", () => {
 
   it("keeps the fixed row order", () => {
     expect(rows.map((r) => r.label)).toEqual([
-      "Rent / mo", "Per person", "Budget", "Bedrooms", "Bathrooms", "Lease", "Parking", "Laundry", "Next step"
+      "Rent / mo", "Per person", "Budget", "Bedrooms", "Bathrooms", "To campus", "Lease", "Parking", "Laundry", "Next step"
     ]);
   });
 

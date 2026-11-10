@@ -60,6 +60,24 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
       return rowToListing(row as ListingRow);
     },
 
+    subscribe(onChange) {
+      // Postgres changes respect RLS, so only members of this board get events.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const ping = () => {
+        clearTimeout(timer);
+        timer = setTimeout(onChange, 300);
+      };
+      const channel = supabase
+        .channel(`board:${boardId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "listings", filter: `board_id=eq.${boardId}` }, ping)
+        .on("postgres_changes", { event: "*", schema: "public", table: "board_members", filter: `board_id=eq.${boardId}` }, ping)
+        .subscribe();
+      return () => {
+        clearTimeout(timer);
+        void supabase.removeChannel(channel);
+      };
+    },
+
     async deleteListing(id: string) {
       const { error } = await supabase.from("listings").delete().eq("id", id).eq("board_id", boardId);
       if (error) fail("Couldn't remove this place. Try again.");

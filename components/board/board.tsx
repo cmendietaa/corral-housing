@@ -76,6 +76,18 @@ export function Board({
     };
   }, [store]);
 
+  // Live updates from roommates (private boards only). Deletes can't be
+  // filtered by board, so a reload of the whole snapshot keeps it simple.
+  useEffect(() => {
+    if (!store.subscribe) return;
+    return store.subscribe(() => {
+      store
+        .load()
+        .then((s) => setSnap(s))
+        .catch(() => {});
+    });
+  }, [store]);
+
   useEffect(() => {
     if (!notice) return;
     const t = window.setTimeout(() => setNotice(null), 4000);

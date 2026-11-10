@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, Pencil, X } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
 import { formatRent, rentPerPerson } from "@/lib/compare";
 import { formatBedsBaths } from "@/lib/format";
+import { commuteToCampus, formatCommute } from "@/lib/commute";
 import type { Board, Listing, ListingPatch } from "@/lib/listing";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,8 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
   const meta = [
     headline !== listing.title ? listing.title : null,
     formatBedsBaths(listing.beds, listing.baths) || null,
-    perPerson !== null ? `${formatRent(perPerson)} / person` : null
+    perPerson !== null ? `${formatRent(perPerson)} / person` : null,
+    formatCommute(commuteToCampus(listing.lat, listing.lng)) ? `about ${formatCommute(commuteToCampus(listing.lat, listing.lng))} to UCSB` : null
   ]
     .filter(Boolean)
     .join(" · ");
