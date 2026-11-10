@@ -30,6 +30,26 @@ export function isOverdue(iso: string, today: Date = new Date()): boolean {
   return calendar(iso).getTime() < t;
 }
 
+const weekdayShort = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" });
+
+/**
+ * The due part of "MAYA · FRI": the weekday when it's within the next six
+ * days, otherwise the date ("Nov 21"). Overdue dates are flagged.
+ */
+export function formatDueShort(iso: string, today: Date = new Date()): { text: string; overdue: boolean } {
+  const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.round((calendar(iso).getTime() - t) / 86_400_000);
+  if (days < 0) return { text: `Overdue · ${shortDate.format(calendar(iso))}`, overdue: true };
+  if (days === 0) return { text: "Today", overdue: false };
+  if (days <= 6) return { text: weekdayShort.format(calendar(iso)), overdue: false };
+  return { text: shortDate.format(calendar(iso)), overdue: false };
+}
+
+/** "4 bd · 2 ba", leaving out what isn't known. */
+export function formatBedsBaths(beds: number | null, baths: number | null): string {
+  return [beds === null ? null : `${beds} bd`, baths === null ? null : `${baths} ba`].filter(Boolean).join(" · ");
+}
+
 /** "4 beds", "1 bath", or "Beds unknown" when missing. */
 export function formatCount(n: number | null, noun: string): string {
   if (n === null) return `${noun[0].toUpperCase()}${noun.slice(1)}s unknown`;

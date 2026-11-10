@@ -4,20 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+  "inline-flex items-center justify-center gap-2 rounded-full font-display transition disabled:pointer-events-none disabled:opacity-55",
   {
     variants: {
       variant: {
-        primary: "bg-ocean text-white shadow-soft hover:bg-ocean-deep",
-        secondary: "border border-line bg-surface text-ink hover:border-ocean/40 hover:bg-sand",
-        ghost: "text-muted hover:bg-sand-deep hover:text-ink",
-        danger: "bg-danger text-white hover:bg-ink"
-              },
+        // Sunset = action. Tar text keeps 5.5:1 on sunset-500; hover lightens rather than darkens so text stays readable.
+        primary: "bg-sunset-500 text-tar shadow-sm hover:bg-sunset-400 active:bg-sunset-300",
+        secondary: "border border-divider bg-shell-light text-tar hover:bg-shell-mid",
+        sea: "bg-sea-700 text-shell hover:bg-sea-800",
+        ghost: "font-sans font-semibold text-stone-700 hover:bg-shell-mid hover:text-tar",
+        danger: "font-sans font-semibold bg-danger text-white hover:bg-tar"
+      },
       size: {
-        sm: "h-9 px-3",
-        md: "h-11 px-4",
-        lg: "h-14 px-5 text-base",
-        icon: "h-10 w-10 p-0"
+        sm: "h-9 px-4 text-sm",
+        md: "h-11 px-5 text-[15px]",
+        lg: "h-14 px-6 text-lg",
+        icon: "h-11 w-11 p-0"
       }
     },
     defaultVariants: {

@@ -36,23 +36,32 @@ function plusDays(from: Date, days: number): string {
   return isoDay(d);
 }
 
+/** The next given weekday (0 = Sunday) on or after `from`. */
+function upcoming(from: Date, weekday: number): string {
+  const d = new Date(from);
+  d.setDate(d.getDate() + ((weekday - d.getDay() + 7) % 7));
+  return isoDay(d);
+}
+
+/**
+ * Matches the v2 design handoff: "Our place by the bluffs", five places in the
+ * running and one washed out, a $1,400 per-person budget.
+ */
 export function createDemoSnapshot(now: Date = new Date()): BoardSnapshot {
   const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  const leaseStart = `${year}-09-01`;
-  const leaseEnd = `${year + 1}-06-30`;
   const stamp = now.toISOString();
+  const schoolYear = { leaseStart: `${year}-09-01`, leaseEnd: `${year + 1}-08-31` };
 
   const board: Board = {
     id: "demo",
-    name: `Our ${year}–${String(year + 1).slice(2)} place`,
-    leaseYear: `${year}–${year + 1}`,
+    name: "Our place by the bluffs",
+    leaseYear: `${year}–${String(year + 1).slice(2)}`,
     members: DEMO_MEMBERS.map((m) => ({ ...m })),
-    budgetPerPersonCents: 150000
+    budgetPerPersonCents: 140000
   };
 
   const base = {
-    leaseStart,
-    leaseEnd,
+    ...schoolYear,
     notes: null,
     nextAction: null,
     nextActionAssignee: null,
@@ -65,112 +74,114 @@ export function createDemoSnapshot(now: Date = new Date()): BoardSnapshot {
     {
       ...base,
       id: "demo-sabado",
-      title: "Upstairs 4-bed with a balcony",
+      title: "Blue duplex",
       address: "6512 Sabado Tarde Rd, Isla Vista",
-      url: "https://example.com/listings/sabado-tarde-4br",
+      url: "https://example.com/listings/sabado-tarde-blue-duplex",
       rentCents: 540000,
       beds: 4,
       baths: 2,
-      parking: null,
-      laundry: "on_site",
-      lat: 34.41185,
-      lng: -119.85815,
+      parking: "driveway",
+      laundry: "in_unit",
+      lat: 34.4114,
+      lng: -119.8579,
       status: "contacted",
       starred: true,
-      notes: "Two blocks from Pardall. Upstairs unit, small balcony.",
+      notes: "Two blocks from Pardall. Listing mentions \"2 spots?\" for parking.",
       nextAction: "Ask whether parking is included",
       nextActionAssignee: "maya",
-      nextActionDue: upcomingFriday(now)
+      nextActionDue: upcoming(now, 5)
     },
     {
       ...base,
       id: "demo-dp",
-      title: "Oceanside deck house",
-      address: "6681 Del Playa Dr, Isla Vista",
-      url: "https://example.com/listings/del-playa-oceanside",
-      rentCents: 690000,
-      beds: 3,
+      title: "Oceanside upstairs",
+      address: "6680 Del Playa Dr, Isla Vista",
+      url: "https://example.com/listings/del-playa-oceanside-upstairs",
+      rentCents: 720000,
+      beds: 5,
       baths: 2,
       parking: "street",
       laundry: "in_unit",
-      lat: 34.40965,
-      lng: -119.86255,
+      lat: 34.40975,
+      lng: -119.8624,
       status: "tour_scheduled",
       starred: true,
-      notes: "Ocean view from the back deck. Loud on weekends.",
-      nextAction: "Bring the move-in checklist to the tour",
+      notes: "Ocean view from the deck. Loud on weekends.",
+      nextAction: "Tour Sat 2pm, check the deck",
       nextActionAssignee: "jordan",
-      nextActionDue: plusDays(now, 2)
+      nextActionDue: upcoming(now, 6)
     },
     {
       ...base,
       id: "demo-trigo",
-      title: "Back unit of a duplex",
-      address: "6745 Trigo Rd, Isla Vista",
-      url: "https://example.com/listings/trigo-duplex",
+      title: "Upstairs 3BR",
+      address: "6545 Trigo Rd, Isla Vista",
+      url: "https://example.com/listings/trigo-upstairs-3br",
       rentCents: null,
-      beds: 4,
-      baths: 1.5,
-      parking: "driveway",
-      laundry: null,
+      beds: 3,
+      baths: 1,
+      leaseStart: null,
+      leaseEnd: null,
+      parking: null,
+      laundry: "on_site",
       lat: 34.41255,
-      lng: -119.86395,
+      lng: -119.8596,
       status: "considering",
       notes: "Listing says “call for price”."
     },
     {
       ...base,
-      id: "demo-embarcadero",
-      title: "2-bed, unit number TBD",
-      address: "Embarcadero del Norte, Isla Vista (unit TBD)",
-      url: "https://example.com/listings/embarcadero-2br",
-      rentCents: 360000,
-      beds: 2,
-      baths: 1,
-      parking: "none",
+      id: "demo-pardall",
+      title: "Above the café",
+      address: "6550 Pardall Rd, Isla Vista",
+      url: "https://example.com/listings/pardall-above-the-cafe",
+      rentCents: 480000,
+      beds: 3,
+      baths: 2,
+      parking: "street",
       laundry: "on_site",
       lat: null,
       lng: null,
       status: "considering",
-      notes: "Could work if two of us take a bigger room each.",
-      nextAction: "Find the exact address and drop a pin",
-      nextActionAssignee: "priya",
-      nextActionDue: null
+      notes: "Right on Pardall. Need to find the exact entrance and drop a pin."
     },
     {
       ...base,
-      id: "demo-sabado-corner",
-      title: "Corner house by the park",
-      address: "6559 Sabado Tarde Rd, Isla Vista",
-      url: "https://example.com/listings/sabado-corner-house",
-      rentCents: 620000,
+      id: "demo-calle",
+      title: "Goleta townhouse",
+      address: "7150 Calle Real, Goleta",
+      url: "https://example.com/listings/goleta-calle-real-townhouse",
+      rentCents: 590000,
       beds: 4,
-      baths: 2,
-      parking: "driveway",
-      laundry: "in_unit",
-      lat: 34.41205,
-      lng: -119.85505,
-      status: "passed",
-      notes: "Landlord wanted a double deposit and no subletting."
-    },
-    {
-      ...base,
-      id: "demo-goleta",
-      title: "Goleta house with a big yard",
-      address: "Calle Real, Goleta",
-      url: "https://example.com/listings/goleta-calle-real",
-      rentCents: 580000,
-      beds: 4,
-      baths: 3,
+      baths: 2.5,
+      leaseStart: `${year}-08-15`,
+      leaseEnd: `${year + 1}-08-14`,
       parking: "garage",
       laundry: "in_unit",
-      lat: 34.43935,
-      lng: -119.82345,
+      lat: 34.4405,
+      lng: -119.866,
       status: "applied",
-      notes: "15 minutes by bike. Quiet street, big yard.",
-      nextAction: "Send pay stubs to the property manager",
+      notes: "15 minutes by bike. Quiet street, garage.",
+      nextAction: "Send guarantor form",
       nextActionAssignee: "sam",
-      nextActionDue: plusDays(now, 3)
+      nextActionDue: plusDays(now, 12)
+    },
+    {
+      ...base,
+      id: "demo-colegio",
+      title: "Corner house",
+      address: "6800 El Colegio Rd, Isla Vista",
+      url: "https://example.com/listings/el-colegio-corner-house",
+      rentCents: 610000,
+      beds: 4,
+      baths: 2,
+      leaseEnd: `${year + 1}-06-30`,
+      parking: "driveway",
+      laundry: "in_unit",
+      lat: 34.4164,
+      lng: -119.8678,
+      status: "passed",
+      notes: "Landlord wanted a double deposit and no subletting."
     }
   ];
 

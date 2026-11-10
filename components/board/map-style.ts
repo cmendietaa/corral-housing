@@ -1,21 +1,22 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 
 /**
- * "Coastal IV, bold": OpenFreeMap's Positron vector style (no API key),
- * recolored to the board palette. Deep ocean-blue sea, sand land, wide white
- * streets, ocean-blue street names, and no POI/transit clutter.
+ * OpenFreeMap's Positron vector style (no API key), recolored to the Corral v2
+ * palette: Shell land, pale sea-200 water, white roads, stone labels, and no
+ * POI or transit clutter.
  */
 export const BASE_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 
+// v2 palette: Shell land, Del Playa sea-200 water, white roads, stone-700 labels, no POIs.
 const P = {
-  land: "#f4ebdb",
-  water: "#2a6a96",
-  green: "#e2e2c4",
-  building: "#ece1ce",
-  casing: "#e0d3bb",
-  road: "#fffdf9",
-  label: "#1f5f8b",
-  waterLabel: "#f7f1e8"
+  land: "#fff9f5",
+  water: "#c5e3f4",
+  green: "#eef0e0",
+  building: "#f6eae3",
+  casing: "#efe2d8",
+  road: "#ffffff",
+  label: "#645c50",
+  waterLabel: "#1c5b82"
 };
 
 export function applyCoastalStyle(map: MapLibreMap) {
@@ -38,13 +39,13 @@ export function applyCoastalStyle(map: MapLibreMap) {
       } else if (type === "line" && /highway|road|street|bridge|tunnel/.test(id)) {
         map.setPaintProperty(id, "line-color", P.road);
         map.setPaintProperty(id, "line-width", [
-          "interpolate", ["exponential", 1.5], ["zoom"], 12, 1, 16, 8.5, 18, 22
+          "interpolate", ["exponential", 1.5], ["zoom"], 12, 1, 16, 7, 18, 18
         ]);
       } else if (type === "symbol" && /poi|airport|aeroway|transit|rail|housenumber/.test(id)) {
         map.setLayoutProperty(id, "visibility", "none");
       } else if (type === "symbol" && /water/.test(id)) {
         map.setPaintProperty(id, "text-color", P.waterLabel);
-        map.setPaintProperty(id, "text-halo-color", P.water);
+        map.setPaintProperty(id, "text-halo-color", P.land);
       } else if (type === "symbol") {
         map.setPaintProperty(id, "text-color", P.label);
         map.setPaintProperty(id, "text-halo-color", P.land);

@@ -14,19 +14,18 @@ Deployed project + public repo for the ACM.Industry 2027 application, due around
 | `next_actions` table | One next action per place, stored as columns on `listings` | The PRD defines one next action per place. Columns keep RLS to a single table check |
 | Roommate trial on days 11–15 | 30-minute hallway test with 1–2 friends | No time for a full trial |
 | Optional extras | Rent per person plus a per-person budget badge (unknown rent shows "Rent unknown", never "Within budget"), and a status filter | Cheap and visible |
-| Google fonts | Recursive (OFL) everywhere, self-hosted via @fontsource: plain "linear" style for body text, a light casual touch for headlines and rents | No Google fetches; one family so names and descriptions don't clash |
+| Google fonts | Caprasimo (display) and Figtree (text), both OFL and self-hosted via @fontsource | No Google fetches at build or runtime |
 | — | Street View thumbnail per place via `/api/streetview` (key server-side, IV/Goleta area only, fixed size, metadata checked first) | A quick look at the street without leaving the board; hidden when no key is set |
 | — | Footer: "Not affiliated with UCSB. Demo data is fictional." | Avoids implying an official product |
 
 ## Decisions
-- **Look: Coastal IV.** Sand background `#F7F1E8`, ocean-blue primary `#1F5F8B`, coral accent `#E8735A` for selection and highlights. Rounded cards, soft shadows, a wave mark in the header. Colors are Tailwind v4 `@theme` tokens in `app/globals.css`. Status chips are distinct but muted; Passed and Unavailable are grayed out.
-- **Layout: ledger list plus map, and a Status tab.** (Revised Nov 8 to avoid the generic card-grid look.)
-  - **Map view** (default): ledger rows left, map right; selecting a row or rent tag selects the other. On phones, a floating List/Map switch.
-  - **Map look ("Coastal IV, bold"):** deep ocean-blue sea, sand land, wide white streets, ocean-blue street names, no POI/transit clutter. Pins are rent tags ("$5.4k") in the status color; the selected one turns coral. The map opens on the main cluster of places, with "Show all places" for outliers.
-  - **Rows, not cards:** ruled rows with a status-colored edge, aligned rent, and a street-first headline ("Sabado Tarde, 6512") parsed from the address, with the nickname underneath. IV flavor comes from content and the map, not hard-coded geography.
-  - **Grouping:** by status by default (In the running / Passed or unavailable), with an optional "Group by street" remembered per viewer.
-  - **Status view**: kanban columns for the six statuses using the same `ListingCard`. Cards move with the status menu; drag-and-drop on desktop only if there's time.
-  - Both tabs share the compare tray, shown once 2–3 places are checked.
+- **Look: Corral v2, "surfboard corral"** (from the Claude Design handoff, Nov 9; replaces Coastal IV). Tokens in `app/globals.css`: Shell ground, sunset for actions, Del Playa sea for selection, sea glass for demo and tours. A sunset-into-sea header band with a sun, a 4-color stripe and a wave edge, once per surface. Roommates are crew boards; the logo is three boards and a rope. Caprasimo for display, Figtree for text, both self-hosted. Two contrast fixes from the handoff: Tar text on sunset buttons, and a deeper green behind the Applied chip (plus a darker checkbox ring and star).
+  - **Map tab** (default): 540px ledger left, map right with a 200px top-left curve. Rows: compare check and star, Street View board, street-first name with area (IV / Goleta), status and OWNER · DUE, rent and per person. "Still in the running" then "Washed out" (Passed and Unavailable; display copy only).
+  - **Map:** MapLibre with OpenFreeMap tiles in the v2 palette (Shell land, sea-200 water, white roads). Pins are rent-tag pills in the status chip colors; the selected one is sea-700. Opens on the main cluster, clear of the place card, with "Show all places".
+  - **Selected place:** a card over the map (Street View, status menu, next step, Open listing, Edit details). On phones, a full-screen place sheet; on the phone map, a mini card above the switch.
+  - **Status tab:** four columns plus a "Washed out" shelf; cards move with a "Move" menu. Phones swipe columns with jump chips.
+  - **Compare:** check up to 3; a sea-800 tray offers Compare at 2+. The compare view keeps a fixed row order, highlights the best value per row, and never shows unknown rent as within budget.
+  - Phones: List / Map / Status switch at the bottom.
 - **Scope:** the demo plus private boards (auth, invites, RLS).
 - **Extras:** AI listing autofill only. Distance to campus, dark mode and an activity feed are out.
 
@@ -37,7 +36,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@
 - **Routes:** `/` landing (Try demo, Sign in). `/demo` fictional board in localStorage with Reset and a "Fictional data" banner. `/boards` your boards, `/boards/[id]` a private board. `/invite/[token]` redeems an invite or explains why it's invalid or expired. `/auth/callback` handles sign-in. `/api/parse-listing` runs AI autofill.
 - **Storage split:** one `<Board>` client component receives a `BoardStore` (`load`, `addListing`, `updateListing`, `deleteListing`, optional `reset`). `lib/stores/local.ts` backs the demo; `lib/stores/supabase.ts` backs private boards. The demo store never imports the Supabase client.
 - **Core types:** `lib/listing.ts` (Listing, Board, Member, statuses, parking/laundry enums, Zod schemas with an http(s)-only URL rule). `lib/compare.ts` (unknown-last sorting, rent per person, budget check where unknown never passes, compare rows, formatters).
-- **Components** (`components/board/`): `Board`, `ListingRow` (star, status, next action, compare checkbox, budget note), `ListingForm` (add/edit, Autofill box), `MapPanel`, `CompareView`, `NextActionEditor`, mobile List/Map toggle.
+- **Components** (`components/board/`): `Board`, `ListingRow`, `PlaceCard` / `PlaceSheet` / `MapMiniCard`, `ListingForm` (add/edit, Autofill box later), `MapPanel`, `CompareView` and `CompareTray`, `StatusBoard`, `NextAction`, `StreetPhoto` (with the dashed-boards fallback). Brand pieces in `components/brand/` (`Band`, crew boards, fence footer, logo).
   - `MapPanel` loads via `next/dynamic` with `ssr: false` inside an error boundary, so a map failure never blocks the list.
   - Rent-tag markers are HTML buttons (keyboard-focusable, labeled with street and rent). The selected tag can be dragged; selecting a place without coordinates and clicking the map places it.
   - MapLibre is pinned to v5: v6 loads its worker from a separate ES module that Next's bundler doesn't emit, which left the map blank.

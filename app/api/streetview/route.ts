@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { bearing, IMAGE_SIZE, roundCoord, streetViewQuery } from "@/lib/streetview";
+import { bearing, PHOTO_SIZES, roundCoord, streetViewQuery } from "@/lib/streetview";
 
 /**
- * GET /api/streetview?lat=..&lng=..
+ * GET /api/streetview?lat=..&lng=..&s=row|card|compare|kanban|sheet
  *
  * Returns a Street View photo of the spot, facing it, or 404 when there's no
  * key, no imagery nearby, or the spot is outside Corral's service area. The
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     const heading = bearing(meta.location, target);
     const imageUrl =
-      `${GOOGLE}?size=${IMAGE_SIZE}&pano=${meta.pano_id}&heading=${heading}` +
+      `${GOOGLE}?size=${PHOTO_SIZES[parsed.data.s]}&pano=${meta.pano_id}&heading=${heading}` +
       `&fov=80&pitch=5&return_error_code=true&key=${key}`;
     const image = await fetch(imageUrl, { cache: "no-store" });
     if (!image.ok || !image.headers.get("content-type")?.startsWith("image/")) {

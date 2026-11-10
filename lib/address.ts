@@ -10,8 +10,14 @@ const SUFFIXES = new Set([
   "pkwy", "parkway", "hwy", "highway"
 ]);
 
+/** Short suffix spelling used when a suffix is kept ("Trigo Rd"). */
+const SHORT: Record<string, string> = {
+  road: "Rd", drive: "Dr", avenue: "Ave", street: "St", boulevard: "Blvd", lane: "Ln",
+  court: "Ct", place: "Pl", circle: "Cir", terrace: "Ter", parkway: "Pkwy", highway: "Hwy"
+};
+
 export type StreetLabel = {
-  /** Street name without its suffix, e.g. "Sabado Tarde". Null when unknown. */
+  /** Street name, e.g. "Sabado Tarde" or "Trigo Rd". Null when unknown. */
   street: string | null;
   /** House number, e.g. "6512". Null when unknown. */
   number: string | null;
@@ -27,24 +33,35 @@ export function parseStreet(address: string | null): StreetLabel {
   const number = match ? match[1] : null;
   let words = (match ? match[2] : line).split(/\s+/).filter(Boolean);
 
-  // Drop trailing unit markers ("#B", "Apt 3", "Unit 2") and the street suffix.
+  // Drop trailing unit markers ("#B", "Apt 3", "Unit 2").
   const unitAt = words.findIndex((w) => /^(#|apt|unit|ste|suite)/i.test(w));
   if (unitAt > 0) words = words.slice(0, unitAt);
-  if (words.length > 1 && SUFFIXES.has(words[words.length - 1].toLowerCase().replace(/\.$/, ""))) {
+
+  // Drop the suffix from multi-word names ("Sabado Tarde Rd" → "Sabado Tarde"), but keep it,
+  // shortened, on one-word names so they still read as streets ("Trigo Rd", not "Trigo").
+  const last = words[words.length - 1]?.toLowerCase().replace(/\.$/, "") ?? "";
+  if (words.length > 2 && SUFFIXES.has(last)) {
     words = words.slice(0, -1);
+  } else if (words.length === 2 && SUFFIXES.has(last)) {
+    words = [words[0], SHORT[last] ?? words[1].replace(/\.$/, "")];
   }
   const street = words.join(" ").trim();
   return { street: street || null, number };
 }
 
-/** The row headline: "Sabado Tarde, 6512", "Embarcadero del Norte", or the title. */
+/** The row headline: "Sabado Tarde, 6512", "Trigo Rd, 6545", "Calle Real", or the title. */
 export function streetHeadline(address: string | null, title: string): string {
   const { street, number } = parseStreet(address);
   if (!street) return title;
   return number ? `${street}, ${number}` : street;
 }
 
-/** Group key for "group by street". Places without a street go under "No address yet". */
-export function streetGroup(address: string | null): string {
-  return parseStreet(address).street ?? "No address yet";
+/** The area label shown beside a name ("IV", "Goleta"), from the address's city part. */
+export function areaLabel(address: string | null): string | null {
+  if (!address) return null;
+  const rest = address.split(",").slice(1).join(",").toLowerCase();
+  if (/isla vista|\biv\b/.test(rest)) return "IV";
+  if (/goleta/.test(rest)) return "Goleta";
+  if (/santa barbara/.test(rest)) return "SB";
+  return null;
 }

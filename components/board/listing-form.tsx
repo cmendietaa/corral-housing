@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { Shoreline } from "@/components/brand/shoreline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { streetHeadline } from "@/lib/address";
@@ -188,7 +187,6 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
-          <Shoreline className="mt-3 max-w-[10rem]" />
           <p className="mt-3 text-sm text-muted">
             Only the link and a name are required. Leave anything you don&apos;t know blank and it shows as
             unknown.

@@ -1,62 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin } from "lucide-react";
-import { streetViewSrc } from "@/lib/streetview";
+import { streetViewSrc, type PhotoSize } from "@/lib/streetview";
 import { cn } from "@/lib/utils";
 
 /**
- * A Street View photo of the place, from our /api/streetview proxy. Falls back
- * to a quiet sand tile when the place has no pin, there's no imagery nearby,
- * or Street View isn't configured.
+ * A Street View frame. The frame's size and shape come from `className`, and
+ * never change: when there's no photo (no pin, no key, no imagery nearby, or a
+ * load error) it shows the fence fallback, three dashed boards, instead.
  */
 export function StreetPhoto({
   lat,
   lng,
   label,
-  className
+  size,
+  enabled,
+  attribution = "short",
+  hint = false,
+  className,
+  children
 }: {
   lat: number | null;
   lng: number | null;
   /** Place name for the alt text, e.g. "Sabado Tarde, 6512". */
   label: string;
+  size: PhotoSize;
+  /** Whether Street View is configured on this deployment. Without it, no request is made. */
+  enabled: boolean;
+  /** The required Google credit, shown whenever a photo is. */
+  attribution?: "short" | "long" | "tiny";
+  /** Large frames explain why there's no photo. */
+  hint?: boolean;
   className?: string;
+  /** Overlays (back button, star) drawn on top of the frame. */
+  children?: React.ReactNode;
 }) {
-  const src = streetViewSrc(lat, lng);
+  const src = enabled ? streetViewSrc(lat, lng, size) : null;
   const [state, setState] = useState<"loading" | "loaded" | "failed">("loading");
-  // Reset when the place moves (a new pin means a new photo).
+  // A new pin means a new photo.
   const [lastSrc, setLastSrc] = useState(src);
   if (src !== lastSrc) {
     setLastSrc(src);
     setState("loading");
   }
 
-  const box = cn("relative shrink-0 overflow-hidden rounded-md bg-sand-deep", className);
-
-  if (!src || state === "failed") {
-    return (
-      <div className={cn(box, "flex flex-col items-center justify-center gap-0.5 text-muted/70")}>
-        <MapPin className="h-4 w-4" aria-hidden="true" />
-        <span className="px-1 text-center text-[10px] font-medium leading-tight">
-          {src ? "No street photo" : "No pin yet"}
-        </span>
-      </div>
-    );
-  }
+  const showPhoto = src !== null && state !== "failed";
+  const noPin = lat === null || lng === null;
 
   return (
-    <div className={cn(box, state === "loading" && "animate-pulse")}>
-      {/* A plain img: the photo comes from our own proxy and must not be re-cached by an optimizer. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={`Street View near ${label}`}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setState("loaded")}
-        onError={() => setState("failed")}
-        className={cn("h-full w-full object-cover transition-opacity", state === "loaded" ? "opacity-100" : "opacity-0")}
-      />
+    <div className={cn("relative shrink-0 overflow-hidden bg-shell-deep", className)}>
+      {showPhoto ? (
+        <>
+          {/* A plain img: the photo comes from our own proxy and must not be re-cached by an optimizer. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={`Street View near ${label}`}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setState("loaded")}
+            onError={() => setState("failed")}
+            className={cn(
+              "washed h-full w-full object-cover transition-opacity duration-300",
+              state === "loaded" ? "opacity-100" : "opacity-0"
+            )}
+          />
+          {state === "loaded" ? <Credit kind={attribution} /> : null}
+        </>
+      ) : (
+        <FenceFallback text={hint ? (noPin ? "Drop a pin to see the street" : "No street photo here") : undefined} />
+      )}
+      {children}
+    </div>
+  );
+}
+
+function Credit({ kind }: { kind: "short" | "long" | "tiny" }) {
+  return (
+    <span
+      className={cn(
+        "pointer-events-none absolute rounded-full bg-shell font-semibold text-tar",
+        kind === "tiny" ? "bottom-1 right-1 px-1 text-[7px] leading-3" : "bottom-2.5 right-2.5 px-2 py-0.5 text-[10px]"
+      )}
+    >
+      {kind === "long" ? "Street View · © Google" : "© Google"}
+    </span>
+  );
+}
+
+/** Three dashed outline boards: "nothing here yet" in Corral's vocabulary. */
+export function FenceFallback({ text, className }: { text?: string; className?: string }) {
+  return (
+    <div className={cn("flex h-full w-full items-center justify-center gap-2.5 p-2", className)}>
+      <svg viewBox="0 0 48 48" aria-hidden="true" className="h-8 w-8 max-h-[60%] max-w-[60%] shrink-0">
+        {[
+          { x: 7, y: 11, h: 29 },
+          { x: 19.5, y: 6, h: 34 },
+          { x: 32, y: 14, h: 26 }
+        ].map((b) => (
+          <rect
+            key={b.x}
+            x={b.x}
+            y={b.y}
+            width="9"
+            height={b.h}
+            rx="4.5"
+            fill="none"
+            stroke="#a19786"
+            strokeWidth="1.5"
+            strokeDasharray="3 2.5"
+          />
+        ))}
+      </svg>
+      {text ? <span className="text-xs text-stone-700">{text}</span> : null}
     </div>
   );
 }

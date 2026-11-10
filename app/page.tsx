@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarCheck, Columns3, Link2, MapPinned } from "lucide-react";
+import { Band, FenceFooter } from "@/components/brand/band";
 import { BoardPreview } from "@/components/brand/board-preview";
-import { Shoreline } from "@/components/brand/shoreline";
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
 
@@ -15,25 +15,29 @@ const steps = [
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="mx-auto flex w-full max-w-6xl items-center px-4 pt-6 sm:px-6">
-        <Wordmark />
-        <Link
-          href="/demo"
-          className="ml-auto rounded-full px-3 py-1.5 text-sm font-semibold text-ocean hover:bg-ocean-soft focus-visible:outline-2 focus-visible:outline-focus"
-        >
-          Open the demo
-        </Link>
-      </header>
+      <Band>
+        <div className="mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6 lg:pb-12">
+          <div className="flex items-center">
+            <Wordmark />
+            <Link
+              href="/demo"
+              className="ml-auto rounded-full bg-shell-light px-4 py-2 font-display text-[15px] text-tar shadow-sm hover:bg-shell-mid"
+            >
+              Open the demo
+            </Link>
+          </div>
+          <p className="label mt-10 text-tar lg:mt-14">For UCSB roommate groups · Isla Vista & Goleta</p>
+          <h1 className="mt-3 max-w-3xl font-display text-[2.6rem] leading-[1.02] text-tar sm:text-6xl">
+            Round up your apartment hunt in one corral.
+          </h1>
+        </div>
+      </Band>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:py-20">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:py-14">
         <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 [&>*]:min-w-0">
           <div>
-            <h1 className="font-display text-[2.4rem] font-extrabold leading-[1.02] text-ink sm:text-6xl">
-              Your roommate group&apos;s apartment hunt, on one board.
-            </h1>
-            <Shoreline className="mt-6 max-w-md" />
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Stop losing Isla Vista listings in the group chat. Save places from any site, see them on a map,
+            <p className="max-w-xl text-lg text-stone-800">
+              Stop losing Isla Vista listings in the group chat. Save places from any site, see them on one map,
               compare them side by side, and know who&apos;s following up on what.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -45,36 +49,29 @@ export default function Home() {
                 Sign-in coming soon
               </Button>
             </div>
-            <p className="mt-3 text-sm text-muted">The demo is fictional and needs no account.</p>
+            <p className="mt-3 text-sm text-stone-700">The demo is fictional and needs no account.</p>
           </div>
 
-          <Link
-            href="/demo"
-            className="block rounded-xl transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus motion-reduce:transition-none"
-          >
+          <Link href="/demo" className="block rounded-[32px] transition hover:-translate-y-0.5 motion-reduce:transition-none">
             <span className="sr-only">Open the demo board</span>
             <BoardPreview />
           </Link>
         </div>
 
-        <ul className="mt-16 grid gap-x-8 gap-y-6 border-t border-line pt-8 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-16 grid gap-x-8 gap-y-6 border-t border-divider pt-8 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map(({ icon: Icon, title, body }) => (
             <li key={title} className="flex gap-3">
-              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-ocean" aria-hidden="true" />
+              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-sea-700" strokeWidth={2.75} aria-hidden="true" />
               <div>
-                <p className="font-display font-bold text-ink">{title}</p>
-                <p className="mt-0.5 text-sm leading-relaxed text-muted">{body}</p>
+                <p className="font-display text-lg text-tar">{title}</p>
+                <p className="mt-0.5 text-sm text-stone-700">{body}</p>
               </div>
             </li>
           ))}
         </ul>
       </main>
 
-      <footer className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-muted sm:px-6">
-          Not affiliated with UCSB. Demo data is fictional.
-        </p>
-      </footer>
+      <FenceFooter />
     </div>
   );
 }

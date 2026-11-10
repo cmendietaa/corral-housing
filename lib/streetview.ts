@@ -6,15 +6,27 @@ import { z } from "zod";
  *
  * To keep the key from being used as a free Street View proxy, requests are
  * limited to the area Corral serves (Isla Vista, Goleta and nearby Santa
- * Barbara) and to one fixed image size.
+ * Barbara) and to a few fixed image sizes.
  */
 
 export const SERVICE_AREA = { south: 34.38, north: 34.47, west: -119.95, east: -119.75 } as const;
-export const IMAGE_SIZE = "640x400";
+/**
+ * The only image sizes the proxy will request, roughly 2x what each frame
+ * displays (Street View Static caps at 640px a side). CSS crops to the frame.
+ */
+export const PHOTO_SIZES = {
+  row: "104x152",
+  card: "640x330",
+  compare: "640x320",
+  kanban: "560x220",
+  sheet: "640x614"
+} as const;
+export type PhotoSize = keyof typeof PHOTO_SIZES;
 
 export const streetViewQuery = z.object({
   lat: z.coerce.number().min(SERVICE_AREA.south).max(SERVICE_AREA.north),
-  lng: z.coerce.number().min(SERVICE_AREA.west).max(SERVICE_AREA.east)
+  lng: z.coerce.number().min(SERVICE_AREA.west).max(SERVICE_AREA.east),
+  s: z.enum(Object.keys(PHOTO_SIZES) as [PhotoSize, ...PhotoSize[]]).default("card")
 });
 
 /** Round to ~1 m so near-identical requests look the same to caches. */
@@ -34,7 +46,7 @@ export function bearing(from: { lat: number; lng: number }, to: { lat: number; l
 }
 
 /** The client-side URL for a place's photo, or null when the place has no pin. */
-export function streetViewSrc(lat: number | null, lng: number | null): string | null {
+export function streetViewSrc(lat: number | null, lng: number | null, size: PhotoSize = "card"): string | null {
   if (lat === null || lng === null) return null;
-  return `/api/streetview?lat=${roundCoord(lat)}&lng=${roundCoord(lng)}`;
+  return `/api/streetview?lat=${roundCoord(lat)}&lng=${roundCoord(lng)}&s=${size}`;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCount, formatLeasePhrase, formatRentShort, parseDollars } from "./format";
+import { formatBedsBaths, formatCount, formatDueShort, formatLeasePhrase, formatRentShort, parseDollars } from "./format";
 
 describe("formatRentShort", () => {
   it("abbreviates thousands to one decimal", () => {
@@ -19,6 +19,26 @@ describe("parseDollars", () => {
     expect(parseDollars("5400.5")).toBe(540050);
     expect(parseDollars("")).toBeNull();
     expect(parseDollars("about 5k")).toBeNaN();
+  });
+});
+
+describe("formatDueShort", () => {
+  const monday = new Date("2026-11-09T12:00:00");
+  it("uses the weekday within the week and the date after that", () => {
+    expect(formatDueShort("2026-11-13", monday)).toEqual({ text: "Fri", overdue: false });
+    expect(formatDueShort("2026-11-09", monday)).toEqual({ text: "Today", overdue: false });
+    expect(formatDueShort("2026-11-21", monday)).toEqual({ text: "Nov 21", overdue: false });
+  });
+  it("flags overdue dates", () => {
+    expect(formatDueShort("2026-11-07", monday)).toEqual({ text: "Overdue · Nov 7", overdue: true });
+  });
+});
+
+describe("formatBedsBaths", () => {
+  it("leaves out unknowns", () => {
+    expect(formatBedsBaths(4, 2.5)).toBe("4 bd · 2.5 ba");
+    expect(formatBedsBaths(3, null)).toBe("3 bd");
+    expect(formatBedsBaths(null, null)).toBe("");
   });
 });
 

@@ -1,142 +1,222 @@
 @import "tailwindcss";
 
-/* Coastal IV. Colors are defined once here and used as Tailwind utilities (bg-sand, text-ocean, ...). */
+/*
+ * Corral v2, "surfboard corral". Tokens from the design handoff (tokens.css).
+ * Color rules: sunset = action, sea = what's selected, sea glass = demo and tours.
+ * A status color is never used for selection.
+ */
 @theme {
+  /* Self-hosted via @fontsource (imported in app/layout.tsx); no Google Fonts request. */
+  --font-display: "Caprasimo", ui-serif, Georgia, serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Ground: Shell */
+  --color-shell: #fdf2ea;
+  --color-shell-deep: #f8e3d7;
+  --color-shell-light: #fff9f5;
+  --color-shell-mid: #f6eae3;
+  --color-tar: #201e1d;
+  --color-divider: rgb(32 30 29 / 0.16);
+
+  /* Sunset (terracotta): actions */
+  --color-sunset-100: #fff2eb;
+  --color-sunset-200: #ffe1d0;
+  --color-sunset-300: #ffc6a5;
+  --color-sunset-400: #f6a06b;
+  --color-sunset-500: #d67f48;
+  --color-sunset-600: #b2622d;
+  --color-sunset-700: #8c491a;
+  --color-sunset-800: #643312;
+  --color-sunset-900: #402310;
+
+  /* Del Playa sea (blue): selection */
+  --color-sea-100: #e5f5fd;
+  --color-sea-200: #c5e3f4;
+  --color-sea-300: #97cceb;
+  --color-sea-500: #458ebb;
+  --color-sea-700: #1c5b82;
+  --color-sea-800: #0b4163;
+  --color-sea-900: #05263f;
+
+  /* Sea glass (sage): demo + tours */
+  --color-glass-100: #f0fae1;
+  --color-glass-200: #e1eecc;
+  --color-glass-300: #ccdbb2;
+  --color-glass-500: #8fa073;
+  --color-glass-600: #728157;
+  --color-glass-800: #3d472b;
+  --color-glass-900: #272e1b;
+
+  /* Warm neutrals */
+  --color-stone-300: #dcd3c4;
+  --color-stone-400: #c0b6a5;
+  --color-stone-500: #a19786;
+  --color-stone-600: #82796a;
+  --color-stone-700: #645c50;
+  --color-stone-800: #474238;
+  --color-stone-900: #2e2b25;
+
   /*
-   * One family everywhere: Recursive (OFL), self-hosted via @fontsource. Body text uses its plain
-   * "linear" style; headlines and rents lean slightly casual (font-display) for a beach-sign warmth.
+   * Status chips. Applied's green is deepened from #728157 so its cream text
+   * passes WCAG AA (5.2:1 instead of 3.8:1).
    */
-  --font-display: "Recursive Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Recursive Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-st-considering: #2e2b25;
+  --color-st-considering-bg: #dcd3c4;
+  --color-st-considering-dot: #a19786;
+  --color-st-contacted: #643312;
+  --color-st-contacted-bg: #ffe1d0;
+  --color-st-contacted-dot: #f6a06b;
+  --color-st-tour: #3d472b;
+  --color-st-tour-bg: #e1eecc;
+  --color-st-tour-dot: #ccdbb2;
+  --color-st-applied: #f9f4ed;
+  --color-st-applied-bg: #5f6c47;
+  --color-st-applied-dot: #728157;
+  --color-st-closed: #645c50;
+  --color-st-closed-bg: #eee7db;
+  --color-st-closed-dot: #c0b6a5;
 
-  --color-sand: #f7f1e8;
-  --color-sand-deep: #efe5d6;
-  --color-surface: #fffdf9;
-  --color-line: #e6dccb;
-  --color-ink: #1b2b36;
-  --color-muted: #5b6a73;
-  --color-ocean: #1f5f8b;
-  --color-ocean-deep: #174a6d;
-  --color-ocean-soft: #e3edf4;
-  --color-coral: #e8735a;
-  --color-coral-soft: #fbe6e0;
-  --color-danger: #b4432e;
-  --color-focus: #1f5f8b;
+  /* Older names kept for the form, next-step editor and UI primitives. */
+  --color-sand: #fdf2ea;
+  --color-sand-deep: #f8e3d7;
+  --color-surface: #fff9f5;
+  --color-line: rgb(32 30 29 / 0.16);
+  --color-ink: #201e1d;
+  --color-muted: #645c50;
+  --color-ocean: #1c5b82;
+  --color-ocean-deep: #0b4163;
+  --color-ocean-soft: #e5f5fd;
+  --color-coral: #d67f48;
+  --color-coral-soft: #fff2eb;
+  --color-danger: #a63a24;
+  --color-focus: #d67f48;
 
-  /* Status swatches: muted and distinct; passed/unavailable are grays. */
-  --color-st-considering: #546876;
-  --color-st-considering-bg: #e9eef1;
-  --color-st-contacted: #1f5f8b;
-  --color-st-contacted-bg: #dde9f2;
-  --color-st-tour: #8a5e10;
-  --color-st-tour-bg: #f5ead3;
-  --color-st-applied: #3f7552;
-  --color-st-applied-bg: #e0eee3;
-  --color-st-closed: #6e6e69;
-  --color-st-closed-bg: #ecebe7;
-
-  --shadow-soft: 0 1px 2px rgb(27 43 54 / 6%), 0 8px 24px rgb(27 43 54 / 7%);
-  --shadow-lift: 0 2px 4px rgb(27 43 54 / 8%), 0 16px 40px rgb(27 43 54 / 12%);
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.375rem;
+  --radius-xl: 1.875rem;
+  --radius-row: 22px;
+  --radius-card: 30px;
+  --radius-panel: 32px;
+  --shadow-sm: 0 1px 2px rgb(46 43 37 / 0.14);
+  --shadow-md: 0 3px 10px rgb(46 43 37 / 0.16);
+  --shadow-lg: 0 12px 32px rgb(46 43 37 / 0.22);
+  --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.14);
+  --shadow-lift: 0 12px 32px rgb(46 43 37 / 0.22);
 }
 
-:root {
-  color-scheme: light;
-  background: var(--color-sand);
-  color: var(--color-ink);
+/* Base element styles live in the base layer so Tailwind utilities (font-display, outline-*) can override them. */
+@layer base {
+  :root {
+    color-scheme: light;
+    background: var(--color-shell);
+    color: var(--color-tar);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--color-shell);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-sea-200);
+  }
+
+  /* Focus: a 2px sunset outline with a 2px offset on every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-sunset-500);
+    outline-offset: 2px;
+  }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--color-sand);
+/* Labels: Figtree 700 caps, 11px, tracked. Kickers, group headers, owner and due, area. */
+.label {
   font-family: var(--font-sans);
-  font-variation-settings: "CASL" 0;
-  -webkit-font-smoothing: antialiased;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  text-transform: uppercase;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  font-variation-settings: inherit;
+/* Signature band: sunset into sea, hard stops. Once per surface, at the top. */
+.corral-stripe {
+  background: linear-gradient(
+    var(--color-sunset-400) 0 22%,
+    var(--color-sunset-500) 22% 40%,
+    var(--color-sea-500) 40% 62%,
+    var(--color-sea-700) 62% 100%
+  );
 }
 
-button:not(:disabled),
-[role="button"]:not(:disabled) {
-  cursor: pointer;
+/* The wave edge under the stripe: scallops 28px apart, 13px radius. */
+.corral-wave {
+  height: 18px;
+  margin-top: -1px;
+  background: radial-gradient(circle at 50% 0, var(--color-sea-700) 13px, transparent 14px) 0 0 / 28px 18px repeat-x;
 }
 
-::selection {
-  background: rgb(232 115 90 / 25%);
+/* Street View photos are washed toward the palette. */
+.washed {
+  filter: saturate(0.6) contrast(0.85) brightness(1.1) opacity(0.94);
 }
 
-/* Map pins are rent tags: the place's rent on a status-colored tag with a pointer. */
+/* Map pins are rent tags: pills in the status chip colors. */
 .corral-tag {
-  position: relative;
   display: block;
-  padding: 0 0 7px;
+  padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  filter: drop-shadow(0 2px 3px rgb(27 43 54 / 30%));
+  transition: transform 120ms ease;
 }
 
 .corral-tag-label {
   display: block;
-  min-width: 2.5rem;
-  padding: 3px 7px;
-  border-radius: 7px;
-  background: var(--pin);
-  border: 1.5px solid var(--color-surface);
-  color: #fff;
+  padding: 4px 11px 5px;
+  border-radius: 999px;
+  border: 2px solid var(--color-shell);
+  background: var(--pin-bg);
+  color: var(--pin-fg);
+  box-shadow: var(--shadow-md);
   font-family: var(--font-display);
-  font-variation-settings: "CASL" 0.4;
-  font-feature-settings: "tnum" 1;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-align: center;
+  font-size: 15px;
+  line-height: 1.15;
   white-space: nowrap;
 }
 
-/* The pointer: a small triangle under the tag, pointing at the exact spot. */
-.corral-tag::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 1px;
-  width: 0;
-  height: 0;
-  transform: translateX(-50%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 7px solid var(--pin);
+.corral-tag:hover {
+  transform: scale(1.06);
 }
 
 .corral-tag.is-closed {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .corral-tag.is-selected {
-  --pin: var(--color-coral) !important;
+  transform: scale(1.18);
   cursor: grab;
-  filter: drop-shadow(0 0 0 rgb(232 115 90 / 0%)) drop-shadow(0 4px 8px rgb(27 43 54 / 35%));
 }
 
 .corral-tag.is-selected .corral-tag-label {
-  padding: 5px 10px;
-  font-size: 14px;
-  color: var(--color-ink);
-  border-width: 2px;
-}
-
-.corral-tag:hover .corral-tag-label {
-  border-color: var(--color-coral);
+  background: var(--color-sea-700);
+  color: var(--color-shell);
 }
 
 .corral-tag:focus-visible {
@@ -144,28 +224,24 @@ button:not(:disabled),
 }
 
 .corral-tag:focus-visible .corral-tag-label {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--color-sunset-500);
   outline-offset: 2px;
 }
 
 .maplibregl-map {
   font: inherit;
-  background: var(--color-sand-deep);
+  background: var(--color-shell-light);
 }
 
 .maplibregl-ctrl-group {
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-soft) !important;
-}
-
-.font-display {
-  font-variation-settings: "CASL" 0.4;
-  font-feature-settings: "tnum" 1;
+  border-radius: 999px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-md) !important;
 }
 
 /*
  * Status menus: where the browser supports customizable <select>, the open
- * menu matches the board (sand surface, status bars). Elsewhere it stays native.
+ * menu matches the board. Elsewhere it stays native (keyboard and phone pickers intact).
  */
 @supports (appearance: base-select) {
   .status-select,
@@ -178,23 +254,23 @@ button:not(:disabled),
   }
 
   .status-select::picker(select) {
-    margin-top: 4px;
-    padding: 4px;
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-lift);
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid var(--color-divider);
+    border-radius: 20px;
+    background: var(--color-shell-light);
+    box-shadow: var(--shadow-lg);
   }
 
   .status-select option {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    color: var(--color-ink);
+    padding: 7px 12px;
+    border-radius: 999px;
+    color: var(--color-tar);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .status-select option::checkmark {
@@ -203,33 +279,41 @@ button:not(:disabled),
 
   .status-select option::before {
     content: "";
-    width: 4px;
-    height: 14px;
-    border-radius: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
     background: var(--st);
   }
 
   .status-select option:checked {
-    font-weight: 700;
-    background: var(--color-sand);
+    background: var(--color-sea-100);
   }
 
   .status-select option:hover,
   .status-select option:focus-visible {
-    background: var(--color-sand-deep);
+    background: var(--color-shell-mid);
     outline: none;
   }
 
-  .status-select option[data-status="considering"] { --st: var(--color-st-considering); }
-  .status-select option[data-status="contacted"] { --st: var(--color-st-contacted); }
-  .status-select option[data-status="tour_scheduled"] { --st: var(--color-st-tour); }
-  .status-select option[data-status="applied"] { --st: var(--color-st-applied); }
+  .status-select option[data-status="considering"] { --st: var(--color-st-considering-dot); }
+  .status-select option[data-status="contacted"] { --st: var(--color-st-contacted-dot); }
+  .status-select option[data-status="tour_scheduled"] { --st: var(--color-st-tour-dot); }
+  .status-select option[data-status="applied"] { --st: var(--color-st-applied-dot); }
   .status-select option[data-status="passed"],
-  .status-select option[data-status="unavailable"] { --st: var(--color-st-closed); }
+  .status-select option[data-status="unavailable"] { --st: var(--color-st-closed-dot); }
 }
 
 dialog::backdrop {
-  background: rgb(27 43 54 / 40%);
+  background: rgb(32 30 29 / 0.45);
+}
+
+/* Horizontal swipe rows (phone Status columns) without a visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -238,14 +322,6 @@ dialog::backdrop {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
-  }
-}
-
-
-/* Phones: keep the OpenStreetMap credit visible above the floating List/Map switch. */
-@media (max-width: 1023px) {
-  .maplibregl-ctrl-bottom-right,
-  .maplibregl-ctrl-bottom-left {
-    margin-bottom: 4.5rem;
+    scroll-behavior: auto !important;
   }
 }

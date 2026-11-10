@@ -2,13 +2,13 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
-import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl } from "maplibre-gl";
+import { AttributionControl, LngLatBounds, Map as MapLibreMap, Marker, NavigationControl } from "maplibre-gl";
 import { streetHeadline } from "@/lib/address";
 import { formatRentShort } from "@/lib/format";
 import { isClosedStatus, type Listing } from "@/lib/listing";
 import { mainCluster } from "@/lib/map-view";
 import { applyCoastalStyle, BASE_STYLE_URL } from "./map-style";
-import { STATUS_HEX } from "./status";
+import { STATUS_TAG } from "./status-style";
 
 /** Isla Vista, between campus and the cliffs. */
 const IV_CENTER: [number, number] = [-119.8605, 34.4123];
@@ -27,6 +27,18 @@ const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)"
 type Mapped = Listing & { lat: number; lng: number };
 const isMapped = (l: Listing): l is Mapped => l.lat !== null && l.lng !== null;
 
+/**
+ * The part of the map that overlays don't cover: on desktop the place card
+ * (bottom-left, 330px) and the 200px top-left curve; on phones the mini card
+ * and the List / Map switch at the bottom.
+ */
+function overlayPadding(el: HTMLElement) {
+  const wide = window.matchMedia("(min-width: 1024px)").matches;
+  return wide
+    ? { top: 110, bottom: 90, left: Math.min(390, el.clientWidth * 0.5), right: 80 }
+    : { top: 70, bottom: 230, left: 40, right: 40 };
+}
+
 function boundsOf(points: { lat: number; lng: number }[]) {
   const b = new LngLatBounds();
   for (const p of points) b.extend([p.lng, p.lat]);
@@ -38,6 +50,8 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
   const mapRef = useRef<MapLibreMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
   const fitted = useRef(false);
+  // Once someone pans or zooms, stop re-fitting the view on layout changes.
+  const userMoved = useRef(false);
   const [ready, setReady] = useState(false);
   const [hasOutside, setHasOutside] = useState(false);
 
@@ -58,7 +72,7 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
     const target = all ? points : cluster;
     if (target.length === 0) return;
     map.fitBounds(boundsOf(target), {
-      padding: { top: 72, bottom: 72, left: 56, right: 56 },
+      padding: overlayPadding(el),
       maxZoom: 16.5,
       animate: all && !reducedMotion()
     });
@@ -73,15 +87,23 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
       style: BASE_STYLE_URL,
       center: IV_CENTER,
       zoom: 15,
-      attributionControl: { compact: false },
+      attributionControl: false,
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false
     });
     map.touchZoomRotate.disableRotation();
-    map.addControl(new NavigationControl({ showCompass: false }), "top-left");
+    // The OpenStreetMap credit must stay visible: bottom-right on desktop (beside the
+    // tray), top-left on phones (the bottom belongs to the place card and the switch).
+    const wide = window.matchMedia("(min-width: 1024px)").matches;
+    map.addControl(new AttributionControl({ compact: false }), wide ? "bottom-right" : "top-left");
+    // Top-right, because the panel has a big 200px curve at its top-left corner.
+    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     map.on("style.load", () => applyCoastalStyle(map));
     map.on("load", () => setReady(true));
+    map.on("movestart", (e) => {
+      if ((e as { originalEvent?: unknown }).originalEvent) userMoved.current = true;
+    });
     map.on("click", (e) => {
       const { listings: ls, selectedId: sel, onMovePin: move } = latest.current;
       const placing = ls.find((l) => l.id === sel && l.lat === null);
@@ -93,7 +115,7 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
     // List/Map switch reveals it). Re-measure, and fit once it's real.
     const ro = new ResizeObserver(() => {
       map.resize();
-      if (!fitted.current) fitToCluster(false);
+      if (!fitted.current || !userMoved.current) fitToCluster(false);
     });
     ro.observe(el);
 
@@ -146,7 +168,8 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
         selected ? `${label}, ${rentWords}, selected. Drag to move the pin.` : `${label}, ${rentWords}`
       );
       el.title = label;
-      el.style.setProperty("--pin", STATUS_HEX[l.status]);
+      el.style.setProperty("--pin-bg", STATUS_TAG[l.status].bg);
+      el.style.setProperty("--pin-fg", STATUS_TAG[l.status].fg);
       el.style.zIndex = selected ? "3" : isClosedStatus(l.status) ? "1" : "2";
       el.classList.toggle("is-selected", selected);
       el.classList.toggle("is-closed", isClosedStatus(l.status));
@@ -169,18 +192,17 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
     if (!map) return;
     map.getCanvas().style.cursor = selected && selected.lat === null ? "crosshair" : "";
     if (!selected || !isMapped(selected)) return;
-    const b = map.getBounds();
-    const latPad = (b.getNorth() - b.getSouth()) * 0.15;
-    const lngPad = (b.getEast() - b.getWest()) * 0.15;
+    // Only move when the pin is outside the uncovered part of the map, and then
+    // center it in that part rather than behind the place card.
+    const el = map.getContainer();
+    const pad = overlayPadding(el);
+    const pt = map.project([selected.lng, selected.lat]);
     const inside =
-      selected.lat < b.getNorth() - latPad &&
-      selected.lat > b.getSouth() + latPad &&
-      selected.lng < b.getEast() - lngPad &&
-      selected.lng > b.getWest() + lngPad;
+      pt.x > pad.left && pt.x < el.clientWidth - pad.right && pt.y > pad.top && pt.y < el.clientHeight - pad.bottom;
     if (!inside) {
       const center: [number, number] = [selected.lng, selected.lat];
-      if (reducedMotion()) map.jumpTo({ center });
-      else map.easeTo({ center, duration: 500 });
+      if (reducedMotion()) map.jumpTo({ center, padding: pad });
+      else map.easeTo({ center, padding: pad, duration: 500 });
     }
   }, [selected, ready]);
 
@@ -191,12 +213,8 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
       <div ref={containerRef} className="h-full w-full" />
 
       {placing ? (
-        <p className="pointer-events-none absolute inset-x-3 top-3 z-10 rounded-md bg-ink/90 px-3 py-2 text-center text-sm font-medium text-sand shadow-lift sm:left-14">
-          Click the map to place {streetHeadline(selected.address, selected.title)}
-        </p>
-      ) : selected && selected.lat !== null ? (
-        <p className="pointer-events-none absolute right-3 top-3 z-10 rounded-md bg-surface/95 px-2.5 py-1.5 text-xs text-muted shadow-soft">
-          Drag the highlighted pin to fix its spot
+        <p className="pointer-events-none absolute left-1/2 top-4 z-10 w-max max-w-[calc(100%-7rem)] -translate-x-1/2 rounded-full bg-sea-800 px-4 py-2 text-center text-sm font-semibold text-sea-100 shadow-lg">
+          Click the map to drop a pin for {streetHeadline(selected.address, selected.title)}
         </p>
       ) : null}
 
@@ -204,7 +222,7 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
         <button
           type="button"
           onClick={() => fitToCluster(true)}
-          className="absolute bottom-10 right-3 z-10 rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ocean shadow-soft transition hover:bg-ocean-soft focus-visible:outline-2 focus-visible:outline-focus max-lg:bottom-28"
+          className="absolute right-2.5 top-[5.75rem] z-10 h-9 rounded-full border border-divider bg-shell-light px-4 font-display text-[13px] text-tar shadow-md transition hover:bg-shell-mid lg:right-14 lg:top-2.5"
         >
           Show all places
         </button>

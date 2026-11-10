@@ -1,39 +1,77 @@
 "use client";
 
 import { forwardRef } from "react";
-import { ExternalLink, MapPin, Pencil, Star } from "lucide-react";
-import { streetHeadline } from "@/lib/address";
-import { formatRent, meetsBudget, rentPerPerson } from "@/lib/compare";
-import { formatCount, formatLeasePhrase } from "@/lib/format";
+import { Check, Star } from "lucide-react";
+import { areaLabel, streetHeadline } from "@/lib/address";
+import { formatRent, rentPerPerson } from "@/lib/compare";
+import { formatBedsBaths } from "@/lib/format";
 import { isClosedStatus, type Board, type Listing, type ListingPatch } from "@/lib/listing";
 import { cn } from "@/lib/utils";
-import { NextAction } from "./next-action";
-import { STATUS_STYLES, StatusSelect } from "./status";
+import { ownerDue } from "./next-action";
+import { StatusChip } from "./status";
 import { StreetPhoto } from "./street-photo";
 
 type Props = {
   listing: Listing;
   board: Board;
   selected: boolean;
-  onSelect: () => void;
+  checked: boolean;
+  /** True when three places are already checked and this one isn't. */
+  checkDisabled: boolean;
+  onToggleCheck: () => void;
+  /** Select on desktop, open the place sheet on phones (the board decides). */
+  onActivate: () => void;
   onPatch: (patch: ListingPatch) => Promise<void>;
-  onEdit: () => void;
-  /** Show a Street View thumbnail (only when Street View is configured). */
-  photos?: boolean;
+  photos: boolean;
 };
 
+/** The star toggle, in sunset-600 when on and stone-600 when off (both clear 3:1 on Shell). */
+export function StarButton({
+  starred,
+  label,
+  onToggle,
+  className
+}: {
+  starred: boolean;
+  label: string;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={starred}
+      aria-label={starred ? `Remove ${label} from shortlist` : `Add ${label} to shortlist`}
+      onClick={onToggle}
+      className={cn("flex items-center justify-center rounded-full transition hover:bg-shell-deep", className)}
+    >
+      <Star
+        className={cn("h-4 w-4", starred ? "text-sunset-600" : "text-stone-600")}
+        strokeWidth={2.75}
+        fill={starred ? "currentColor" : "none"}
+        aria-hidden="true"
+      />
+    </button>
+  );
+}
+
 /**
- * One place as a ledger row: street-first headline, rent aligned on the right,
- * a status-colored edge, and the next step on its own line.
+ * One place as a row. Desktop grid: check and star | Street View board | name,
+ * meta, status | rent. Phones: Street View board | name and status | rent and star.
  */
 export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
-  { listing, board, selected, onSelect, onPatch, onEdit, photos = false },
+  { listing, board, selected, checked, checkDisabled, onToggleCheck, onActivate, onPatch, photos },
   ref
 ) {
   const closed = isClosedStatus(listing.status);
-  const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
   const headline = streetHeadline(listing.address, listing.title);
-  const showTitle = headline !== listing.title;
+  const area = areaLabel(listing.address);
+  const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
+  const od = ownerDue(listing, board.members);
+  const meta = [headline !== listing.title ? listing.title : null, formatBedsBaths(listing.beds, listing.baths) || null]
+    .filter(Boolean)
+    .join(" · ");
+  const toggleStar = () => void onPatch({ starred: !listing.starred });
 
   return (
     <article
@@ -41,132 +79,102 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
       id={`listing-${listing.id}`}
       aria-current={selected ? "true" : undefined}
       onClick={(e) => {
-        if ((e.target as HTMLElement).closest("button, a, select, input, label, form, textarea")) return;
-        onSelect();
+        if ((e.target as HTMLElement).closest("button, a, select, input, label")) return;
+        onActivate();
       }}
       className={cn(
-        "group relative scroll-mt-24 py-4 pl-5 pr-4 transition-colors sm:pr-5",
-        "before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-full",
-        STATUS_STYLES[listing.status].edge,
-        selected ? "bg-coral-soft/60" : "hover:bg-sand/70"
+        "grid cursor-pointer scroll-mt-28 items-center gap-3 rounded-[24px] p-2.5 transition-colors",
+        "grid-cols-[44px_minmax(0,1fr)_auto] lg:grid-cols-[24px_52px_minmax(0,1fr)_auto] lg:pr-3.5",
+        selected ? "bg-sea-100" : "hover:bg-shell-mid",
+        closed && "opacity-55"
       )}
     >
-      {selected ? (
-        <span aria-hidden="true" className="absolute inset-y-0 right-0 w-0.5 bg-coral" />
-      ) : null}
-
-      <div className="flex items-start gap-3">
-        {photos ? (
-          <StreetPhoto
-            lat={listing.lat}
-            lng={listing.lng}
-            label={headline}
-            className={cn("h-14 w-14 sm:h-[4.5rem] sm:w-24", closed && "opacity-55 grayscale")}
-          />
-        ) : null}
-        <div className={cn("min-w-0 flex-1", closed && "opacity-55")}>
-          <h3 className="font-display text-lg font-bold leading-tight text-ink">
-            <button
-              type="button"
-              onClick={onSelect}
-              className="text-left decoration-coral decoration-2 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            >
-              {headline}
-            </button>
-          </h3>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted/90">
-            {showTitle ? <span>{listing.title}</span> : null}
-            {listing.lat === null ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">
-                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                Not on the map yet
-              </span>
-            ) : null}
-          </p>
-        </div>
-
-        <div className={cn("shrink-0 text-right", closed && "opacity-55")}>
-          {listing.rentCents === null ? (
-            <p className="text-base font-semibold text-muted">Rent unknown</p>
-          ) : (
-            <p className="font-display text-xl font-extrabold tabular-nums text-ink">
-              {formatRent(listing.rentCents)}
-              <span className="text-xs font-medium text-muted">/mo</span>
-            </p>
-          )}
-          {perPerson !== null ? (
-            <p className="text-xs tabular-nums text-muted">
-              {formatRent(perPerson)} each
-              {board.budgetPerPersonCents !== null ? (
-                meetsBudget(perPerson, board.budgetPerPersonCents) ? (
-                  <span className="ml-1.5 font-medium text-st-applied">within budget</span>
-                ) : (
-                  <span className="ml-1.5 font-medium text-danger">over budget</span>
-                )
-              ) : null}
-            </p>
-          ) : null}
-        </div>
-
+      {/* Col 1 (desktop): compare check and star */}
+      <div className="hidden flex-col items-center gap-2 lg:flex">
         <button
           type="button"
-          aria-pressed={listing.starred}
-          aria-label={listing.starred ? `Remove ${headline} from shortlist` : `Add ${headline} to shortlist`}
-          onClick={() => void onPatch({ starred: !listing.starred })}
+          role="checkbox"
+          aria-checked={checked}
+          aria-label={`Compare ${headline}`}
+          disabled={checkDisabled}
+          title={checkDisabled ? "You can compare up to three places" : undefined}
+          onClick={onToggleCheck}
           className={cn(
-            "-mr-2 -mt-1.5 rounded-full p-2 transition focus-visible:outline-2 focus-visible:outline-focus",
-            listing.starred ? "text-coral hover:bg-coral-soft" : "text-muted/50 hover:bg-sand hover:text-coral"
+            "flex h-[22px] w-[22px] items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40",
+            checked ? "bg-sea-700 text-white" : "ring-[1.5px] ring-inset ring-stone-600 hover:bg-shell-deep"
           )}
         >
-          <Star className="h-5 w-5" fill={listing.starred ? "currentColor" : "none"} aria-hidden="true" />
+          {checked ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" /> : null}
         </button>
+        <StarButton starred={listing.starred} label={headline} onToggle={toggleStar} className="h-6 w-6" />
       </div>
 
-      <p className={cn("mt-1 text-[13px] text-muted/80", closed && "opacity-55")}>
-        {formatCount(listing.beds, "bed")}, {formatCount(listing.baths, "bath")}
-        <span className="mx-2 text-line" aria-hidden="true">|</span>
-        {formatLeasePhrase(listing.leaseStart, listing.leaseEnd)}
-      </p>
-
-      <div className={cn("mt-3", listing.nextAction && "rounded-md bg-ocean-soft/70 px-3 py-2")}>
-        <NextAction listing={listing} members={board.members} onSave={onPatch} />
-      </div>
-
-      <div className="mt-3 flex items-center gap-1">
-        <StatusSelect
-          value={listing.status}
-          label={`Status for ${headline}`}
-          onChange={(status) => void onPatch({ status })}
+      {/* Col 2: Street View board. Washed-out places skip the photo. */}
+      {closed ? (
+        <div className="h-16 w-11 lg:h-[76px] lg:w-[52px]" aria-hidden="true" />
+      ) : (
+        <StreetPhoto
+          lat={listing.lat}
+          lng={listing.lng}
+          label={headline}
+          size="row"
+          enabled={photos}
+          attribution="tiny"
+          className="h-16 w-11 rounded-full lg:h-[76px] lg:w-[52px]"
         />
-        <span
-          className={cn(
-            "ml-auto flex items-center gap-1 transition-opacity",
-            // On hover-capable screens, keep the row quiet until you point at it or tab into it.
-            !selected &&
-              "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100"
-          )}
-        >
-          <a
-            href={listing.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-ocean transition hover:bg-ocean-soft focus-visible:outline-2 focus-visible:outline-focus"
-          >
-            <span className="sm:hidden">Listing</span>
-            <span className="hidden sm:inline">Open listing</span>
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="sr-only">(opens in a new tab)</span>
-          </a>
+      )}
+
+      {/* Col 3: name, meta, status */}
+      <div className="min-w-0">
+        <h3 className="flex flex-wrap items-baseline gap-x-2">
           <button
             type="button"
-            onClick={onEdit}
-            aria-label={`Edit ${headline}`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-muted transition hover:bg-sand hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
+            onClick={onActivate}
+            className="min-w-0 text-left font-display text-[15px] leading-tight text-tar lg:text-lg"
           >
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="hidden sm:inline">Edit</span>
+            {headline}
           </button>
-        </span>
+          {area ? <span className="label hidden text-stone-700 lg:inline">{area}</span> : null}
+        </h3>
+        {meta ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{meta}</p> : null}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <StatusChip status={listing.status} />
+          {listing.lat === null && !closed ? (
+            <button
+              type="button"
+              onClick={onActivate}
+              className="hidden rounded-full px-2.5 py-[2px] text-[11px] font-semibold text-sunset-700 ring-[1.5px] ring-inset ring-sunset-500 hover:bg-sunset-100 lg:inline-flex"
+            >
+              Drop pin
+            </button>
+          ) : null}
+          {od ? (
+            <span className={cn("label hidden lg:inline", od.overdue ? "text-danger" : "text-stone-700")}>{od.text}</span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Col 4: rent (and the star, on phones) */}
+      <div className="flex flex-col items-end text-right">
+        {listing.rentCents === null ? (
+          <>
+            <p className="font-display text-[15px] text-stone-700 lg:text-[21px]">Unknown</p>
+            <p className="hidden text-xs text-stone-700 lg:block">Rent unknown</p>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-[15px] text-tar lg:text-[21px]">{formatRent(listing.rentCents)}</p>
+            {perPerson !== null ? (
+              <p className="hidden text-xs text-stone-700 lg:block">{formatRent(perPerson)} / person</p>
+            ) : null}
+          </>
+        )}
+        <StarButton
+          starred={listing.starred}
+          label={headline}
+          onToggle={toggleStar}
+          className="-mr-1.5 mt-0.5 h-8 w-8 lg:hidden"
+        />
       </div>
     </article>
   );
