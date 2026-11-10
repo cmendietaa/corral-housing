@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { extractWithClaude } from "@/lib/ai-extract";
+import { aiConfigured, extractWithAI } from "@/lib/ai-extract";
 import { MAX_PASTE_CHARS, parseListingText } from "@/lib/parse-listing";
 
 /**
  * POST /api/parse-listing  { text }  ->  { fields, source: "ai" | "parser", note? }
  *
- * Fills the add-place form from pasted listing text. Claude Haiku when
- * ANTHROPIC_API_KEY is set (rate-limited per IP), otherwise or on any failure
+ * Fills the add-place form from pasted listing text. An OpenAI model when
+ * OPENAI_API_KEY is set (rate-limited per IP), otherwise or on any failure
  * the deterministic parser. The person always reviews the fields before saving.
  */
 
@@ -51,10 +51,10 @@ export async function POST(request: NextRequest) {
   const text = parsed.data.text;
 
   let note: string | undefined;
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (aiConfigured()) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (takeAiSlot(ip)) {
-      const fields = await extractWithClaude(text);
+      const fields = await extractWithAI(text);
       if (fields) return NextResponse.json({ fields, source: "ai" });
       note = "AI autofill was unavailable, so the basic reader filled what it could.";
     } else {
