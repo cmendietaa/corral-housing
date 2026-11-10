@@ -222,10 +222,11 @@ function parseTitle(text: string): string | null {
     .replace(/\$\s?[\d,]+(?:\.\d{2})?\s*(?:\/\s*mo(?:nth)?|per\s+month|a\s+month)?/gi, "")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/\s*([,;])\s*(?:[,;]\s*)+/g, "$1 ") // ", ," left behind by a removed price
+    .replace(/\s*[-–—|•:]\s*(?=[.,;!?]|$)/g, "") // a separator left dangling before punctuation
     .replace(/\s{2,}/g, " ")
     .trim();
   // A one-line paste is the whole listing: keep its first sentence, then its first phrase.
-  cleaned = cleaned.split(/(?<=[a-z0-9)])[.!?](?:\s|$)/i)[0];
+  cleaned = cleaned.split(/(?<=[a-z0-9)])\s*[.!?](?:\s|$)/i)[0];
   if (cleaned.length > 60) cleaned = cleaned.split(/[,;]/)[0];
   cleaned = cleaned.replace(/^[\s\-–—|•:,;]+|[\s\-–—|•:,;]+$/g, "").trim();
   if (cleaned.length < 4 || cleaned.length > 120) return null;

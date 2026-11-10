@@ -61,6 +61,9 @@ describe("parseListingText", () => {
     expect(parseListingText("Studio on Trigo, $1,850/mo, available June 15. Coin laundry.", now).title).toBe(
       "Studio on Trigo, available June 15"
     );
+    expect(
+      parseListingText("4BR/2BA duplex near Pardall - $5,400/mo. 6512 Sabado Tarde Rd, Isla Vista. W/D in unit.", now).title
+    ).toBe("4BR/2BA duplex near Pardall");
   });
 
   it("never returns a javascript: link", () => {
