@@ -7,7 +7,8 @@ import {
   type ListingInput,
   type ListingPatch
 } from "@/lib/listing";
-import type { BoardSnapshot, BoardStore } from "@/lib/stores/types";
+import type { BoardSnapshot, BoardStore, Photo } from "@/lib/stores/types";
+import { createDemoPhotos, DEMO_PHOTO_CHANNEL } from "@/lib/stores/demo-photos";
 
 /**
  * Demo storage: one fictional board kept in this browser's localStorage.
@@ -55,6 +56,9 @@ export function createLocalStore(options: {
   const storage = options.storage === undefined ? browserStorage() : options.storage;
   const now = options.now ?? (() => new Date());
   let memory: BoardSnapshot | null = null;
+  // Opened on first use, so unit tests and server renders never touch IndexedDB.
+  let demoPhotos: ReturnType<typeof createDemoPhotos> | null = null;
+  const photos = () => (demoPhotos ??= createDemoPhotos(newId, now));
 
   function read(): BoardSnapshot {
     if (memory) return memory;
@@ -104,7 +108,26 @@ export function createLocalStore(options: {
         onChange();
       };
       window.addEventListener("storage", handler);
-      return () => window.removeEventListener("storage", handler);
+      // Photos live in IndexedDB, which has no change event; tabs ping each other.
+      const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(DEMO_PHOTO_CHANNEL);
+      if (channel) channel.onmessage = () => onChange();
+      return () => {
+        window.removeEventListener("storage", handler);
+        channel?.close();
+      };
+    },
+
+    async loadPhotos() {
+      return photos().load();
+    },
+
+    async addPhoto(listingId: string, jpeg: Blob) {
+      if (!read().listings.some((l) => l.id === listingId)) throw new Error("That place is no longer on the board.");
+      return photos().add(listingId, jpeg);
+    },
+
+    async deletePhoto(photo: Photo) {
+      await photos().delete(photo.id);
     },
 
     async addListing(input: ListingInput) {
@@ -127,11 +150,13 @@ export function createLocalStore(options: {
     async deleteListing(id: string) {
       const snap = read();
       write({ ...snap, listings: snap.listings.filter((l) => l.id !== id) });
+      await photos().deleteForListing(id);
     },
 
     async reset() {
       const fresh = createDemoSnapshot(now());
       write(fresh);
+      await photos().clear();
       return clone(fresh);
     }
   };

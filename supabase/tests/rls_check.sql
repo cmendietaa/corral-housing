@@ -135,6 +135,69 @@ begin
   raise notice 'PASS: invited member can collaborate but not escalate';
 end $$;
 
+-- Tour photos: Bob (member) adds photos; the table and bucket stay in step.
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+  v_listing uuid := (select id from public.listings where board_id = v_board limit 1);
+  v_path text;
+  n int;
+begin
+  insert into public.listing_photos (board_id, listing_id) values (v_board, v_listing) returning path into v_path;
+  insert into t values ('photo_listing', v_listing);
+  if (select uploaded_by from public.listing_photos where path = v_path) <> '00000000-0000-4000-a000-00000000000b' then
+    raise exception 'FAIL: photo uploader not recorded';
+  end if;
+  insert into storage.objects (bucket_id, name) values ('tour-photos', v_path);
+  begin
+    insert into storage.objects (bucket_id, name) values ('tour-photos', v_board || '/' || v_listing || '/' || gen_random_uuid() || '.jpg');
+    raise exception 'FAIL: a member uploaded a file with no photo row';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.listing_photos (board_id, listing_id, uploaded_by)
+      values (v_board, v_listing, '00000000-0000-4000-a000-00000000000a');
+    raise exception 'FAIL: a member posted a photo as someone else';
+  exception when insufficient_privilege then null;
+  end;
+  for i in 1..7 loop
+    insert into public.listing_photos (board_id, listing_id) values (v_board, v_listing);
+  end loop;
+  begin
+    insert into public.listing_photos (board_id, listing_id) values (v_board, v_listing);
+    raise exception 'FAIL: a place took a 9th photo';
+  exception when check_violation then null;
+  end;
+  raise notice 'PASS: members add photos (as themselves, indexed, up to 8)';
+end $$;
+
+-- Olive (outsider) can't see, add or remove any of them.
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-00000000000c","role":"authenticated"}';
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+  v_listing uuid := (select v from t where k = 'photo_listing');
+  n int;
+begin
+  if (select count(*) from public.listing_photos where board_id = v_board) <> 0 then
+    raise exception 'FAIL: outsider can see photo rows';
+  end if;
+  if (select count(*) from storage.objects where bucket_id = 'tour-photos' and name like v_board || '/%') <> 0 then
+    raise exception 'FAIL: outsider can see photo files';
+  end if;
+  begin
+    insert into public.listing_photos (board_id, listing_id) values (v_board, v_listing);
+    raise exception 'FAIL: outsider added a photo row';
+  exception when insufficient_privilege then null;
+  end;
+  -- (Storage forbids direct SQL deletes; its delete policy uses the same
+  -- membership check as reads, which the file count above covers.)
+  delete from public.listing_photos where board_id = v_board;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FAIL: outsider deleted photo rows'; end if;
+  raise notice 'PASS: outsider is refused tour photos';
+end $$;
+
 -- Signed-out (anon) visitors get nothing at all.
 reset role;
 set local role anon;
@@ -144,6 +207,11 @@ begin
   begin
     perform 1 from public.listings limit 1;
     raise exception 'FAIL: anon can query listings';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform 1 from public.listing_photos limit 1;
+    raise exception 'FAIL: anon can query photos';
   exception when insufficient_privilege then null;
   end;
   begin

@@ -23,6 +23,7 @@ UCSB roommate groups look for a whole house or apartment together, but the searc
 | **Compare** | Check two or three places for a side-by-side table in a fixed row order, with the best value per row highlighted. Unknown rent never counts as "within budget". |
 | **Follow-through** | Six PRD statuses (Considering to Unavailable), a shortlist star, and one next step per place with an owner and a due date. A Status tab shows the kanban. |
 | **Private boards** | Google sign-in, invite links that expire after 7 days, and Postgres row-level security so only members can read or write a board. |
+| **Tour photos** | Roommates add up to 8 photos per place from a tour; the first replaces Street View everywhere the place appears. Photos are shrunk in the browser (which also strips GPS and other EXIF data) and stored in a private Supabase bucket readable only by board members. |
 | **Live + commute** | Roommates' changes appear without reloading (on the demo, open it in two tabs to see it). Each pinned place shows about how long the bike and walk to UCSB is, and Compare highlights the shortest. |
 | **Phone-ready** | List, map and status views with a place sheet, all usable at 375px. |
 
@@ -46,7 +47,7 @@ app/
 components/board/       One <Board> UI shared by the demo and private boards
 lib/stores/             BoardStore interface: local.ts (demo) and supabase.ts (private)
 supabase/migrations/    Schema, RLS policies and the create/invite functions
-supabase/tests/         rls_check.sql: owner, invited member, outsider and anon checks
+supabase/tests/         rls_check.sql: owner, invited member, outsider and anon checks (boards and tour photos)
 ```
 
 - **One UI, two stores.** `<Board>` takes a `BoardStore`. The demo uses localStorage and private boards use Supabase, so the demo never imports the database client and both get identical behavior.
@@ -60,6 +61,7 @@ supabase/tests/         rls_check.sql: owner, invited member, outsider and anon 
 - **One next step per place**, stored on the listing rather than in its own table. It matches the PRD and keeps RLS to one check per table.
 - **No scraping.** Listing sites block it and it's fragile, so autofill reads only text people paste.
 - **Live updates reload the snapshot.** Supabase Realtime streams listing and member changes (filtered by RLS, so only members hear them); the board refetches after a 300 ms debounce instead of merging events, which is simpler and fine at a few changes a day.
+- **Tour photos: index first, then upload.** A `listing_photos` row is inserted first (RLS checks membership and an 8-photo cap), the storage path is derived from it in Postgres, and the bucket's policy only accepts uploads to indexed paths, so the table and bucket can't drift and nobody can drop arbitrary files in. Signed links last an hour and the board refreshes them.
 - **Commute is an estimate, not a route.** Straight-line distance to the Pardall entrance times 1.3, at walking and biking speeds. No paid directions API, and it's always shown as "about".
 - **Per-person rent divides by group size**, not bedrooms, because the group splits the rent.
 - **MapLibre v5 with OpenFreeMap tiles.** No API key, styled to the palette. v6's ES-module worker doesn't load through Next's bundler, so it stays pinned to v5.
@@ -85,8 +87,8 @@ Apply the database schema to your own Supabase project with `supabase link` and 
 ## Tests
 
 ```bash
-npm run lint && npm test && npm run build                       # 74 unit tests (Vitest)
-npm run test:e2e                                                # 24 Playwright tests, desktop and iPhone
+npm run lint && npm test && npm run build                       # 77 unit tests (Vitest)
+npm run test:e2e                                                # 26 Playwright tests, desktop and iPhone
 E2E_BASE_URL=https://corral-housing.vercel.app npm run test:e2e # same, against production
 supabase db query --remote -f supabase/tests/rls_check.sql     # RLS checks, rolled back
 ```

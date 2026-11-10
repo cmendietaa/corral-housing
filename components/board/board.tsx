@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lookupPin } from "@/lib/geocode-client";
+import { shrinkPhoto } from "@/lib/photo-shrink";
+import { MAX_PHOTOS_PER_PLACE, type Photo } from "@/lib/stores/types";
+import { TourPhotosContext } from "./tour-photos";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { List, Map as MapIcon, Plus, SquareKanban } from "lucide-react";
@@ -79,6 +82,37 @@ export function Board({
 
   // Live updates from roommates (private boards only). Deletes can't be
   // filtered by board, so a reload of the whole snapshot keeps it simple.
+  // Tour photos. Reloads keep the URL of photos we already show, so a live
+  // update doesn't re-download every image; the timer swaps in fresh signed
+  // links before the old ones (1 hour) expire.
+  const [photoList, setPhotoList] = useState<Photo[]>([]);
+  const [uploading, setUploading] = useState<Record<string, number>>({});
+  const loadPhotos = useCallback(
+    async (freshUrls = false) => {
+      if (!store.loadPhotos) return;
+      try {
+        const next = await store.loadPhotos();
+        setPhotoList((prev) => (freshUrls ? next : next.map((p) => prev.find((q) => q.id === p.id) ?? p)));
+      } catch {
+        // Photos are extra; the board still works without them.
+      }
+    },
+    [store]
+  );
+  useEffect(() => {
+    if (!store.loadPhotos) return;
+    let cancelled = false;
+    store
+      .loadPhotos()
+      .then((list) => !cancelled && setPhotoList(list))
+      .catch(() => {});
+    const t = window.setInterval(() => void loadPhotos(true), 45 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [store, loadPhotos]);
+
   useEffect(() => {
     if (!store.subscribe) return;
     return store.subscribe(() => {
@@ -86,8 +120,49 @@ export function Board({
         .load()
         .then((s) => setSnap(s))
         .catch(() => {});
+      void loadPhotos();
     });
-  }, [store]);
+  }, [store, loadPhotos]);
+
+  const members = snap?.board.members;
+  const photoCtx = useMemo(() => {
+    if (!store.addPhoto || !store.deletePhoto) return null;
+    const addPhoto = store.addPhoto.bind(store);
+    const deletePhoto = store.deletePhoto.bind(store);
+    const bump = (id: string, by: number) => setUploading((u) => ({ ...u, [id]: Math.max(0, (u[id] ?? 0) + by) }));
+    return {
+      photosFor: (id: string) => photoList.filter((p) => p.listingId === id),
+      uploadingFor: (id: string) => uploading[id] ?? 0,
+      memberName: (id: string | null) => (id ? (members?.find((m) => m.id === id)?.name ?? null) : null),
+      async add(listingId: string, files: File[]) {
+        const room = MAX_PHOTOS_PER_PLACE - photoList.filter((p) => p.listingId === listingId).length - (uploading[listingId] ?? 0);
+        const batch = files.slice(0, Math.max(0, room));
+        if (files.length > batch.length) {
+          setNotice(room > 0 ? `Only room for ${room} more photo${room === 1 ? "" : "s"} on this place.` : `A place can have up to ${MAX_PHOTOS_PER_PLACE} photos.`);
+        }
+        bump(listingId, batch.length);
+        for (const file of batch) {
+          try {
+            const photo = await addPhoto(listingId, await shrinkPhoto(file));
+            setPhotoList((list) => (list.some((p) => p.id === photo.id) ? list : [...list, photo]));
+          } catch (e) {
+            setNotice(e instanceof Error ? e.message : "Couldn't add that photo.");
+          } finally {
+            bump(listingId, -1);
+          }
+        }
+      },
+      async remove(photo: Photo) {
+        try {
+          await deletePhoto(photo);
+          setPhotoList((list) => list.filter((p) => p.id !== photo.id));
+          setNotice("Photo removed.");
+        } catch (e) {
+          setNotice(e instanceof Error ? e.message : "Couldn't remove that photo.");
+        }
+      }
+    };
+  }, [store, photoList, uploading, members]);
 
   useEffect(() => {
     if (!notice) return;
@@ -144,6 +219,7 @@ export function Board({
   async function remove(listing: Listing) {
     await store.deleteListing(listing.id);
     setSnap((s) => (s ? { ...s, listings: s.listings.filter((l) => l.id !== listing.id) } : s));
+    setPhotoList((list) => list.filter((p) => p.listingId !== listing.id));
     setChecked((c) => c.filter((id) => id !== listing.id));
     if (selectedId === listing.id) setSelectedId(null);
     if (sheetId === listing.id) setSheetId(null);
@@ -155,6 +231,7 @@ export function Board({
     if (!window.confirm("Reset the demo? Your changes on this board will be replaced with the original places.")) return;
     const fresh = await store.reset();
     setSnap(fresh);
+    setPhotoList([]);
     setChecked([]);
     setComparing(false);
     setSelectedId(fresh.listings.find((l) => !isClosedStatus(l.status) && l.lat !== null)?.id ?? null);
@@ -210,7 +287,11 @@ export function Board({
   if (!snap) return <BoardSkeleton />;
 
   if (comparing && checkedPlaces.length >= 2) {
-    return <CompareView places={checkedPlaces} board={snap.board} photos={photos} onBack={() => setComparing(false)} />;
+    return (
+      <TourPhotosContext.Provider value={photoCtx}>
+        <CompareView places={checkedPlaces} board={snap.board} photos={photos} onBack={() => setComparing(false)} />
+      </TourPhotosContext.Provider>
+    );
   }
 
   const board = snap.board;
@@ -304,6 +385,7 @@ export function Board({
   );
 
   return (
+    <TourPhotosContext.Provider value={photoCtx}>
     <div
       className={cn(
         "flex min-h-screen flex-col",
@@ -518,6 +600,7 @@ export function Board({
         ) : null}
       </div>
     </div>
+    </TourPhotosContext.Provider>
   );
 }
 

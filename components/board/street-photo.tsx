@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatPhotoDate, streetViewSrc, type PhotoSize } from "@/lib/streetview";
 import { cn } from "@/lib/utils";
+import { useFirstTourPhoto } from "./tour-photos";
 
 /**
  * A Street View frame. The frame's size and shape come from `className`, and
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
  * load error) it shows the fence fallback, three dashed boards, instead.
  */
 export function StreetPhoto({
+  listingId,
   lat,
   lng,
   label,
@@ -20,6 +22,8 @@ export function StreetPhoto({
   className,
   children
 }: {
+  /** When the place has tour photos, the first one replaces Street View. */
+  listingId?: string;
   lat: number | null;
   lng: number | null;
   /** Place name for the alt text, e.g. "Sabado Tarde, 6512". */
@@ -35,7 +39,8 @@ export function StreetPhoto({
   /** Overlays (back button, star) drawn on top of the frame. */
   children?: React.ReactNode;
 }) {
-  const src = enabled ? streetViewSrc(lat, lng, size) : null;
+  const tour = useFirstTourPhoto(listingId);
+  const src = tour?.url ?? (enabled ? streetViewSrc(lat, lng, size) : null);
   const [state, setState] = useState<"loading" | "loaded" | "failed">("loading");
   // A new pin means a new photo.
   const [lastSrc, setLastSrc] = useState(src);
@@ -47,7 +52,7 @@ export function StreetPhoto({
   // Large frames say when the photo was taken, so old imagery reads as old.
   const [taken, setTaken] = useState<{ src: string; date: string | null } | null>(null);
   useEffect(() => {
-    if (attribution !== "long" || state !== "loaded" || !src || lat === null || lng === null || taken?.src === src) return;
+    if (tour || attribution !== "long" || state !== "loaded" || !src || lat === null || lng === null || taken?.src === src) return;
     let cancelled = false;
     fetch(`/api/streetview/date?lat=${lat}&lng=${lng}`)
       .then((r) => r.json() as Promise<{ date: string | null }>)
@@ -56,7 +61,7 @@ export function StreetPhoto({
     return () => {
       cancelled = true;
     };
-  }, [attribution, state, src, lat, lng, taken?.src]);
+  }, [tour, attribution, state, src, lat, lng, taken?.src]);
   const takenLabel = taken?.src === src ? formatPhotoDate(taken.date) : null;
 
   const showPhoto = src !== null && state !== "failed";
@@ -70,7 +75,7 @@ export function StreetPhoto({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
-            alt={`Street View near ${label}`}
+            alt={tour ? `Tour photo of ${label}` : `Street View near ${label}`}
             loading="lazy"
             decoding="async"
             onLoad={() => setState("loaded")}
@@ -80,13 +85,22 @@ export function StreetPhoto({
               state === "loaded" ? "opacity-100" : "opacity-0"
             )}
           />
-          {state === "loaded" ? <Credit kind={attribution} taken={takenLabel} /> : null}
+          {state === "loaded" ? tour ? <TourCredit kind={attribution} /> : <Credit kind={attribution} taken={takenLabel} /> : null}
         </>
       ) : (
         <FenceFallback text={hint ? (noPin ? "Drop a pin to see the street" : "No street photo here") : undefined} />
       )}
       {children}
     </div>
+  );
+}
+
+function TourCredit({ kind }: { kind: "short" | "long" | "tiny" }) {
+  if (kind !== "long") return null;
+  return (
+    <span className="pointer-events-none absolute bottom-2.5 right-2.5 rounded-full bg-shell px-2 py-0.5 text-[10px] font-semibold text-tar">
+      Tour photo
+    </span>
   );
 }
 

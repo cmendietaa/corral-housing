@@ -13,6 +13,7 @@ import { NextAction, ownerDue } from "./next-action";
 import { StarButton } from "./listing-row";
 import { StatusChip, StatusMenu } from "./status";
 import { StreetPhoto } from "./street-photo";
+import { TourPhotoStrip } from "./tour-photos";
 
 type Shared = {
   listing: Listing;
@@ -56,6 +57,7 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
       className="w-[330px] overflow-hidden rounded-[30px] bg-shell shadow-lg"
     >
       <StreetPhoto
+        listingId={listing.id}
         lat={listing.lat}
         lng={listing.lng}
         label={headline}
@@ -87,6 +89,7 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
           <OpenListing url={listing.url} />
         </div>
         <NextAction listing={listing} members={board.members} onSave={onPatch} />
+        <TourPhotoStrip listingId={listing.id} label={headline} />
         <button
           type="button"
           onClick={onEdit}
@@ -122,6 +125,7 @@ export function MapMiniCard({
       className="flex w-full items-center gap-3 rounded-[26px] bg-shell p-2.5 pr-4 text-left shadow-lg"
     >
       <StreetPhoto
+        listingId={listing.id}
         lat={listing.lat}
         lng={listing.lng}
         label={headline}
@@ -201,6 +205,7 @@ export function PlaceSheet({
     >
       <div className="relative h-full overflow-y-auto">
         <StreetPhoto
+          listingId={listing.id}
           lat={listing.lat}
           lng={listing.lng}
           label={headline}
@@ -251,6 +256,8 @@ export function PlaceSheet({
           </div>
 
           <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" className="mt-4" />
+
+          <TourPhotoStrip listingId={listing.id} label={headline} className="mt-4" />
 
           {listing.lat === null ? (
             <Button type="button" variant="secondary" className="mt-3 w-full" onClick={onDropPin}>

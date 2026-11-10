@@ -170,6 +170,7 @@ function StatusCard({
         </div>
       ) : (
         <StreetPhoto
+          listingId={listing.id}
           lat={listing.lat}
           lng={listing.lng}
           label={headline}

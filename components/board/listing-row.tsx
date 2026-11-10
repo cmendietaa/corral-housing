@@ -120,6 +120,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
         <div className="h-16 w-11 lg:h-[76px] lg:w-[52px]" aria-hidden="true" />
       ) : (
         <StreetPhoto
+          listingId={listing.id}
           lat={listing.lat}
           lng={listing.lng}
           label={headline}

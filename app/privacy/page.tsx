@@ -48,7 +48,9 @@ export default function PrivacyPage() {
 
         <h2>Where it&apos;s stored</h2>
         <p>
-          Accounts and boards are stored with Supabase. The site is hosted on Vercel. Maps use OpenFreeMap and OpenStreetMap
+          Accounts and boards are stored with Supabase. Tour photos you add are stored privately there too and only members of
+          that board can see them; before upload, your browser shrinks each photo and removes its hidden details, including
+          the location the camera recorded. On the demo, photos stay in your browser and are never uploaded. The site is hosted on Vercel. Maps use OpenFreeMap and OpenStreetMap
           data; if street photos are turned on, they come from Google Street View using a place&apos;s map location. To place a pin, the address you enter is looked up with the US Census Geocoder or OpenStreetMap; nothing else about the place is sent.
         </p>
 

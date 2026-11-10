@@ -121,6 +121,7 @@ export function CompareView({
             return (
               <div key={p.id} className="overflow-hidden rounded-t-[30px] bg-shell-deep">
                 <StreetPhoto
+                  listingId={p.id}
                   lat={p.lat}
                   lng={p.lng}
                   label={name}
@@ -172,6 +173,7 @@ export function CompareView({
               return (
                 <div key={p.id} className="min-w-0">
                   <StreetPhoto
+                    listingId={p.id}
                     lat={p.lat}
                     lng={p.lng}
                     label={name}
