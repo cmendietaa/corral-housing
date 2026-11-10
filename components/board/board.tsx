@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lookupPin } from "@/lib/geocode-client";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { List, Map as MapIcon, Plus, SquareKanban } from "lucide-react";
@@ -117,19 +118,27 @@ export function Board({
   );
 
   async function add(input: ListingInput) {
-    const created = await store.addListing(input);
+    // Place the pin from the address; dropping it by hand is only the fallback.
+    const pin = input.lat === null ? await lookupPin(input.address) : null;
+    const created = await store.addListing(pin ? { ...input, ...pin } : input);
     setSnap((s) => (s ? { ...s, listings: [created, ...s.listings] } : s));
     setSelectedId(created.id);
     setNotice(
       created.lat === null
-        ? `Added ${streetHeadline(created.address, created.title)}. Click the map to drop its pin.`
+        ? created.address
+          ? `Added ${streetHeadline(created.address, created.title)}. Couldn't find that address on the map, so click the map to drop its pin.`
+          : `Added ${streetHeadline(created.address, created.title)}. Add an address, or click the map to drop its pin.`
         : `Added ${streetHeadline(created.address, created.title)}.`
     );
   }
 
   async function saveEdit(id: string, input: ListingInput) {
-    replace(await store.updateListing(id, input));
-    setNotice("Changes saved.");
+    const before = snap?.listings.find((l) => l.id === id);
+    const norm = (a: string | null | undefined) => (a ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    const moved = before && norm(before.address) !== norm(input.address);
+    const pin = moved ? await lookupPin(input.address) : null;
+    replace(await store.updateListing(id, pin ? { ...input, ...pin } : input));
+    setNotice(moved && !pin && input.address ? "Changes saved. Couldn't find the new address, so drag the pin to fix it." : "Changes saved.");
   }
 
   async function remove(listing: Listing) {

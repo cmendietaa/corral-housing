@@ -15,7 +15,7 @@ import type { BoardSnapshot, BoardStore } from "@/lib/stores/types";
  * window, blocked site data), the demo still works in memory for the session.
  */
 
-export const DEMO_STORAGE_KEY = "corral:demo:v3";
+export const DEMO_STORAGE_KEY = "corral:demo:v4";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 

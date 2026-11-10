@@ -9,6 +9,10 @@ import { expect, test, type Page } from "@playwright/test";
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 1024;
 
 async function openDemo(page: Page) {
+  // Stub the address lookup so tests never depend on the Census or OSM services.
+  await page.route("**/api/geocode?**", (route) =>
+    route.fulfill({ json: { lat: 34.411, lng: -119.8575 }, headers: { "Cache-Control": "no-store" } })
+  );
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Our place by the bluffs" }).first()).toBeVisible();
 }
@@ -118,4 +122,11 @@ test("a change in one demo tab shows up live in another", async ({ context }) =>
   await addPlace(a, "Live in both tabs");
   await expect(b.locator("article", { hasText: "Trigo Rd, 6700" })).toBeVisible();
   await expect(b.getByText("Still in the running · 6")).toBeVisible();
+});
+
+test("adding a place with an address puts its pin on the map automatically", async ({ page }) => {
+  await openDemo(page);
+  await addPlace(page, "Auto pin");
+  await expect(page.getByText("Added Trigo Rd, 6700.")).toBeVisible();
+  await expect(page.getByText(/drop its pin/)).toHaveCount(0);
 });

@@ -49,7 +49,7 @@ export default function PrivacyPage() {
         <h2>Where it&apos;s stored</h2>
         <p>
           Accounts and boards are stored with Supabase. The site is hosted on Vercel. Maps use OpenFreeMap and OpenStreetMap
-          data; if street photos are turned on, they come from Google Street View using a place&apos;s map location.
+          data; if street photos are turned on, they come from Google Street View using a place&apos;s map location. To place a pin, the address you enter is looked up with the US Census Geocoder or OpenStreetMap; nothing else about the place is sent.
         </p>
 
         <h2>Deleting your data</h2>
