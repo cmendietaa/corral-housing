@@ -63,7 +63,7 @@ supabase/tests/         rls_check.sql: owner, invited member, outsider and anon 
 - **Commute is an estimate, not a route.** Straight-line distance to the Pardall entrance times 1.3, at walking and biking speeds. No paid directions API, and it's always shown as "about".
 - **Per-person rent divides by group size**, not bedrooms, because the group splits the rent.
 - **MapLibre v5 with OpenFreeMap tiles.** No API key, styled to the palette. v6's ES-module worker doesn't load through Next's bundler, so it stays pinned to v5.
-- **Street View is optional.** Without `GOOGLE_MAPS_API_KEY`, photo frames show a neutral placeholder and no request is made.
+- **Street View is optional and fenced in.** Photos go through a server proxy so the key never reaches the browser, only coordinates around Isla Vista and Goleta are allowed, and the key is restricted to the Street View Static API with a daily cap. Without `GOOGLE_MAPS_API_KEY`, frames show a neutral placeholder and no request is made.
 
 ## Run it locally
 
