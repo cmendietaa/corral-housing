@@ -50,3 +50,12 @@ export function streetViewSrc(lat: number | null, lng: number | null, size: Phot
   if (lat === null || lng === null) return null;
   return `/api/streetview?lat=${roundCoord(lat)}&lng=${roundCoord(lng)}&s=${size}`;
 }
+
+/** "2019-04" -> "Apr 2019", "2019" -> "2019". */
+export function formatPhotoDate(date: string | null): string | null {
+  if (!date) return null;
+  const [y, m] = date.split("-").map(Number);
+  if (!y) return null;
+  if (!m) return String(y);
+  return `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1] ?? ""} ${y}`.trim();
+}

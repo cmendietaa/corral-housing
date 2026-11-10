@@ -2,8 +2,9 @@ import { SERVICE_AREA } from "@/lib/streetview";
 
 /**
  * Address -> map pin, with free services only:
- *   1. US Census Geocoder (no key, government service)
- *   2. OpenStreetMap Nominatim as the fallback (1 request/second, identified client)
+ *   1. OpenStreetMap Nominatim, when it matches the building itself (most of IV is mapped)
+ *   2. US Census Geocoder (interpolated along the street, can be a lot or two off)
+ *   3. Any other Nominatim match (street-level)
  * Results outside Isla Vista / Goleta are rejected, so a vague address
  * ("6545 Trigo") can't drop a pin in another state.
  */
@@ -39,7 +40,9 @@ async function census(q: string, f: Fetch): Promise<Pin | null> {
   return c ? { lat: c.y, lng: c.x } : null;
 }
 
-async function nominatim(q: string, f: Fetch): Promise<Pin | null> {
+type OsmPin = Pin & { building: boolean };
+
+async function nominatim(q: string, f: Fetch): Promise<OsmPin | null> {
   const { south, north, west, east } = SERVICE_AREA;
   const url =
     `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&bounded=1` +
@@ -49,20 +52,31 @@ async function nominatim(q: string, f: Fetch): Promise<Pin | null> {
     signal: AbortSignal.timeout(5000)
   });
   if (!res.ok) return null;
-  const data = (await res.json()) as { lat: string; lon: string }[];
-  return data[0] ? { lat: Number(data[0].lat), lng: Number(data[0].lon) } : null;
+  const data = (await res.json()) as { lat: string; lon: string; class?: string; type?: string }[];
+  const hit = data[0];
+  if (!hit) return null;
+  const building = hit.class === "building" || (hit.class === "place" && hit.type === "house");
+  return { lat: Number(hit.lat), lng: Number(hit.lon), building };
+}
+
+function usable(pin: Pin | null): pin is Pin {
+  return pin !== null && Number.isFinite(pin.lat) && Number.isFinite(pin.lng) && inServiceArea(pin);
+}
+
+async function attempt<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null; // timeout or bad response: try the next source
+  }
 }
 
 export async function geocodeAddress(address: string, f: Fetch = fetch): Promise<Pin | null> {
   const q = addressQuery(address);
   if (!q) return null;
-  for (const source of [census, nominatim]) {
-    try {
-      const pin = await source(q, f);
-      if (pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng) && inServiceArea(pin)) return round(pin);
-    } catch {
-      // Timeout or bad response: try the next source.
-    }
-  }
-  return null;
+  const osm = await attempt(() => nominatim(q, f));
+  if (osm?.building && usable(osm)) return round(osm);
+  const fromCensus = await attempt(() => census(q, f));
+  if (usable(fromCensus)) return round(fromCensus);
+  return usable(osm) ? round(osm) : null;
 }

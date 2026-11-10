@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { streetViewSrc, type PhotoSize } from "@/lib/streetview";
+import { useEffect, useState } from "react";
+import { formatPhotoDate, streetViewSrc, type PhotoSize } from "@/lib/streetview";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,6 +44,21 @@ export function StreetPhoto({
     setState("loading");
   }
 
+  // Large frames say when the photo was taken, so old imagery reads as old.
+  const [taken, setTaken] = useState<{ src: string; date: string | null } | null>(null);
+  useEffect(() => {
+    if (attribution !== "long" || state !== "loaded" || !src || lat === null || lng === null || taken?.src === src) return;
+    let cancelled = false;
+    fetch(`/api/streetview/date?lat=${lat}&lng=${lng}`)
+      .then((r) => r.json() as Promise<{ date: string | null }>)
+      .then((d) => !cancelled && setTaken({ src, date: d.date }))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [attribution, state, src, lat, lng, taken?.src]);
+  const takenLabel = taken?.src === src ? formatPhotoDate(taken.date) : null;
+
   const showPhoto = src !== null && state !== "failed";
   const noPin = lat === null || lng === null;
 
@@ -65,7 +80,7 @@ export function StreetPhoto({
               state === "loaded" ? "opacity-100" : "opacity-0"
             )}
           />
-          {state === "loaded" ? <Credit kind={attribution} /> : null}
+          {state === "loaded" ? <Credit kind={attribution} taken={takenLabel} /> : null}
         </>
       ) : (
         <FenceFallback text={hint ? (noPin ? "Drop a pin to see the street" : "No street photo here") : undefined} />
@@ -75,7 +90,7 @@ export function StreetPhoto({
   );
 }
 
-function Credit({ kind }: { kind: "short" | "long" | "tiny" }) {
+function Credit({ kind, taken }: { kind: "short" | "long" | "tiny"; taken?: string | null }) {
   return (
     <span
       className={cn(
@@ -83,7 +98,7 @@ function Credit({ kind }: { kind: "short" | "long" | "tiny" }) {
         kind === "tiny" ? "bottom-1 right-1 px-1 text-[7px] leading-3" : "bottom-2.5 right-2.5 px-2 py-0.5 text-[10px]"
       )}
     >
-      {kind === "long" ? "Street View · © Google" : "© Google"}
+      {kind === "long" ? `Street View${taken ? ` · ${taken}` : ""} · © Google` : "© Google"}
     </span>
   );
 }

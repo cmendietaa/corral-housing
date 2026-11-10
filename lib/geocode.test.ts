@@ -18,17 +18,26 @@ describe("addressQuery", () => {
 });
 
 describe("geocodeAddress", () => {
-  it("uses the Census result when it has one", async () => {
-    const f = vi.fn(() => json(censusHit(-119.8559703, 34.4108438)));
-    expect(await geocodeAddress("6545 Trigo Rd", f)).toEqual({ lat: 34.410844, lng: -119.85597 });
+  const osm = (lat: string, lon: string, cls = "building") => [{ lat, lon, class: cls, type: "yes" }];
+
+  it("prefers an OpenStreetMap building match (the house itself)", async () => {
+    const f = vi.fn().mockReturnValueOnce(json(osm("34.4114374", "-119.8647548")));
+    expect(await geocodeAddress("6753 Pasado Rd", f)).toEqual({ lat: 34.411437, lng: -119.864755 });
     expect(f).toHaveBeenCalledTimes(1);
   });
-  it("falls back to OpenStreetMap when Census has no match", async () => {
-    const f = vi.fn().mockReturnValueOnce(json(censusMiss)).mockReturnValueOnce(json([{ lat: "34.417541", lon: "-119.866698" }]));
+  it("uses Census when OpenStreetMap only knows the street", async () => {
+    const f = vi
+      .fn()
+      .mockReturnValueOnce(json(osm("34.41", "-119.86", "highway")))
+      .mockReturnValueOnce(json(censusHit(-119.8559703, 34.4108438)));
+    expect(await geocodeAddress("6545 Trigo Rd", f)).toEqual({ lat: 34.410844, lng: -119.85597 });
+  });
+  it("falls back to the street-level match when Census has nothing", async () => {
+    const f = vi.fn().mockReturnValueOnce(json(osm("34.417541", "-119.866698", "highway"))).mockReturnValueOnce(json(censusMiss));
     expect(await geocodeAddress("6800 El Colegio Rd", f)).toEqual({ lat: 34.417541, lng: -119.866698 });
   });
   it("rejects results outside Isla Vista and Goleta", async () => {
-    const f = vi.fn().mockReturnValueOnce(json(censusHit(-74, 40.7))).mockReturnValueOnce(json([]));
+    const f = vi.fn().mockReturnValueOnce(json([])).mockReturnValueOnce(json(censusHit(-74, 40.7)));
     expect(await geocodeAddress("123 Main St", f)).toBeNull();
   });
   it("returns null when both services fail", async () => {

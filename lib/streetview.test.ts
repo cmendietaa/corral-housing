@@ -39,3 +39,13 @@ describe("streetViewSrc", () => {
     expect(streetViewSrc(null, null)).toBeNull();
   });
 });
+
+import { formatPhotoDate } from "./streetview";
+
+describe("formatPhotoDate", () => {
+  it("labels the photo's age", () => {
+    expect(formatPhotoDate("2019-04")).toBe("Apr 2019");
+    expect(formatPhotoDate("2021")).toBe("2021");
+    expect(formatPhotoDate(null)).toBeNull();
+  });
+});
