@@ -23,7 +23,7 @@ UCSB roommate groups look for a whole house or apartment together, but the searc
 | **Compare** | Check two or three places for a side-by-side table in a fixed row order, with the best value per row highlighted. Unknown rent never counts as "within budget". |
 | **Follow-through** | Six PRD statuses (Considering to Unavailable), a shortlist star, and one next step per place with an owner and a due date. A Status tab shows the kanban. |
 | **Private boards** | Google sign-in, invite links that expire after 7 days, and Postgres row-level security so only members can read or write a board. |
-| **Live + commute** | Roommates' changes appear without reloading. Each pinned place shows about how long the bike and walk to UCSB is, and Compare highlights the shortest. |
+| **Live + commute** | Roommates' changes appear without reloading (on the demo, open it in two tabs to see it). Each pinned place shows about how long the bike and walk to UCSB is, and Compare highlights the shortest. |
 | **Phone-ready** | List, map and status views with a place sheet, all usable at 375px. |
 
 <p>
@@ -86,7 +86,7 @@ Apply the database schema to your own Supabase project with `supabase link` and 
 
 ```bash
 npm run lint && npm test && npm run build                       # 66 unit tests (Vitest)
-npm run test:e2e                                                # 20 Playwright tests, desktop and iPhone
+npm run test:e2e                                                # 22 Playwright tests, desktop and iPhone
 E2E_BASE_URL=https://corral-housing.vercel.app npm run test:e2e # same, against production
 supabase db query --remote -f supabase/tests/rls_check.sql     # RLS checks, rolled back
 ```

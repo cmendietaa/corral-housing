@@ -93,6 +93,20 @@ export function createLocalStore(options: {
       return clone(read());
     },
 
+    // Live updates between tabs: the browser fires "storage" in every other
+    // tab of this origin when the demo board is saved. Drop the cached copy
+    // so the next load reads what the other tab wrote.
+    subscribe(onChange) {
+      if (typeof window === "undefined") return () => {};
+      const handler = (e: StorageEvent) => {
+        if (e.key !== DEMO_STORAGE_KEY) return;
+        memory = null;
+        onChange();
+      };
+      window.addEventListener("storage", handler);
+      return () => window.removeEventListener("storage", handler);
+    },
+
     async addListing(input: ListingInput) {
       const data = listingInputSchema.parse(input);
       const listing: Listing = { ...data, id: newId(), updatedAt: now().toISOString() };

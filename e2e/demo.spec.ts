@@ -109,3 +109,13 @@ test("two browsers have separate demo boards", async ({ browser }) => {
   await a.close();
   await b.close();
 });
+
+test("a change in one demo tab shows up live in another", async ({ context }) => {
+  const a = await context.newPage();
+  const b = await context.newPage();
+  await openDemo(a);
+  await openDemo(b);
+  await addPlace(a, "Live in both tabs");
+  await expect(b.locator("article", { hasText: "Trigo Rd, 6700" })).toBeVisible();
+  await expect(b.getByText("Still in the running · 6")).toBeVisible();
+});
