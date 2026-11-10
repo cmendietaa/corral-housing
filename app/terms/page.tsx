@@ -13,7 +13,7 @@ export default function TermsPage() {
         <h1 className="font-display text-[32px] leading-tight text-tar">Terms of use</h1>
         <p className="label text-stone-700">Last updated November 9, 2026</p>
         <p>
-          Corral is a free student project for organizing a roommate group&apos;s apartment search. It is not affiliated with
+          Corral is a free student project for organizing a roommate group&apos;s housing search. It is not affiliated with
           UCSB, and it isn&apos;t a rental listing service: it only keeps the links and notes you add.
         </p>
         <h2>Using Corral</h2>

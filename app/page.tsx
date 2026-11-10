@@ -28,7 +28,7 @@ export default function Home() {
           </div>
           <p className="label mt-10 text-tar lg:mt-14">For UCSB roommate groups · Isla Vista & Goleta</p>
           <h1 className="mt-3 max-w-3xl font-display text-[2.6rem] leading-[1.02] text-tar sm:text-6xl">
-            Round up your apartment hunt in one corral.
+            Round up your housing hunt in one corral.
           </h1>
         </div>
       </Band>
