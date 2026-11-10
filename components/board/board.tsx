@@ -12,6 +12,7 @@ import { isClosedStatus, type Listing, type ListingInput, type ListingPatch } fr
 import type { BoardSnapshot, BoardStore } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 import { CompareTray, CompareView } from "./compare-view";
+import { InviteDialog } from "./invite-dialog";
 import { ListingForm } from "./listing-form";
 import { ListingRow } from "./listing-row";
 import { MapBoundary } from "./map-boundary";
@@ -32,8 +33,19 @@ const MAX_COMPARE = 3;
 const isDesktop = () => window.matchMedia("(min-width: 1024px)").matches;
 const smooth = () => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
-/** `photos`: whether Street View is configured on this deployment. */
-export function Board({ store, photos = false }: { store: BoardStore; photos?: boolean }) {
+/**
+ * `photos`: whether Street View is configured on this deployment.
+ * `makeInviteLink`: private boards only; creates a fresh invite link.
+ */
+export function Board({
+  store,
+  photos = false,
+  makeInviteLink
+}: {
+  store: BoardStore;
+  photos?: boolean;
+  makeInviteLink?: () => Promise<string>;
+}) {
   const [snap, setSnap] = useState<BoardSnapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -45,6 +57,7 @@ export function Board({ store, photos = false }: { store: BoardStore; photos?: b
   const [form, setForm] = useState<FormState>(null);
   const [formKey, setFormKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
   const rowRefs = useRef(new Map<string, HTMLElement>());
 
   useEffect(() => {
@@ -222,6 +235,16 @@ export function Board({ store, photos = false }: { store: BoardStore; photos?: b
     <section aria-label="Places" className="min-w-0">
       <div className="mb-3 flex items-center justify-between gap-3 px-2">
         <h2 className="label text-stone-700">Still in the running · {open.length}</h2>
+        {makeInviteLink ? (
+          <div className="flex items-center gap-1 lg:hidden">
+            <Link href="/boards" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-stone-800 hover:bg-shell-mid">
+              Boards
+            </Link>
+            <Button size="sm" variant="secondary" onClick={() => setInviting(true)}>
+              Invite
+            </Button>
+          </div>
+        ) : null}
         {isDemo && store.reset ? (
           <p className="rounded-full bg-glass-200 px-3.5 py-1.5 text-[13px] text-glass-900">
             Fictional demo ·{" "}
@@ -285,10 +308,15 @@ export function Board({ store, photos = false }: { store: BoardStore; photos?: b
                 </Link>
                 <div className="ml-auto flex items-center gap-3">
                   {tabToggle}
-                  {!isDemo ? (
-                    <Button variant="secondary" size="md" disabled title="Invites arrive with private boards">
-                      Invite
-                    </Button>
+                  {makeInviteLink ? (
+                    <>
+                      <Link href="/boards" className="h-11 rounded-full px-4 py-2.5 font-display text-[15px] text-tar hover:bg-sunset-200">
+                        Boards
+                      </Link>
+                      <Button variant="secondary" size="md" onClick={() => setInviting(true)}>
+                        Invite
+                      </Button>
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -449,6 +477,8 @@ export function Board({ store, photos = false }: { store: BoardStore; photos?: b
           onToggleCheck={() => toggleCheck(sheet.id)}
         />
       ) : null}
+
+      {inviting && makeInviteLink ? <InviteDialog makeLink={makeInviteLink} onClose={() => setInviting(false)} /> : null}
 
       {form ? (
         <ListingForm

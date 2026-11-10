@@ -44,9 +44,8 @@ export default function Home() {
               <Button asChild size="lg">
                 <Link href="/demo">Try the demo board</Link>
               </Button>
-              {/* Enabled once Google sign-in and private boards ship (PLAN.md days 4–6). */}
-              <Button size="lg" variant="secondary" disabled>
-                Sign-in coming soon
+              <Button asChild size="lg" variant="secondary">
+                <Link href="/boards">Sign in to your boards</Link>
               </Button>
             </div>
             <p className="mt-3 text-sm text-stone-700">The demo is fictional and needs no account.</p>
