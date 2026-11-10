@@ -1,5 +1,7 @@
 # Corral
 
+[![CI](https://github.com/cmendietaa/corral-housing/actions/workflows/ci.yml/badge.svg)](https://github.com/cmendietaa/corral-housing/actions/workflows/ci.yml)
+
 **One board for a roommate group's housing hunt in Isla Vista and Goleta.**
 Save places from any listing site, see them on one map, compare two or three side by side, and give each place a status and one next step with an owner and a due date.
 
