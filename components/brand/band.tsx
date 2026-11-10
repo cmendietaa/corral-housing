@@ -127,7 +127,13 @@ export function FenceFooter({ className }: { className?: string }) {
           <span key={i} className={cn("h-5 w-[14px] shrink-0 rounded-t-full", FENCE[i % FENCE.length])} />
         ))}
       </div>
-      <div className="bg-sea-800 px-6 py-3.5 text-xs text-sea-100">Not affiliated with UCSB. Demo data is fictional.</div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 bg-sea-800 px-6 py-3.5 text-xs text-sea-100">
+        <span>Not affiliated with UCSB. Demo data is fictional.</span>
+        <span className="ml-auto flex gap-4">
+          <a href="/privacy" className="underline-offset-4 hover:underline">Privacy</a>
+          <a href="/terms" className="underline-offset-4 hover:underline">Terms</a>
+        </span>
+      </div>
     </footer>
   );
 }
