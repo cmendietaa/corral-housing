@@ -57,9 +57,15 @@ export async function GET(request: NextRequest) {
     const metaUrl = `${GOOGLE}/metadata?location=${location}&source=outdoor&radius=60&key=${key}`;
     const meta = (await fetch(metaUrl, { cache: "no-store" }).then((r) => r.json())) as {
       status: string;
+      error_message?: string;
       pano_id?: string;
       location?: { lat: number; lng: number };
     };
+    if (meta.status !== "OK" && meta.status !== "ZERO_RESULTS" && meta.status !== "NOT_FOUND") {
+      // Key or quota problem, not a fact about the place: log it, don't cache it.
+      console.error(`Street View metadata ${meta.status}: ${meta.error_message ?? ""}`);
+      return NextResponse.json({ error: "Street View is unavailable right now." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
     if (meta.status !== "OK" || !meta.pano_id || !meta.location) {
       // No imagery here is a stable answer; let the browser remember it for a day.
       return notFound("No Street View imagery near this spot.", "private, max-age=86400");
