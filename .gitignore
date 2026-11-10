@@ -13,3 +13,5 @@ next-env.d.ts
 .DS_Store
 supabase/.temp
 supabase/.branches
+test-results/
+playwright-report/

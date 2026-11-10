@@ -23,6 +23,8 @@ const hits = new Map<string, { count: number; resetAt: number }>();
 
 function limited(ip: string): boolean {
   const now = Date.now();
+  // Forget expired entries now and then so the map can't grow without bound.
+  if (hits.size > 1000) for (const [key, value] of hits) if (value.resetAt < now) hits.delete(key);
   const entry = hits.get(ip);
   if (!entry || entry.resetAt < now) {
     hits.set(ip, { count: 1, resetAt: now + WINDOW_MS });
