@@ -87,9 +87,9 @@ export async function extractWithAI(text: string, now: Date = new Date()): Promi
     }
     return toParsed(response.output_parsed);
   } catch (error) {
-    if (error instanceof OpenAI.RateLimitError) console.warn("parse-listing: OpenAI rate limit or out of credits");
+    if (error instanceof OpenAI.RateLimitError) console.warn(`parse-listing: OpenAI 429 (${error.code ?? "rate limit"})`);
     else if (error instanceof OpenAI.AuthenticationError) console.error("parse-listing: bad OPENAI_API_KEY");
-    else if (error instanceof OpenAI.APIError) console.warn(`parse-listing: OpenAI error ${error.status}`);
+    else if (error instanceof OpenAI.APIError) console.warn(`parse-listing: OpenAI error ${error.status} (${error.code ?? "no code"})`);
     else console.warn("parse-listing: request failed", error instanceof Error ? error.message : error);
     return null;
   }
