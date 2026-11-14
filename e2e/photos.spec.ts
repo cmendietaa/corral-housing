@@ -31,8 +31,15 @@ test("add a tour photo, see it on the place, keep it after reload, then remove i
   scope = await placeScope(page);
   await expect(scope.getByRole("button", { name: "Open tour photo 1 of 1" })).toBeVisible();
 
+  // Closing the viewer returns to the place (on phones, the place sheet stays open).
   await scope.getByRole("button", { name: "Open tour photo 1 of 1" }).click();
   const viewer = page.getByRole("dialog", { name: "Tour photos of Trigo Rd, 6545" });
+  await expect(viewer.getByText(/Photo 1 of 1/)).toBeVisible();
+  await viewer.getByRole("button", { name: "Close photos" }).click();
+  await expect(viewer).toBeHidden();
+  await expect(scope.getByRole("button", { name: "Open tour photo 1 of 1" })).toBeVisible();
+
+  await scope.getByRole("button", { name: "Open tour photo 1 of 1" }).click();
   await expect(viewer.getByText(/Photo 1 of 1/)).toBeVisible();
   page.once("dialog", (d) => d.accept());
   await viewer.getByRole("button", { name: "Remove" }).click();

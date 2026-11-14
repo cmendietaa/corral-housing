@@ -27,22 +27,40 @@ async function encode(bitmap: ImageBitmap, max: number, quality: number): Promis
   return blob;
 }
 
-export async function shrinkPhoto(file: File): Promise<Blob> {
-  if (!file.type.startsWith("image/")) throw new Error(`${file.name} isn't a photo.`);
+type Step = readonly [maxSide: number, quality: number];
+
+/** Re-encode at each (size, quality) step until the result fits under maxBytes. */
+async function shrink(file: File, steps: readonly Step[], maxBytes: number, noun: string): Promise<Blob> {
+  if (file.type && !file.type.startsWith("image/")) throw new Error(`${file.name} isn't ${noun}.`);
   let bitmap: ImageBitmap;
   try {
     // Respect the camera's rotation flag before it's dropped with the metadata.
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
-    throw new Error(`Couldn't read ${file.name}. Try a JPEG or PNG.`);
+    throw new Error(`Couldn't open ${file.name || "that image"}. Try a PNG or JPEG.`);
   }
   try {
-    for (const [max, quality] of [[PHOTO_MAX_SIDE, 0.82], [1280, 0.72], [1024, 0.65]] as const) {
+    for (const [max, quality] of steps) {
       const blob = await encode(bitmap, max, quality);
-      if (blob.size <= PHOTO_MAX_BYTES) return blob;
+      if (blob.size <= maxBytes) return blob;
     }
-    throw new Error(`${file.name} is too large even after shrinking.`);
+    throw new Error(`${file.name || "That image"} is too large even after shrinking.`);
   } finally {
     bitmap.close();
   }
+}
+
+export async function shrinkPhoto(file: File): Promise<Blob> {
+  return shrink(file, [[PHOTO_MAX_SIDE, 0.82], [1280, 0.72], [1024, 0.65]], PHOTO_MAX_BYTES, "a photo");
+}
+
+/**
+ * Screenshots for autofill: a larger long side than tour photos so small print
+ * on a tall phone screenshot stays readable, and a higher JPEG quality because
+ * text blurs sooner than a photo does. Never uploaded for storage.
+ */
+export const SCREENSHOT_STEPS: readonly Step[] = [[2048, 0.85], [1600, 0.8], [1280, 0.75]];
+
+export async function shrinkScreenshot(file: File, maxBytes: number): Promise<Blob> {
+  return shrink(file, SCREENSHOT_STEPS, maxBytes, "an image");
 }

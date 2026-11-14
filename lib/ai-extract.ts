@@ -1,7 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
 import type { ParsedListing } from "@/lib/parse-listing";
-import { DEFAULT_MODEL, extractListing } from "@/lib/extract/model";
+import { DEFAULT_MODEL, extractListing, type ExtractInput } from "@/lib/extract/model";
 
 /**
  * AI autofill for the API route. Returns null on any failure (no key, timeout,
@@ -16,12 +16,13 @@ export function aiConfigured(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
-export async function extractWithAI(text: string, now: Date = new Date()): Promise<ParsedListing | null> {
+export async function extractWithAI(input: ExtractInput, now: Date = new Date()): Promise<ParsedListing | null> {
   if (!aiConfigured()) return null;
-  const client = new OpenAI({ timeout: 20_000, maxRetries: 1 });
+  // Screenshots take longer to read than text.
+  const client = new OpenAI({ timeout: input.images?.length ? 40_000 : 20_000, maxRetries: 1 });
 
   try {
-    const result = await extractListing(client, { text }, { model: MODEL, now });
+    const result = await extractListing(client, input, { model: MODEL, now });
     if (!result.fields) {
       console.warn("parse-listing: no structured output", result.status);
       return null;

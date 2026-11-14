@@ -18,7 +18,7 @@ UCSB roommate groups look for a whole house or apartment together, but the searc
 | | |
 |---|---|
 | **Quick capture** | A name is all you need; add the listing link if there is one (screenshots and word-of-mouth places often don't have one). Unknown rent or bedrooms show as *Unknown*, never as $0. Only `http(s)` links are accepted. |
-| **Autofill** | Paste the listing's text and the form fills itself in for review. An OpenAI model does it when a key is set, with a rule-based reader as the free fallback. Corral never scrapes or opens listing links. |
+| **Autofill** | Paste the listing's text or add up to 3 screenshots of it (a post, a group chat, a listing page), and the form fills itself in for review. An OpenAI model reads both when a key is set, with a rule-based reader as the free fallback for text. Screenshots are shrunk in the browser and never stored. Corral never scrapes or opens listing links. |
 | **Linked map** | Rent tags on a MapLibre map, colored by status. Selecting a row selects its tag and the reverse. Pins are placed from the address automatically (OpenStreetMap's building outline when it has one, else the US Census Geocoder; both free); drag a pin to fine-tune it. |
 | **Compare** | Check two or three places for a side-by-side table in a fixed row order, with the best value per row highlighted. Unknown rent never counts as "within budget". |
 | **Follow-through** | Six PRD statuses (Considering to Unavailable), a shortlist star, and one next step per place with an owner and a due date. A Status tab shows the kanban. |
@@ -42,7 +42,7 @@ app/
   boards/, boards/[id]  Private boards (server checks the session, RLS decides access)
   invite/[token]        Join a board, or a clear "washed away" page for bad links
   auth/callback|signout OAuth callback and POST-only sign-out
-  api/parse-listing     Autofill: OpenAI structured output, rule-based fallback, rate-limited
+  api/parse-listing     Autofill from text or screenshots: OpenAI structured output, rule-based fallback, rate-limited
   api/streetview        Street View proxy (key stays server-side, IV/Goleta area only)
 components/board/       One <Board> UI shared by the demo and private boards
 lib/stores/             BoardStore interface: local.ts (demo) and supabase.ts (private)
@@ -53,7 +53,8 @@ supabase/tests/         rls_check.sql: owner, invited member, outsider and anon 
 - **One UI, two stores.** `<Board>` takes a `BoardStore`. The demo uses localStorage and private boards use Supabase, so the demo never imports the database client and both get identical behavior.
 - **Access is enforced in Postgres, not the UI.** Every table has RLS keyed on board membership. Users can't insert themselves into `board_members`; the only ways in are `create_board()` and `redeem_invite()`. Column-level grants stop members from changing their role or moving a place to another board. `supabase/tests/rls_check.sql` proves it in a rolled-back transaction with fake users.
 - **Sign-in** uses Google Identity Services with `signInWithIdToken` and a hashed nonce, so Google's consent screen names this site. Sessions refresh in `proxy.ts` and are verified server-side with `getClaims()`.
-- **Autofill output is untrusted.** Whether it comes from the model or the parser, every field is re-validated against the same Zod schema as the form, and the person reviews it before saving. The model is told to treat pasted text as data, never instructions.
+- **Autofill output is untrusted.** Whether it comes from the model or the parser, every field is re-validated against the same Zod schema as the form, and the person reviews it before saving. The model is told to treat pasted text and screenshots as data, never instructions. Text and screenshots share one extraction pipeline (`lib/extract/`): the same instructions, output schema and validation.
+- **Screenshots: shrink in the browser, distrust on the server.** The browser re-encodes each screenshot (long side ≤2048px, which also strips metadata) so uploads stay small; the server still checks the real file type from its first bytes, the size and the count, and passes the image to the model in memory without storing it. A screenshot request counts as 2 of the 10 hourly AI calls per IP, and the OpenAI project's budget limit is the real cost ceiling. With no model available, a screenshot gets a clear "paste the text instead" rather than an empty form.
 
 ## Tradeoffs and decisions
 
@@ -87,8 +88,8 @@ Apply the database schema to your own Supabase project with `supabase link` and 
 ## Tests
 
 ```bash
-npm run lint && npm test && npm run build                       # 88 unit tests (Vitest)
-npm run test:e2e                                                # 28 Playwright tests, desktop and iPhone
+npm run lint && npm test && npm run build                       # 99 unit tests (Vitest)
+npm run test:e2e                                                # 34 Playwright tests, desktop and iPhone
 E2E_BASE_URL=https://corral-housing.vercel.app npm run test:e2e # same, against production
 supabase db query --remote -f supabase/tests/rls_check.sql     # RLS checks, rolled back
 ```

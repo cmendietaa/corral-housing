@@ -591,6 +591,7 @@ export function Board({
           onClose={() => setForm(null)}
           onSubmit={(input) => (form.mode === "edit" ? saveEdit(form.listing.id, input) : add(input))}
           onDelete={form.mode === "edit" ? remove : undefined}
+          sampleScreenshot={isDemo ? "/samples/listing-screenshot.jpg" : undefined}
         />
       ) : null}
 

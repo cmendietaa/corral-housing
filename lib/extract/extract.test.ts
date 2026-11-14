@@ -86,6 +86,40 @@ describe("extractListing", () => {
     expect(result.latencyMs).toBeGreaterThanOrEqual(0);
   });
 
+  it("sends screenshots as image parts after the fenced text, at high detail by default", async () => {
+    const { client, calls } = stubClient({ output_parsed: { ...blank, beds: 3 } });
+    await extractListing(
+      client,
+      { text: "caption: 3bd on Sueno", images: [{ type: "image/jpeg", base64: "AAAA" }, { type: "image/png", base64: "BBBB" }] },
+      { now }
+    );
+    expect(calls[0]!.input).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: "<listing>\ncaption: 3bd on Sueno\n</listing>" },
+          { type: "input_text", text: "Screenshots of the listing (2):" },
+          { type: "input_image", image_url: "data:image/jpeg;base64,AAAA", detail: "high" },
+          { type: "input_image", image_url: "data:image/png;base64,BBBB", detail: "high" }
+        ]
+      }
+    ]);
+  });
+
+  it("sends a screenshot on its own, with the detail level the caller picks", async () => {
+    const { client, calls } = stubClient({ output_parsed: blank });
+    await extractListing(client, { images: [{ type: "image/jpeg", base64: "AAAA" }] }, { now, imageDetail: "low" });
+    expect(calls[0]!.input).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: "Screenshots of the listing (1):" },
+          { type: "input_image", image_url: "data:image/jpeg;base64,AAAA", detail: "low" }
+        ]
+      }
+    ]);
+  });
+
   it("returns no fields for a refusal or cut-off answer", async () => {
     const { client } = stubClient({ output_parsed: null, status: "incomplete" });
     const result = await extractListing(client, { text: "anything" }, { now });

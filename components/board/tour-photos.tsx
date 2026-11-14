@@ -160,7 +160,11 @@ function PhotoViewer({
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      // React passes a nested dialog's close event up; stop it so the dialog underneath stays open.
+      onClose={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
       onKeyDown={(e) => {
         if (photos.length < 2) return;
         if (e.key === "ArrowLeft") prev();

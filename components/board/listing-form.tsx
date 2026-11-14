@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { ImagePlus, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { streetHeadline } from "@/lib/address";
+import { MAX_SCREENSHOT_BYTES, MAX_SCREENSHOTS } from "@/lib/extract/image";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
 import {
   emptyListingInput,
@@ -17,6 +18,7 @@ import {
   type ListingInput
 } from "@/lib/listing";
 import type { ParsedListing } from "@/lib/parse-listing";
+import { shrinkScreenshot } from "@/lib/photo-shrink";
 import { cn } from "@/lib/utils";
 
 type Draft = {
@@ -67,9 +69,14 @@ type Props = {
   onClose: () => void;
   onSubmit: (input: ListingInput) => Promise<void>;
   onDelete?: (listing: Listing) => Promise<void>;
+  /** Demo only: a fictional listing screenshot people can try autofill with. */
+  sampleScreenshot?: string;
 };
 
-export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Props) {
+/** A screenshot waiting to be read: shrunk in the browser, kept only in memory. */
+type Shot = { id: string; blob: Blob; url: string };
+
+export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const id = useId();
   const base = listing ?? emptyListingInput();
@@ -86,6 +93,18 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
     error: false
   });
   const [filled, setFilled] = useState<Set<keyof Draft>>(new Set());
+  const [shots, setShots] = useState<Shot[]>([]);
+  const [preparing, setPreparing] = useState(0);
+  const [viewing, setViewing] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const shotsRef = useRef<Shot[]>([]);
+
+  // Release the screenshots' memory when the form closes.
+  useEffect(() => {
+    shotsRef.current = shots;
+  }, [shots]);
+  useEffect(() => () => shotsRef.current.forEach((s) => URL.revokeObjectURL(s.url)), []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -104,15 +123,66 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
     });
   };
 
-  /** Ask the server to read the pasted text, then fill only the fields that are still empty. */
+  const say = (message: string, error = false) => setAutofill({ busy: false, message, error });
+
+  /** Shrink each image in the browser (which also drops its metadata) and keep it for Autofill. */
+  async function addScreenshots(files: File[]) {
+    const images = files.filter((f) => !f.type || f.type.startsWith("image/"));
+    if (images.length === 0) return say("That isn't an image. Add a screenshot (PNG or JPEG).", true);
+    const room = Math.max(0, MAX_SCREENSHOTS - shots.length - preparing);
+    const take = images.slice(0, room);
+    if (take.length < images.length) say(`Autofill reads up to ${MAX_SCREENSHOTS} screenshots at a time, so the extra ones weren't added.`);
+    else setAutofill((a) => ({ ...a, message: null, error: false }));
+    setPreparing((n) => n + take.length);
+    await Promise.all(
+      take.map(async (file) => {
+        try {
+          const blob = await shrinkScreenshot(file, MAX_SCREENSHOT_BYTES);
+          setShots((list) => [...list, { id: crypto.randomUUID(), blob, url: URL.createObjectURL(blob) }]);
+        } catch (err) {
+          say(err instanceof Error ? err.message : "Couldn't open that image. Try a PNG or JPEG.", true);
+        } finally {
+          setPreparing((n) => n - 1);
+        }
+      })
+    );
+  }
+
+  function removeShot(id: string) {
+    setShots((list) => {
+      const gone = list.find((s) => s.id === id);
+      if (gone) URL.revokeObjectURL(gone.url);
+      return list.filter((s) => s.id !== id);
+    });
+  }
+
+  async function loadSample() {
+    if (!sampleScreenshot) return;
+    try {
+      const res = await fetch(sampleScreenshot);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      await addScreenshots([new File([blob], "sample-listing.jpg", { type: blob.type || "image/jpeg" })]);
+    } catch {
+      say("Couldn't load the sample screenshot. Try again.", true);
+    }
+  }
+
+  /** Ask the server to read the pasted text and/or screenshots, then fill only the fields that are still empty. */
   async function runAutofill() {
     setAutofill({ busy: true, message: null, error: false });
+    const withShots = shots.length > 0;
     try {
-      const res = await fetch("/api/parse-listing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: pasteText })
-      });
+      let init: RequestInit;
+      if (withShots) {
+        const body = new FormData();
+        if (pasteText.trim()) body.set("text", pasteText);
+        shots.forEach((s, i) => body.append("image", s.blob, `screenshot-${i + 1}.jpg`));
+        init = { method: "POST", body };
+      } else {
+        init = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: pasteText }) };
+      }
+      const res = await fetch("/api/parse-listing", init);
       const body = (await res.json()) as { fields?: ParsedListing; source?: "ai" | "parser"; note?: string; error?: string };
       if (!res.ok || !body.fields) {
         setAutofill({ busy: false, message: body.error ?? "Couldn't read that text. Fill the fields in below.", error: true });
@@ -143,11 +213,16 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
       }
       setDraft(next);
       setFilled(changed);
-      const how = body.source === "ai" ? "with AI" : "with the basic reader";
+      const count = `${changed.size} ${changed.size === 1 ? "field" : "fields"}`;
+      const fromShots = withShots && body.source === "ai";
       const message =
         changed.size === 0
-          ? "Didn't find anything new to fill in. Add the details below."
-          : `Filled ${changed.size} ${changed.size === 1 ? "field" : "fields"} ${how}. Check them before saving.`;
+          ? fromShots
+            ? "Didn't find listing details to fill in. Add them below."
+            : "Didn't find anything new to fill in. Add the details below."
+          : fromShots
+            ? `Filled ${count} from your ${shots.length === 1 ? "screenshot" : "screenshots"}. Check them against it before saving.`
+            : `Filled ${count} ${body.source === "ai" ? "with AI" : "with the basic reader"}. Check them before saving.`;
       setAutofill({ busy: false, message: body.note ? `${message} ${body.note}` : message, error: false });
     } catch {
       setAutofill({ busy: false, message: "Couldn't reach the server. Fill the fields in below.", error: true });
@@ -262,7 +337,24 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
         </div>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 pb-6 pt-5 sm:px-7">
-          <div className="rounded-[22px] bg-sea-100 p-4">
+          <div
+            className={cn("rounded-[22px] bg-sea-100 p-4", dragging && "outline-2 outline-offset-2 outline-sea-700 outline-dashed")}
+            onDragOver={(e) => {
+              if (!e.dataTransfer.types.includes("Files")) return;
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+            }}
+            onDrop={(e) => {
+              if (!e.dataTransfer.files.length) return;
+              e.preventDefault();
+              setDragging(false);
+              setPasteOpen(true);
+              void addScreenshots([...e.dataTransfer.files]);
+            }}
+          >
             <button
               type="button"
               aria-expanded={pasteOpen}
@@ -276,24 +368,97 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
             {pasteOpen ? (
               <div className="mt-3 space-y-2.5">
                 <label htmlFor={`${id}-paste`} className="block text-sm text-stone-800">
-                  Paste the listing&apos;s text (the post, an email, a description). Corral fills in what it can; you check it
-                  before saving. Links aren&apos;t opened.
+                  Paste the listing&apos;s text or add screenshots of it (a post, a chat, a listing page). Corral fills in what
+                  it can; you check it before saving. Links aren&apos;t opened and screenshots aren&apos;t saved.
                 </label>
                 <textarea
                   id={`${id}-paste`}
                   value={pasteText}
                   onChange={(e) => setPasteText(e.target.value)}
+                  onPaste={(e) => {
+                    const images = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+                    if (images.length === 0) return;
+                    // An image on its own shouldn't paste its file name as text.
+                    if (!e.clipboardData.getData("text/plain")) e.preventDefault();
+                    void addScreenshots(images);
+                  }}
                   rows={4}
                   maxLength={8000}
                   placeholder={"4BR/2BA duplex near Pardall, $5,400/mo\nAvailable Sept 1, 12-month lease. W/D in unit."}
                   className="w-full rounded-[18px] border border-divider bg-shell-light px-4 py-3 text-sm placeholder:text-stone-600"
+                />
+                <ul aria-label="Screenshots" className="flex flex-wrap items-center gap-2.5">
+                  {shots.map((s, i) => (
+                    <li key={s.id} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setViewing(i)}
+                        aria-label={`View screenshot ${i + 1}`}
+                        className="block h-16 w-12 overflow-hidden rounded-xl border border-divider bg-shell-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sea-700"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.url} alt="" className="h-full w-full object-cover object-top" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeShot(s.id)}
+                        aria-label={`Remove screenshot ${i + 1}`}
+                        className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-tar text-shell shadow-sm"
+                      >
+                        <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                  {Array.from({ length: preparing }, (_, i) => (
+                    <li key={`prep-${i}`} role="status" className="flex h-16 w-12 items-center justify-center rounded-xl bg-shell-mid">
+                      <Loader2 className="h-4 w-4 animate-spin text-stone-700" aria-hidden="true" />
+                      <span className="sr-only">Preparing a screenshot</span>
+                    </li>
+                  ))}
+                  {shots.length + preparing < MAX_SCREENSHOTS ? (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        className="flex h-11 items-center gap-1.5 rounded-full border-[1.5px] border-dashed border-sea-700 px-3.5 text-sm font-semibold text-sea-900 hover:bg-sea-200/50"
+                      >
+                        <ImagePlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                        {shots.length ? "Add another" : "Add screenshot"}
+                      </button>
+                    </li>
+                  ) : null}
+                  {sampleScreenshot && shots.length + preparing === 0 ? (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => void loadSample()}
+                        className="px-1 text-sm font-semibold text-sea-700 underline underline-offset-4"
+                      >
+                        Try a sample screenshot
+                      </button>
+                    </li>
+                  ) : null}
+                </ul>
+                <p className="text-xs text-stone-700 max-sm:hidden">You can also paste or drop a screenshot here.</p>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  aria-label="Add screenshots of the listing"
+                  onChange={(e) => {
+                    const files = [...(e.target.files ?? [])];
+                    e.target.value = "";
+                    if (files.length) void addScreenshots(files);
+                  }}
                 />
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
                     type="button"
                     variant="sea"
                     size="sm"
-                    disabled={autofill.busy || pasteText.trim().length < 10}
+                    disabled={autofill.busy || preparing > 0 || (pasteText.trim().length < 10 && shots.length === 0)}
                     onClick={() => void runAutofill()}
                   >
                     {autofill.busy ? "Reading…" : "Autofill"}
@@ -418,6 +583,50 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
           ) : null}
         </div>
       </form>
+      {viewing !== null && shots[viewing] ? (
+        <ScreenshotViewer url={shots[viewing].url} index={viewing} count={shots.length} onClose={() => setViewing(null)} />
+      ) : null}
+    </dialog>
+  );
+}
+
+/** A screenshot at full size, so the person can check the filled-in fields against it. */
+function ScreenshotViewer({ url, index, count, onClose }: { url: string; index: number; count: number; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      // React passes a nested dialog's close event up; stop it so the dialog underneath stays open.
+      onClose={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+      aria-label={`Screenshot ${index + 1} of ${count}`}
+      className="m-0 h-dvh max-h-none w-full max-w-none bg-tar/95 p-0 text-shell backdrop:bg-tar/60"
+    >
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <p className="text-sm">
+            Screenshot {index + 1} of {count} <span className="text-shell/80">· only in this browser, never saved</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => ref.current?.close()}
+            aria-label="Close screenshot"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-shell text-tar"
+          >
+            <X className="h-5 w-5" strokeWidth={2.75} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="flex min-h-0 flex-1 items-center justify-center px-2 pb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={`Screenshot ${index + 1} of the listing`} className="max-h-full max-w-full rounded-2xl object-contain" />
+        </div>
+      </div>
     </dialog>
   );
 }

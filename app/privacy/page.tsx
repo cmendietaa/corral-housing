@@ -51,7 +51,7 @@ export default function PrivacyPage() {
           Accounts and boards are stored with Supabase. Tour photos you add are stored privately there too and only members of
           that board can see them; before upload, your browser shrinks each photo and removes its hidden details, including
           the location the camera recorded. On the demo, photos stay in your browser and are never uploaded. The site is hosted on Vercel. Maps use OpenFreeMap and OpenStreetMap
-          data; if street photos are turned on, they come from Google Street View using a place&apos;s map location. To place a pin, the address you enter is looked up with the US Census Geocoder or OpenStreetMap; nothing else about the place is sent.
+          data; if street photos are turned on, they come from Google Street View using a place&apos;s map location. To place a pin, the address you enter is looked up with the US Census Geocoder or OpenStreetMap; nothing else about the place is sent. If you use Autofill, the listing text or screenshots you give it are sent to OpenAI to read the details, with OpenAI&apos;s response storage turned off; your browser shrinks screenshots and removes their hidden details first, and Corral never saves them.
         </p>
 
         <h2>Deleting your data</h2>
