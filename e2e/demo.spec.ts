@@ -124,6 +124,21 @@ test("a change in one demo tab shows up live in another", async ({ context }) =>
   await expect(b.getByText("Still in the running · 6")).toBeVisible();
 });
 
+test("a place can be saved without a listing link", async ({ page }) => {
+  await openDemo(page);
+  await page.getByRole("button", { name: "Add a place" }).filter({ visible: true }).first().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(/^Name/).fill("Friend's place");
+  await dialog.getByLabel("Address").fill("6700 Trigo Rd, Isla Vista");
+  await dialog.getByRole("button", { name: "Add place" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole("button", { name: "Trigo Rd, 6700", exact: true }).click();
+  const place = isPhone(page) ? page.getByRole("dialog") : page.getByRole("region", { name: "Selected place: Trigo Rd, 6700" });
+  await expect(place.getByRole("heading", { name: "Trigo Rd, 6700" })).toBeVisible();
+  await expect(place.getByRole("link", { name: /Open listing/ })).toHaveCount(0);
+});
+
 test("adding a place with an address puts its pin on the map automatically", async ({ page }) => {
   await openDemo(page);
   await addPlace(page, "Auto pin");

@@ -32,6 +32,7 @@ describe("rowToListing", () => {
   });
   it("rejects rows that break the app's rules", () => {
     expect(() => rowToListing({ ...row, url: "javascript:alert(1)" })).toThrow();
+    expect(rowToListing({ ...row, url: null }).url).toBeNull();
     expect(() => rowToListing({ ...row, status: "lost" })).toThrow();
   });
 });

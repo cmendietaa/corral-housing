@@ -17,7 +17,7 @@ UCSB roommate groups look for a whole house or apartment together, but the searc
 
 | | |
 |---|---|
-| **Quick capture** | Paste a link and a name, and you're done. Unknown rent or bedrooms show as *Unknown*, never as $0. Only `http(s)` links are accepted. |
+| **Quick capture** | A name is all you need; add the listing link if there is one (screenshots and word-of-mouth places often don't have one). Unknown rent or bedrooms show as *Unknown*, never as $0. Only `http(s)` links are accepted. |
 | **Autofill** | Paste the listing's text and the form fills itself in for review. An OpenAI model does it when a key is set, with a rule-based reader as the free fallback. Corral never scrapes or opens listing links. |
 | **Linked map** | Rent tags on a MapLibre map, colored by status. Selecting a row selects its tag and the reverse. Pins are placed from the address automatically (OpenStreetMap's building outline when it has one, else the US Census Geocoder; both free); drag a pin to fine-tune it. |
 | **Compare** | Check two or three places for a side-by-side table in a fixed row order, with the best value per row highlighted. Unknown rent never counts as "within budget". |
@@ -87,8 +87,8 @@ Apply the database schema to your own Supabase project with `supabase link` and 
 ## Tests
 
 ```bash
-npm run lint && npm test && npm run build                       # 77 unit tests (Vitest)
-npm run test:e2e                                                # 26 Playwright tests, desktop and iPhone
+npm run lint && npm test && npm run build                       # 88 unit tests (Vitest)
+npm run test:e2e                                                # 28 Playwright tests, desktop and iPhone
 E2E_BASE_URL=https://corral-housing.vercel.app npm run test:e2e # same, against production
 supabase db query --remote -f supabase/tests/rls_check.sql     # RLS checks, rolled back
 ```

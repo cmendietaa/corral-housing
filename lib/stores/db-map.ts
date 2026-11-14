@@ -6,7 +6,7 @@ export type ListingRow = {
   board_id: string;
   title: string;
   address: string | null;
-  url: string;
+  url: string | null;
   rent_cents: number | null;
   beds: number | string | null;
   baths: number | string | null;

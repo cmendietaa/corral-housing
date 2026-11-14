@@ -86,7 +86,7 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         {meta ? <p className="text-sm text-stone-700">{meta}</p> : null}
         <div className="flex items-center justify-between gap-2">
           <StatusMenu value={listing.status} label={`Status for ${headline}`} onChange={(status) => void onPatch({ status })} />
-          <OpenListing url={listing.url} />
+          {listing.url ? <OpenListing url={listing.url} /> : null}
         </div>
         <NextAction listing={listing} members={board.members} onSave={onPatch} />
         <TourPhotoStrip listingId={listing.id} label={headline} />
@@ -252,7 +252,7 @@ export function PlaceSheet({
 
           <div className="mt-4 flex items-center justify-between gap-2">
             <StatusMenu value={listing.status} label={`Status for ${headline}`} onChange={(status) => void onPatch({ status })} />
-            <OpenListing url={listing.url} />
+            {listing.url ? <OpenListing url={listing.url} /> : null}
           </div>
 
           <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" className="mt-4" />

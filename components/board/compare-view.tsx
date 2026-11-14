@@ -132,14 +132,19 @@ export function CompareView({
                 />
                 <div className="px-5 pb-4 pt-4">
                   <h2 className="font-display text-xl leading-tight text-tar">{name}</h2>
-                  <p className="mt-1 text-sm text-stone-700">
-                    {p.title !== name ? `${p.title} · ` : ""}
-                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-sea-700 underline underline-offset-4">
-                      Open listing
-                      <ArrowUpRight className="ml-0.5 inline h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
-                      <span className="sr-only">(opens in a new tab)</span>
-                    </a>
-                  </p>
+                  {p.title !== name || p.url ? (
+                    <p className="mt-1 text-sm text-stone-700">
+                      {p.title !== name ? p.title : null}
+                      {p.title !== name && p.url ? " · " : null}
+                      {p.url ? (
+                        <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-sea-700 underline underline-offset-4">
+                          Open listing
+                          <ArrowUpRight className="ml-0.5 inline h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
+                          <span className="sr-only">(opens in a new tab)</span>
+                        </a>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             );

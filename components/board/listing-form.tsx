@@ -35,7 +35,7 @@ type Draft = {
 
 function toDraft(l: ListingInput): Draft {
   return {
-    url: l.url,
+    url: l.url ?? "",
     title: l.title,
     address: l.address ?? "",
     rent: centsToDollarsInput(l.rentCents),
@@ -167,7 +167,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
 
     const candidate: ListingInput = {
       ...base,
-      url: draft.url.trim(),
+      url: blank(draft.url),
       title: draft.title.trim(),
       address: blank(draft.address),
       rentCents: Number.isNaN(rentCents) ? null : rentCents,
@@ -256,7 +256,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
             </button>
           </div>
           <p className="mt-3 text-sm text-muted">
-            Only the link and a name are required. Leave anything you don&apos;t know blank and it shows as
+            Only a name is required. Leave anything you don&apos;t know blank and it shows as
             unknown.
           </p>
         </div>
@@ -307,8 +307,8 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete }: Prop
           </div>
 
           <Section title="The place">
-            <Field label="Listing link" htmlFor={`${id}-url`} filled={filled.has("url")} error={errors.url} errorId={`${id}-url-error`} required wide>
-              <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" required />
+            <Field label="Listing link" htmlFor={`${id}-url`} filled={filled.has("url")} error={errors.url} errorId={`${id}-url-error`} hint="if there is one" wide>
+              <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" />
             </Field>
             <Field
               label="Name"

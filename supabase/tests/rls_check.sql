@@ -44,7 +44,11 @@ begin
     raise exception 'FAIL: a javascript: URL was accepted';
   exception when check_violation then null;
   end;
-  raise notice 'PASS: owner can read and write; javascript: URLs are rejected';
+  -- A place without a link (from a screenshot or word of mouth) is allowed.
+  insert into public.listings (board_id, title, url)
+    select v, 'No link yet', null from t where k = 'board';
+  delete from public.listings where title = 'No link yet';
+  raise notice 'PASS: owner can read and write; links are optional but javascript: URLs are rejected';
 end $$;
 
 -- Expire the second invite (as the table owner, outside RLS).

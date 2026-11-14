@@ -53,7 +53,8 @@ export const listingSchema = z.object({
   id: z.string(),
   title: z.string().trim().min(1, "Add an address or a short title").max(120),
   address: z.string().trim().max(200).nullable(),
-  url: httpUrl,
+  /** Optional: screenshots and word-of-mouth places often have no link. */
+  url: httpUrl.nullable(),
   rentCents: z.number().int().nonnegative().nullable(),
   beds: z.number().nonnegative().max(20).nullable(),
   baths: z.number().nonnegative().max(20).nullable(),
@@ -95,7 +96,7 @@ export function emptyListingInput(): ListingInput {
   return {
     title: "",
     address: null,
-    url: "",
+    url: null,
     rentCents: null,
     beds: null,
     baths: null,
