@@ -35,8 +35,9 @@ const isMapped = (l: Listing): l is Mapped => l.lat !== null && l.lng !== null;
 function overlayPadding(el: HTMLElement) {
   const wide = window.matchMedia("(min-width: 1024px)").matches;
   return wide
-    ? { top: 110, bottom: 90, left: Math.min(390, el.clientWidth * 0.5), right: 80 }
-    : { top: 70, bottom: 230, left: 40, right: 40 };
+    ? // The card ends 348px in (18 + 330); add half a price tag so tags clear it.
+      { top: 110, bottom: 90, left: Math.min(400, el.clientWidth - 220), right: 90 }
+    : { top: 150, bottom: 230, left: 55, right: 55 };
 }
 
 function boundsOf(points: { lat: number; lng: number }[]) {
@@ -67,10 +68,14 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
     if (!map || !el || el.clientWidth === 0 || el.clientHeight === 0) return;
     const points = latest.current.listings.filter(isMapped);
     fitted.current = true;
-    const { cluster, outside } = mainCluster(points);
-    setHasOutside(outside.length > 0);
+    // Washed-out places don't decide the view (unless they're all there is).
+    const open = points.filter((p) => !isClosedStatus(p.status));
+    const { cluster, outside } = mainCluster(open.length ? open : points);
+    setHasOutside(outside.length > 0 || open.length < points.length);
     const target = all ? points : cluster;
     if (target.length === 0) return;
+    // fitBounds adds its padding to any the map kept from an earlier ease; start from zero.
+    map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
     map.fitBounds(boundsOf(target), {
       padding: overlayPadding(el),
       maxZoom: 16.5,
@@ -187,11 +192,17 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
 
   // Bring the selected pin into view, and show a crosshair while placing one.
   const selected = listings.find((l) => l.id === selectedId);
+  // The place selected when the board opens is already in the first fit; only
+  // a later choice should move the map (otherwise it undoes that fit).
+  const movedFor = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     map.getCanvas().style.cursor = selected && selected.lat === null ? "crosshair" : "";
-    if (!selected || !isMapped(selected)) return;
+    if (!ready) return;
+    const first = movedFor.current === undefined;
+    movedFor.current = selected?.id ?? null;
+    if (first || !selected || !isMapped(selected)) return;
     // Only move when the pin is outside the uncovered part of the map, and then
     // center it in that part rather than behind the place card.
     const el = map.getContainer();

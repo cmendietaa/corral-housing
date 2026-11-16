@@ -5,7 +5,7 @@ import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
-import type { Board, Listing } from "@/lib/listing";
+import { isClosedStatus, type Board, type Listing } from "@/lib/listing";
 import {
   FACTORS,
   FACTOR_LABELS,
@@ -89,6 +89,7 @@ export function RankView({ listings, board, photos, checked, checkDisabled, onTo
   const [editing, setEditing] = useState(false);
   const openCount = ranking.ranked.length + ranking.missingInfo.length + ranking.doesntMeet.length;
   const top = ranking.ranked.slice(0, 3).map((r) => r.place.id);
+  const closedCount = listings.filter((l) => isClosedStatus(l.status)).length;
 
   const panel = <PrioritiesPanel priorities={priorities} onChange={update} onReset={reset} />;
 
@@ -111,9 +112,17 @@ export function RankView({ listings, board, photos, checked, checkDisabled, onTo
       </button>
       {editing ? <PrioritiesSheet onClose={() => setEditing(false)}>{panel}</PrioritiesSheet> : null}
 
-      <section aria-label="Ranked places" className="min-w-0 space-y-4">
+      <section aria-label="Ranked places" className="min-w-0 max-w-[820px] space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h2 className="label flex-1 text-stone-700">Best fit for you · {ranking.ranked.length}</h2>
+          <div className="min-w-0 flex-1">
+            <h2 className="label text-stone-700">Best fit for you · {ranking.ranked.length}</h2>
+            {openCount > 0 ? (
+              <p className="mt-1 text-sm text-stone-800">
+                {ranking.ranked.length} of {openCount} open {openCount === 1 ? "place fits" : "places fit"} your must-haves
+                {ranking.ranked.length < openCount ? "; the rest are below." : "."}
+              </p>
+            ) : null}
+          </div>
           {top.length >= 2 ? (
             <Button size="sm" variant="secondary" onClick={() => onCompare(top)}>
               Compare top {top.length}
@@ -145,20 +154,25 @@ export function RankView({ listings, board, photos, checked, checkDisabled, onTo
             title={`Might fit, but missing info · ${ranking.missingInfo.length}`}
             items={ranking.missingInfo}
             action={{ label: "Fill in", onClick: onEdit }}
+            photos={photos}
             onOpen={onOpen}
           />
         ) : null}
 
         {ranking.doesntMeet.length > 0 ? (
-          <details className="group rounded-[26px] bg-shell-mid">
-            <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
-              <span className="label flex-1 text-stone-700">Doesn&apos;t meet your requirements · {ranking.doesntMeet.length}</span>
-              <ChevronDown className="h-4 w-4 text-stone-700 transition group-open:rotate-180" strokeWidth={2.75} aria-hidden="true" />
-            </summary>
-            <div className="px-2 pb-2">
-              <HeldList items={ranking.doesntMeet} onOpen={onOpen} />
-            </div>
-          </details>
+          <HeldSection
+            title={`Doesn't meet your must-haves · ${ranking.doesntMeet.length}`}
+            items={ranking.doesntMeet}
+            photos={photos}
+            dim
+            onOpen={onOpen}
+          />
+        ) : null}
+
+        {closedCount > 0 ? (
+          <p className="px-2 text-[13px] text-stone-700">
+            {closedCount} washed-out {closedCount === 1 ? "place isn't" : "places aren't"} ranked (Passed or Unavailable).
+          </p>
         ) : null}
       </section>
     </div>
@@ -236,13 +250,18 @@ function RankCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
-            <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left font-display text-[17px] leading-tight text-tar hover:underline">
+            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-0.5 text-left font-display text-[17px] leading-tight text-tar hover:underline">
               {name}
             </button>
-            <p className="shrink-0 text-right">
-              <span className="font-display text-[22px] leading-none text-tar">{score}</span>
-              <span className="text-[13px] text-stone-700">/10</span>
-            </p>
+            <div className="shrink-0 text-right">
+              <p>
+                <span className="font-display text-[22px] leading-none text-tar">{score}</span>
+                <span className="text-[13px] text-stone-700">/10</span>
+              </p>
+              <span aria-hidden="true" className="mt-1.5 block h-1.5 w-16 overflow-hidden rounded-full bg-shell-deep">
+                <span className="block h-full rounded-full bg-sea-700" style={{ width: `${r.score}%` }} />
+              </span>
+            </div>
           </div>
           {line.length ? (
             <p className="mt-1.5 space-y-0.5 text-[13px] leading-snug text-stone-800">
@@ -339,43 +358,48 @@ function HeldSection({
   title,
   items,
   action,
+  photos,
+  dim = false,
   onOpen
 }: {
   title: string;
   items: HeldPlace<Listing>[];
-  action: { label: string; onClick: (id: string) => void };
+  action?: { label: string; onClick: (id: string) => void };
+  photos: boolean;
+  dim?: boolean;
   onOpen: (id: string) => void;
 }) {
   return (
     <section className="rounded-[26px] bg-shell-mid p-2">
       <h3 className="label px-2 py-2 text-stone-700">{title}</h3>
-      <HeldList items={items} action={action} onOpen={onOpen} />
+      <ul className="space-y-1.5">
+        {items.map((h) => {
+          const name = streetHeadline(h.place.address, h.place.title);
+          return (
+            <li key={h.place.id} className="flex items-center gap-3 rounded-[18px] bg-shell px-3 py-2.5">
+              <div className={cn("h-11 w-11 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
+                {h.place.lat === null ? (
+                  <FenceFallback />
+                ) : (
+                  <StreetPhoto listingId={h.place.id} lat={h.place.lat} lng={h.place.lng} label={name} size="row" enabled={photos} attribution="tiny" className="h-full w-full" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <button type="button" onClick={() => onOpen(h.place.id)} className={cn("text-left font-display text-[15px] leading-tight hover:underline", dim ? "text-stone-800" : "text-tar")}>
+                  {name}
+                </button>
+                <p className="mt-0.5 text-[13px] text-stone-800">{h.reasons.join(" · ")}</p>
+              </div>
+              {action ? (
+                <Button size="sm" variant="secondary" onClick={() => action.onClick(h.place.id)} aria-label={`${action.label} ${name}`}>
+                  {action.label}
+                </Button>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
     </section>
-  );
-}
-
-function HeldList({ items, action, onOpen }: { items: HeldPlace<Listing>[]; action?: { label: string; onClick: (id: string) => void }; onOpen: (id: string) => void }) {
-  return (
-    <ul className="space-y-1.5">
-      {items.map((h) => {
-        const name = streetHeadline(h.place.address, h.place.title);
-        return (
-          <li key={h.place.id} className="flex items-center gap-3 rounded-[18px] bg-shell px-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              <button type="button" onClick={() => onOpen(h.place.id)} className="text-left font-display text-[15px] leading-tight text-tar hover:underline">
-                {name}
-              </button>
-              <p className="mt-0.5 text-[13px] text-stone-800">{h.reasons.join(" · ")}</p>
-            </div>
-            {action ? (
-              <Button size="sm" variant="secondary" onClick={() => action.onClick(h.place.id)} aria-label={`${action.label} ${name}`}>
-                {action.label}
-              </Button>
-            ) : null}
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 

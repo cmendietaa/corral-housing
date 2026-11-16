@@ -44,8 +44,10 @@ test("ranks the places that meet the requirements and says why the others don't"
   await expect(missing).toContainText("Rent unknown");
   await expect(missing.getByRole("button", { name: "Fill in Trigo Rd, 6545" })).toBeVisible();
 
-  // Over the max: collapsed, with the reason in numbers.
-  await page.getByText(/Doesn't meet your requirements · 1/).click();
+  // Over the max: listed with the reason in numbers, and washed-out places are accounted for.
+  await expect(page.getByText(/3 of 5 open places fit your must-haves/)).toBeVisible();
+  await expect(page.getByText(/Doesn't meet your must-haves · 1/)).toBeVisible();
+  await expect(page.getByText("1 washed-out place isn't ranked (Passed or Unavailable).")).toBeVisible();
   await expect(page.getByText("$1,800/person is over your $1,400 max")).toBeVisible();
 
   // Why? opens the breakdown.

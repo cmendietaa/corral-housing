@@ -77,6 +77,10 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
   ]
     .filter(Boolean)
     .join(" · ");
+  // Phones: shorter, without the nickname.
+  const phoneMeta = [formatBedsBaths(listing.beds, listing.baths) || null, commute ? `~${commute.bikeMin} min bike` : null]
+    .filter(Boolean)
+    .join(" · ");
   const toggleStar = () => void onPatch({ starred: !listing.starred });
 
   return (
@@ -144,6 +148,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           {area ? <span className="label hidden text-stone-700 lg:inline">{area}</span> : null}
         </h3>
         {meta ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{meta}</p> : null}
+        {phoneMeta ? <p className="mt-0.5 truncate text-[13px] text-stone-700 lg:hidden">{phoneMeta}</p> : null}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <StatusChip status={listing.status} />
           {listing.lat === null && !closed ? (
@@ -172,7 +177,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           <>
             <p className="font-display text-[15px] text-tar lg:text-[21px]">{formatRent(listing.rentCents)}</p>
             {perPerson !== null ? (
-              <p className="hidden text-xs text-stone-700 lg:block">{formatRent(perPerson)} / person</p>
+              <p className="text-xs text-stone-700">{formatRent(perPerson)} / person</p>
             ) : null}
           </>
         )}
