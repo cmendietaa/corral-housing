@@ -14,16 +14,16 @@ How well Corral's autofill reads rental listings, measured on a labeled dataset 
 | Extractor | Field accuracy | Hallucination rate | Miss rate | Exact cases | Injection held | Latency p50 / p95 | Cost per 1,000 |
 |---|---|---|---|---|---|---|---|
 | Rule-based parser | 95.1% | 3.7% | 3.7% | 75.0% of 16 | 100.0% of 1 | < 1 ms | $0 |
-| AI · pasted text | not run | | | | | | |
-| AI · screenshot | not run | | | | | | |
+| AI · pasted text | 99.8% (99.3%–100.0%) | 0.0% | 0.0% | 97.9% (93.8%–100.0%) of 16 | 100.0% of 1 | 6.5 s / 11.1 s | $1.31 |
+| AI · screenshot | 100.0% | 0.0% | 0.0% | 100.0% of 7 | 100.0% of 1 | 8.5 s / 14.0 s | $1.81 |
 
 ## All cases (40 text, 15 screenshots)
 
 | Extractor | Field accuracy | Hallucination rate | Miss rate | Exact cases | Injection held | Latency p50 / p95 | Cost per 1,000 |
 |---|---|---|---|---|---|---|---|
 | Rule-based parser | 91.7% | 3.0% | 8.4% | 55.0% of 40 | 100.0% of 3 | < 1 ms | $0 |
-| AI · pasted text | not run | | | | | | |
-| AI · screenshot | not run | | | | | | |
+| AI · pasted text | 99.4% (99.2%–99.7%) | 0.0% | 0.0% | 95.0% (92.5%–97.5%) of 40 | 100.0% of 3 | 6.5 s / 11.1 s | $1.31 |
+| AI · screenshot | 99.3% | 0.0% | 0.0% | 93.3% of 15 | 100.0% of 2 | 8.5 s / 14.0 s | $1.81 |
 
 Latency and cost are per call across all cases; latency is measured from this machine with 4 calls in flight.
 
@@ -31,31 +31,32 @@ Latency and cost are per call across all cases; latency is measured from this ma
 
 | Extractor | Field accuracy | Hallucination rate | Miss rate | Exact cases | Injection held | Latency p50 / p95 | Cost per 1,000 |
 |---|---|---|---|---|---|---|---|
-| AI · pasted text | not run | | | | | | |
-| AI · screenshot | not run | | | | | | |
+| AI · pasted text | 99.3% | 0.0% | 0.0% | 93.3% of 15 | 100.0% of 2 | 6.5 s / 11.1 s | $1.31 |
+| AI · screenshot | 99.3% | 0.0% | 0.0% | 93.3% of 15 | 100.0% of 2 | 8.5 s / 14.0 s | $1.81 |
+
+Average tokens per call: text 573 in / 586 out; screenshot 2028 in / 653 out (output includes the model's reasoning).
 
 ## Accuracy by field (all cases)
 
 | Field | Parser | AI · text | AI · screenshot |
 |---|---|---|---|
-| address | 100.0% | – | – |
-| url | 100.0% | – | – |
-| rentCents | 82.5% | – | – |
-| beds | 90.0% | – | – |
-| baths | 90.0% | – | – |
-| leaseStart | 97.5% | – | – |
-| leaseEnd | 92.5% | – | – |
-| parking | 82.5% | – | – |
-| laundry | 90.0% | – | – |
+| address | 100.0% | 100.0% | 100.0% |
+| url | 100.0% | 100.0% | 100.0% |
+| rentCents | 82.5% | 100.0% | 100.0% |
+| beds | 90.0% | 100.0% | 100.0% |
+| baths | 90.0% | 100.0% | 100.0% |
+| leaseStart | 97.5% | 100.0% | 100.0% |
+| leaseEnd | 92.5% | 100.0% | 100.0% |
+| parking | 82.5% | 100.0% | 100.0% |
+| laundry | 90.0% | 95.0% (92.5%–97.5%) | 93.3% |
 
 ## Reliability
 
 | | AI · text | AI · screenshot |
 |---|---|---|
-| Calls with no usable output (error, refusal, invalid JSON) | – | – |
+| Calls with no usable output (error, refusal, invalid JSON) | 0 of 120 | 0 of 45 |
 | Fields dropped by the app's validator | 0 | 0 |
-| Same answer on every repeat (case × field) | – | – |
-| Calls not in the cache (counted as failures) | 120 | 45 |
+| Same answer on every repeat (case × field) | 97.8% | 97.8% |
 
 ## Every field that wasn't right
 
@@ -93,3 +94,7 @@ Latency and cost are per call across all cases; latency is measured from this ma
 | Parser | hard-sublet-room (test) | leaseEnd | 2027-03-31 | ∅ (missed) |
 | Parser | hard-laundromat (test) | laundry | ∅ or none | on_site (wrong) |
 | Parser | inject-03 (dev) | parking | driveway | ∅ (missed) |
+| AI text | ig-01 (dev) | laundry | ∅ or none | in_unit (wrong) 3/3 runs |
+| AI text | hard-half-bath (dev) | laundry | ∅ or none | in_unit (wrong) 2/3 runs |
+| AI text | hard-laundromat (test) | laundry | ∅ or none | on_site (wrong) 1/3 runs |
+| AI screenshot | ig-01 (dev) | laundry | ∅ or none | in_unit (wrong) 3/3 runs |

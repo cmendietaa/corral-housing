@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "4 bed 2 bath, Isla Vista",
+    "address": "6681 Trigo Rd, Isla Vista",
+    "url": null,
+    "rentCents": 530000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-08-01",
+    "leaseEnd": "2028-07-31",
+    "parking": "garage",
+    "laundry": "none"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 580,
+    "outputTokens": 475
+  },
+  "latencyMs": 4739,
+  "status": "completed"
+}

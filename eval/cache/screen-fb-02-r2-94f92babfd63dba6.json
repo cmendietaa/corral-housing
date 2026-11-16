@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Room in 4BR house on El Greco",
+    "address": "6621 El Greco Rd, Isla Vista",
+    "url": null,
+    "rentCents": null,
+    "beds": 4,
+    "baths": null,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": null,
+    "parking": "garage",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 677
+  },
+  "latencyMs": 10219,
+  "status": "completed"
+}

@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Corner house w/ yard (Isla Vista)",
+    "address": "6790 El Colegio Rd, Isla Vista",
+    "url": null,
+    "rentCents": 610000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-08-15",
+    "leaseEnd": "2028-08-14",
+    "parking": "garage",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 580,
+    "outputTokens": 688
+  },
+  "latencyMs": 9058,
+  "status": "completed"
+}

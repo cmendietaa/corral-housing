@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Brand new 4BR on El Colegio",
+    "address": "6800 El Colegio Rd, Goleta",
+    "url": null,
+    "rentCents": 580000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": null,
+    "leaseEnd": null,
+    "parking": "garage",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 558,
+    "outputTokens": 668
+  },
+  "latencyMs": 6315,
+  "status": "completed"
+}

@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "3BR/2BA house on Del Playa (ocean side)",
+    "address": "6600 block of Del Playa",
+    "url": null,
+    "rentCents": 630000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 548,
+    "outputTokens": 443
+  },
+  "latencyMs": 4887,
+  "status": "completed"
+}

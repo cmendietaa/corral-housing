@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6626 Picasso Rd, 2bd + loft",
+    "address": "6626 Picasso Rd",
+    "url": null,
+    "rentCents": 390000,
+    "beds": 2,
+    "baths": 1,
+    "leaseStart": "2027-07-01",
+    "leaseEnd": "2028-06-30",
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 551,
+    "outputTokens": 374
+  },
+  "latencyMs": 3516,
+  "status": "completed"
+}

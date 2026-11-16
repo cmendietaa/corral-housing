@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "4BR/2BA on Cordoba Rd",
+    "address": "6575 Cordoba Rd",
+    "url": null,
+    "rentCents": 480000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-08-01",
+    "leaseEnd": "2028-07-31",
+    "parking": "garage",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 561,
+    "outputTokens": 447
+  },
+  "latencyMs": 16711,
+  "status": "completed"
+}

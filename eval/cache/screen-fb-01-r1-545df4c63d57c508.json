@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6543 Pardall Rd, IV (4 bed / 2 bath)",
+    "address": "6543 Pardall Rd, IV",
+    "url": null,
+    "rentCents": 560000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-08-15",
+    "leaseEnd": "2028-08-14",
+    "parking": "street",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 696
+  },
+  "latencyMs": 13024,
+  "status": "completed"
+}

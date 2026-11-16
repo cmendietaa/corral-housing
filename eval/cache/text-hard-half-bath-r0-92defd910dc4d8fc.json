@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Goleta 3BR — 5823 Hollister Ave Unit 2",
+    "address": "5823 Hollister Ave Unit 2, Goleta",
+    "url": null,
+    "rentCents": 430000,
+    "beds": 3,
+    "baths": 1.5,
+    "leaseStart": "2027-08-01",
+    "leaseEnd": null,
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 557,
+    "outputTokens": 701
+  },
+  "latencyMs": 7830,
+  "status": "completed"
+}

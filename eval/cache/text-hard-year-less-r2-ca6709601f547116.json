@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6728 Sabado Tarde Rd #3",
+    "address": "6728 Sabado Tarde Rd #3",
+    "url": null,
+    "rentCents": 225000,
+    "beds": 1,
+    "baths": 1,
+    "leaseStart": "2027-03-01",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": "none"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 544,
+    "outputTokens": 391
+  },
+  "latencyMs": 4505,
+  "status": "completed"
+}

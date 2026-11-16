@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "4bd/2ba house on Abrego Rd",
+    "address": "6710 Abrego Rd",
+    "url": null,
+    "rentCents": 500000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "street",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 558,
+    "outputTokens": 325
+  },
+  "latencyMs": 3781,
+  "status": "completed"
+}

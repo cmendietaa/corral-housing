@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6744 Sabado Tarde Rd #A",
+    "address": "6744 Sabado Tarde Rd #A",
+    "url": null,
+    "rentCents": 410000,
+    "beds": 3,
+    "baths": 1,
+    "leaseStart": "2027-06-20",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": "none"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 561,
+    "outputTokens": 422
+  },
+  "latencyMs": 3747,
+  "status": "completed"
+}

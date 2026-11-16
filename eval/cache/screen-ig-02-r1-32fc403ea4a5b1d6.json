@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Goleta townhome",
+    "address": "7166 Hollister Ave #B, Goleta",
+    "url": null,
+    "rentCents": 360000,
+    "beds": 2,
+    "baths": 1.5,
+    "leaseStart": "2027-06-01",
+    "leaseEnd": null,
+    "parking": "garage",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 690
+  },
+  "latencyMs": 7083,
+  "status": "completed"
+}

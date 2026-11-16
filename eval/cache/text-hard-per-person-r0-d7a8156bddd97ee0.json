@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6634 Sabado Tarde",
+    "address": "6634 Sabado Tarde",
+    "url": null,
+    "rentCents": null,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-06-30",
+    "parking": null,
+    "laundry": null
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 547,
+    "outputTokens": 858
+  },
+  "latencyMs": 11089,
+  "status": "completed"
+}

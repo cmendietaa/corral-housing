@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Bright upstairs 3BR on Embarcadero del Norte",
+    "address": "6565 Embarcadero del Norte #B, Isla Vista",
+    "url": null,
+    "rentCents": 497500,
+    "beds": 3,
+    "baths": 1.5,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-07-31",
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 592,
+    "outputTokens": 511
+  },
+  "latencyMs": 6641,
+  "status": "completed"
+}

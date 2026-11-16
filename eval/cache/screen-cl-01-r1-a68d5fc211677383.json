@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Remodeled duplex steps from campus (Isla Vista)",
+    "address": "6512 Sabado Tarde Rd, Isla Vista, CA",
+    "url": "https://sb.craigslist.org/apa/d/isla-vista-remodeled-duplex/7712345601.html",
+    "rentCents": 540000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 583
+  },
+  "latencyMs": 6713,
+  "status": "completed"
+}

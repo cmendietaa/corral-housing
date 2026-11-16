@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6503 Madrid Rd — 2BR 1BA",
+    "address": "6503 Madrid Rd",
+    "url": null,
+    "rentCents": 345000,
+    "beds": 2,
+    "baths": 1,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 588,
+    "outputTokens": 607
+  },
+  "latencyMs": 6165,
+  "status": "completed"
+}

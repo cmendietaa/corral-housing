@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Charming 3BR/2BA Seville Rd",
+    "address": "6512 Seville Rd, Isla Vista",
+    "url": null,
+    "rentCents": 495000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "street",
+    "laundry": null
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 592
+  },
+  "latencyMs": 8527,
+  "status": "completed"
+}

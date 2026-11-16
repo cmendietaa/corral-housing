@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "2BR 1BA on Madrid",
+    "address": "6545 Madrid Rd",
+    "url": null,
+    "rentCents": 300000,
+    "beds": 2,
+    "baths": 1,
+    "leaseStart": "2027-06-15",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": "none"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 547,
+    "outputTokens": 391
+  },
+  "latencyMs": 6667,
+  "status": "completed"
+}

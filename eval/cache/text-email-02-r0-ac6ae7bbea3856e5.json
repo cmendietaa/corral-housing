@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Studio on Trigo",
+    "address": "6760 Trigo Rd #5",
+    "url": null,
+    "rentCents": 185000,
+    "beds": 0,
+    "baths": null,
+    "leaseStart": "2027-01-15",
+    "leaseEnd": null,
+    "parking": "none",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 557,
+    "outputTokens": 587
+  },
+  "latencyMs": 8519,
+  "status": "completed"
+}

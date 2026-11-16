@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": null,
+    "address": null,
+    "url": null,
+    "rentCents": null,
+    "beds": null,
+    "baths": null,
+    "leaseStart": null,
+    "leaseEnd": null,
+    "parking": null,
+    "laundry": null
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 527,
+    "outputTokens": 258
+  },
+  "latencyMs": 3893,
+  "status": "completed"
+}

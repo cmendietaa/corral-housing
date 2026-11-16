@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6505 Segovia Rd — 3BD/2BA house",
+    "address": "6505 Segovia Rd, Isla Vista",
+    "url": null,
+    "rentCents": 450000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": null,
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 624
+  },
+  "latencyMs": 9147,
+  "status": "completed"
+}

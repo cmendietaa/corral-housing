@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Pacific Oaks Apt B2 (2BR, Goleta)",
+    "address": "7400 Hollister Ave, Goleta, CA 93117",
+    "url": "https://pacificoaks.example/floorplans/b2",
+    "rentCents": 329500,
+    "beds": 2,
+    "baths": 2,
+    "leaseStart": "2027-01-05",
+    "leaseEnd": "2028-01-04",
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 586,
+    "outputTokens": 542
+  },
+  "latencyMs": 7153,
+  "status": "completed"
+}

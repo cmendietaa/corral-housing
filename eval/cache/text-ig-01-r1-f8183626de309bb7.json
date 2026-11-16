@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Sunny 3BR/2BA on Sueno Rd",
+    "address": "6730 Sueno Rd, Isla Vista",
+    "url": null,
+    "rentCents": 495000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-15",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 595,
+    "outputTokens": 715
+  },
+  "latencyMs": 7143,
+  "status": "completed"
+}

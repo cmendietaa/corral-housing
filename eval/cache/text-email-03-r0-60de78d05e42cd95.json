@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6656 Picasso Rd #4",
+    "address": "6656 Picasso Rd #4",
+    "url": null,
+    "rentCents": 370000,
+    "beds": 2,
+    "baths": 2,
+    "leaseStart": "2027-08-01",
+    "leaseEnd": "2028-07-31",
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 580,
+    "outputTokens": 1024
+  },
+  "latencyMs": 13826,
+  "status": "completed"
+}

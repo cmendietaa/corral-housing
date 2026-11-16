@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6596 Picasso Rd Unit A",
+    "address": "6596 Picasso Rd",
+    "url": null,
+    "rentCents": 465000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "street",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 573,
+    "outputTokens": 381
+  },
+  "latencyMs": 4061,
+  "status": "completed"
+}

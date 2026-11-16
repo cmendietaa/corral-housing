@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6687 Del Playa Dr, Unit A — Isla Vista",
+    "address": "6687 Del Playa Dr, Unit A, Isla Vista",
+    "url": "https://www.ivpropertygroup.example/listings/6687-dp-a",
+    "rentCents": 780000,
+    "beds": 5,
+    "baths": 2.5,
+    "leaseStart": "2027-07-01",
+    "leaseEnd": "2028-06-30",
+    "parking": "street",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 585
+  },
+  "latencyMs": 8996,
+  "status": "completed"
+}

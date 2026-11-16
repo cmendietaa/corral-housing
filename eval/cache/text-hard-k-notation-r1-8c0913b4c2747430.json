@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6bd house on Del Playa Dr",
+    "address": "6754 Del Playa Dr.",
+    "url": null,
+    "rentCents": 840000,
+    "beds": 6,
+    "baths": 3,
+    "leaseStart": "2027-07-01",
+    "leaseEnd": "2028-06-30",
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 565,
+    "outputTokens": 835
+  },
+  "latencyMs": 10311,
+  "status": "completed"
+}

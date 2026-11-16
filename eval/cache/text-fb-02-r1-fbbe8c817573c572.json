@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Room in 4BR house on El Greco",
+    "address": "6621 El Greco Rd",
+    "url": null,
+    "rentCents": null,
+    "beds": 4,
+    "baths": null,
+    "leaseStart": null,
+    "leaseEnd": null,
+    "parking": "garage",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 565,
+    "outputTokens": 804
+  },
+  "latencyMs": 8745,
+  "status": "completed"
+}

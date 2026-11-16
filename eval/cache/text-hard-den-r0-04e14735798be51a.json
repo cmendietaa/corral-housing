@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6611 Pasado Rd - 3BR/2BA",
+    "address": "6611 Pasado Rd",
+    "url": null,
+    "rentCents": 525000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": null,
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 559,
+    "outputTokens": 588
+  },
+  "latencyMs": 6063,
+  "status": "completed"
+}

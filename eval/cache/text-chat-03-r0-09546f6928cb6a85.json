@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6537 Cervantes Rd (4bd, 2ba)",
+    "address": "6537 Cervantes Rd",
+    "url": null,
+    "rentCents": 520000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-07-15",
+    "leaseEnd": "2028-07-14",
+    "parking": "street",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 579,
+    "outputTokens": 724
+  },
+  "latencyMs": 7375,
+  "status": "completed"
+}

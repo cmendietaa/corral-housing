@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Quiet Goleta 2BD near Camino Real",
+    "address": "7240 Calle Real #14, Goleta",
+    "url": null,
+    "rentCents": 315000,
+    "beds": 2,
+    "baths": 1,
+    "leaseStart": "2026-11-10",
+    "leaseEnd": null,
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 573,
+    "outputTokens": 639
+  },
+  "latencyMs": 8163,
+  "status": "completed"
+}

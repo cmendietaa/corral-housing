@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "Sublet: room in 3BR/2BA apt",
+    "address": "6522 Cervantes Rd #7",
+    "url": null,
+    "rentCents": null,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-01-02",
+    "leaseEnd": "2027-03-31",
+    "parking": "street",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 569,
+    "outputTokens": 547
+  },
+  "latencyMs": 6400,
+  "status": "completed"
+}

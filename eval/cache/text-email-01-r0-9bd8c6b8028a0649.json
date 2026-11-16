@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6680 Del Playa Dr #2",
+    "address": "6680 Del Playa Dr #2",
+    "url": "https://coastline.example/units/6680-dp-2",
+    "rentCents": 720000,
+    "beds": 5,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "street",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 668,
+    "outputTokens": 475
+  },
+  "latencyMs": 6576,
+  "status": "completed"
+}

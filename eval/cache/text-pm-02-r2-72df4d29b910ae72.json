@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6758 Trigo Rd Apt 3",
+    "address": "6758 Trigo Rd Apt 3, Isla Vista CA 93117",
+    "url": null,
+    "rentCents": 420000,
+    "beds": 3,
+    "baths": 1,
+    "leaseStart": "2027-06-25",
+    "leaseEnd": "2028-06-15",
+    "parking": "none",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 591,
+    "outputTokens": 468
+  },
+  "latencyMs": 6044,
+  "status": "completed"
+}

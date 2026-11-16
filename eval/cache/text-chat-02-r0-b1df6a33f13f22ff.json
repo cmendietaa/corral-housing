@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6619 Abrego Rd",
+    "address": "6619 Abrego Rd",
+    "url": null,
+    "rentCents": 675000,
+    "beds": 5,
+    "baths": 3,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-06-30",
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 593,
+    "outputTokens": 459
+  },
+  "latencyMs": 4662,
+  "status": "completed"
+}

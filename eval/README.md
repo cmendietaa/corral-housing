@@ -28,6 +28,10 @@ All of it is fictional: 555 phone numbers, `.example` links, invented people. Th
 - `{ anyOf: [...] }` lists every acceptable answer when a listing is genuinely ambiguous ("starting at $5,800", "Sept 2027" with no day).
 - Answers follow the product's rules, the same ones the prompt states. Rent is the whole unit's monthly rent, so a per-person price alone is `null`. Year-less dates roll forward. A start date plus a lease length gives the day before the anniversary.
 
+### Label review
+
+After the first AI run, every field where the AI and the expected answer disagreed was reviewed by hand (3 fields, all "W/D hookups" or "laundry hookups only"). All three labels were kept: hookups mean you bring your own machines, so the listing doesn't offer laundry. Labels where the AI and the expected answer agree weren't individually re-reviewed.
+
 ### Dev and test split
 
 16 cases are held out as **test** and give the headline numbers. The other 24 (**dev**) are the only ones used when tuning the prompt or parser, so improvements aren't fitted to the cases they're scored on.

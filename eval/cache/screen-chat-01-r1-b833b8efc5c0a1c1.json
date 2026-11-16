@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "3-bed 2-bath on Camino Pescadero",
+    "address": "6509 Camino Pescadero",
+    "url": null,
+    "rentCents": 480000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-07-01",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": null
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2130,
+    "outputTokens": 707
+  },
+  "latencyMs": 7574,
+  "status": "completed"
+}

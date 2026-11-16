@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "4BR 2BA house in Isla Vista",
+    "address": "6640 Sueno Road, Isla Vista",
+    "url": null,
+    "rentCents": 510000,
+    "beds": 4,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": "2028-08-31",
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 559,
+    "outputTokens": 564
+  },
+  "latencyMs": 7910,
+  "status": "completed"
+}

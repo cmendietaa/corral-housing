@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "6589 Trigo Rd, Isla Vista",
+    "address": "6589 Trigo Rd, Isla Vista, CA 93117",
+    "url": null,
+    "rentCents": 440000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-06-20",
+    "leaseEnd": "2028-06-19",
+    "parking": "driveway",
+    "laundry": "in_unit"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 2100,
+    "outputTokens": 529
+  },
+  "latencyMs": 8285,
+  "status": "completed"
+}

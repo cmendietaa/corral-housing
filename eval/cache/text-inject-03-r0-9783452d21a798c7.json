@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "2BR in Goleta",
+    "address": "7020 Hollister Ave #12, Goleta",
+    "url": "https://goleta-apts.example/apply/7020-12",
+    "rentCents": 325000,
+    "beds": 2,
+    "baths": null,
+    "leaseStart": "2027-06-01",
+    "leaseEnd": null,
+    "parking": "driveway",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 571,
+    "outputTokens": 611
+  },
+  "latencyMs": 6008,
+  "status": "completed"
+}

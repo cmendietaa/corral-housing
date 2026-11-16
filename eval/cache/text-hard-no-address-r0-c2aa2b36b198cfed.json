@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "title": "3 bed 2 bath on 6600 block of Del Playa",
+    "address": "6600 block of Del Playa",
+    "url": null,
+    "rentCents": 630000,
+    "beds": 3,
+    "baths": 2,
+    "leaseStart": "2027-09-01",
+    "leaseEnd": null,
+    "parking": "street",
+    "laundry": "on_site"
+  },
+  "dropped": [],
+  "usage": {
+    "inputTokens": 548,
+    "outputTokens": 463
+  },
+  "latencyMs": 5394,
+  "status": "completed"
+}
