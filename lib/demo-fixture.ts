@@ -151,7 +151,7 @@ export function createDemoSnapshot(now: Date = new Date()): BoardSnapshot {
       title: "Goleta townhouse",
       address: "7150 Calle Real, Goleta",
       url: "https://example.com/listings/goleta-calle-real-townhouse",
-      rentCents: 590000,
+      rentCents: 500000,
       beds: 4,
       baths: 2.5,
       leaseStart: `${year}-08-15`,

@@ -9,7 +9,7 @@ Requirements are hard limits. They default from the board, and each person can c
 | Requirement | Default | Fails when |
 |---|---|---|
 | Max rent per person | the board's budget | equal-share rent is over it |
-| Minimum bedrooms | the group size | fewer bedrooms |
+| Minimum bedrooms | off (IV groups often share rooms) | fewer bedrooms |
 | Move in by | off | the lease starts later |
 | Needs laundry | off | the listing says no laundry |
 | Needs off-street parking | off | street parking only, or none |

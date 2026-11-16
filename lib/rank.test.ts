@@ -35,14 +35,15 @@ function place(over: Partial<RankPlace> = {}): RankPlace {
 const bikeAway = (min: number) => ({ lat: CAMPUS.lat + (min * 250) / 1.3 / 111_195, lng: CAMPUS.lng });
 
 const people = 4;
-const base: Priorities = { ...defaultPriorities({ budgetPerPersonCents: 140000, people }) };
+const base: Priorities = { ...defaultPriorities({ budgetPerPersonCents: 140000 }), minBeds: 4 };
 const withWeights = (w: Partial<Record<(typeof FACTORS)[number], Level>>): Priorities => ({ ...base, weights: { ...DEFAULT_WEIGHTS, ...w } });
 
 describe("requirements", () => {
-  it("defaults to the board budget and a bedroom per person", () => {
-    expect(base.maxRentPerPersonCents).toBe(140000);
-    expect(base.minBeds).toBe(4);
-    expect(defaultPriorities({ budgetPerPersonCents: null, people: 0 }).minBeds).toBeNull();
+  it("defaults to the board budget, with no minimum bedrooms", () => {
+    const d = defaultPriorities({ budgetPerPersonCents: 140000 });
+    expect(d.maxRentPerPersonCents).toBe(140000);
+    expect(d.minBeds).toBeNull();
+    expect(d.weights).toEqual(DEFAULT_WEIGHTS);
   });
 
   it("moves a place over the max to doesn't-meet, with the reason in numbers", () => {
@@ -149,6 +150,11 @@ describe("explanations", () => {
     expect(line[0]).toEqual({ factor: "price", sign: "+", text: "$800/person, $600 under your max" });
     expect(line[1]).toEqual({ factor: "amenities", sign: "-", text: "no laundry, street parking only" });
     expect(r.ranked[0]!.facts.bike).toBe("about 4 min bike to campus");
+  });
+
+  it("a price minus says how little room is left", () => {
+    const r = rankPlaces([place({ rentCents: 540000 })], base, people);
+    expect(headline(r.ranked[0]!).find((x) => x.sign === "-")?.text).toBe("$1,350/person, only $50 under your max");
   });
 
   it("never states an unknown value", () => {

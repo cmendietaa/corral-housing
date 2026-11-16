@@ -54,11 +54,14 @@ export type Priorities = {
 
 export const DEFAULT_WEIGHTS: Record<Factor, Level> = { price: 3, bike: 2, bedrooms: 2, bathrooms: 1, amenities: 1 };
 
-/** Defaults from the board: its budget as the max, and a bedroom per person. */
-export function defaultPriorities(board: { budgetPerPersonCents: number | null; people: number | null }): Priorities {
+/**
+ * Defaults from the board: its budget as the max. No minimum bedrooms by default,
+ * because IV groups often share rooms; bedrooms per person still counts as a preference.
+ */
+export function defaultPriorities(board: { budgetPerPersonCents: number | null }): Priorities {
   return {
     maxRentPerPersonCents: board.budgetPerPersonCents,
-    minBeds: board.people && board.people > 0 ? board.people : null,
+    minBeds: null,
     moveInBy: null,
     needsLaundry: false,
     needsParking: false,
@@ -207,14 +210,15 @@ export function normalizeWeights(levels: Record<Factor, Level>): { weights: Reco
 
 export type Reason = { factor: Factor; sign: "+" | "-"; text: string };
 
-function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: number | null): string | null {
+function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: number | null, minus = false): string | null {
   switch (f) {
     case "price": {
       const pp = rentPerPerson(p.rentCents, people);
       if (pp === null) return null;
       if (maxRent === null) return `${formatRent(pp)}/person`;
       const under = maxRent - pp;
-      return under > 0 ? `${formatRent(pp)}/person, ${formatRent(under)} under your max` : `${formatRent(pp)}/person, right at your max`;
+      if (under <= 0) return `${formatRent(pp)}/person, right at your max`;
+      return `${formatRent(pp)}/person, ${minus ? "only " : ""}${formatRent(under)} under your max`;
     }
     case "bike": {
       const c = commuteToCampus(p.lat, p.lng);
@@ -399,7 +403,7 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
       if (text) reasons.push({ factor: f, sign: "+", text });
     }
     for (const { f } of neg) {
-      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents);
+      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, true);
       if (text) reasons.push({ factor: f, sign: "-", text });
     }
 

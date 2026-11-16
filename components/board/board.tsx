@@ -7,7 +7,7 @@ import { MAX_PHOTOS_PER_PLACE, type Photo } from "@/lib/stores/types";
 import { TourPhotosContext } from "./tour-photos";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { List, Map as MapIcon, Plus, SquareKanban } from "lucide-react";
+import { List, ListOrdered, Map as MapIcon, Plus, SquareKanban } from "lucide-react";
 import { AddBoardButton, Band, BandToggle, CrewBoards, FenceFooter } from "@/components/brand/band";
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { ListingForm } from "./listing-form";
 import { ListingRow } from "./listing-row";
 import { MapBoundary } from "./map-boundary";
 import { MapMiniCard, PlaceCard, PlaceSheet } from "./place-card";
+import { RankView } from "./rank-view";
 import { StatusBoard } from "./status-board";
 import { FenceFallback } from "./street-photo";
 
@@ -30,7 +31,7 @@ const MapPanel = dynamic(() => import("./map-panel"), {
 });
 
 type FormState = { mode: "add" } | { mode: "edit"; listing: Listing } | null;
-type Tab = "map" | "status";
+type Tab = "map" | "status" | "rank";
 type Pane = "list" | "map";
 
 const MAX_COMPARE = 3;
@@ -304,7 +305,8 @@ export function Board({
       onChange={setTab}
       options={[
         { value: "map", label: "Map" },
-        { value: "status", label: "Status" }
+        { value: "status", label: "Status" },
+        { value: "rank", label: "Rank" }
       ]}
     />
   );
@@ -433,7 +435,9 @@ export function Board({
               <Link href="/" aria-label="Corral home">
                 <Wordmark />
               </Link>
-              <h1 className="font-display text-[28px] leading-tight text-tar">Where each place stands</h1>
+              <h1 className="font-display text-[28px] leading-tight text-tar">
+                {tab === "rank" ? "Which place fits you best" : "Where each place stands"}
+              </h1>
               <div className="ml-auto">{tabToggle}</div>
             </div>
           </Band>
@@ -462,6 +466,8 @@ export function Board({
               </Link>
               {tab === "status" ? (
                 <h1 className="font-display text-lg text-tar">Where things stand</h1>
+              ) : tab === "rank" ? (
+                <h1 className="font-display text-lg text-tar">Best fit for you</h1>
               ) : (
                 <p className="label ml-auto text-tar">{onMap} on the map</p>
               )}
@@ -474,6 +480,27 @@ export function Board({
       {tab === "status" ? (
         <main className="flex-1 px-4 pt-5 lg:px-6 lg:pt-6">
           <StatusBoard listings={listings} board={board} photos={photos} onPatch={patch} onOpen={activate} />
+        </main>
+      ) : tab === "rank" ? (
+        <main className="flex-1 px-4 pt-5 lg:px-6 lg:pt-6">
+          <RankView
+            listings={listings}
+            board={board}
+            photos={photos}
+            checked={checked}
+            checkDisabled={(id) => !checked.includes(id) && checked.length >= MAX_COMPARE}
+            onToggleCheck={toggleCheck}
+            onCompare={(ids) => {
+              setChecked(ids);
+              setComparing(true);
+              window.scrollTo({ top: 0 });
+            }}
+            onOpen={activate}
+            onEdit={(id) => {
+              const l = listings.find((x) => x.id === id);
+              if (l) openForm({ mode: "edit", listing: l });
+            }}
+          />
         </main>
       ) : (
         <main className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[540px_minmax(0,1fr)] lg:gap-5 lg:px-6 lg:pb-8 lg:pt-4">
@@ -534,7 +561,8 @@ export function Board({
             [
               { key: "list", label: "List", icon: List, active: tab === "map" && pane === "list" },
               { key: "map", label: "Map", icon: MapIcon, active: tab === "map" && pane === "map" },
-              { key: "status", label: "Status", icon: SquareKanban, active: tab === "status" }
+              { key: "status", label: "Status", icon: SquareKanban, active: tab === "status" },
+              { key: "rank", label: "Rank", icon: ListOrdered, active: tab === "rank" }
             ] as const
           ).map((o) => (
             <button
@@ -542,14 +570,14 @@ export function Board({
               type="button"
               aria-pressed={o.active}
               onClick={() => {
-                if (o.key === "status") setTab("status");
+                if (o.key === "status" || o.key === "rank") setTab(o.key);
                 else {
                   setTab("map");
                   setPane(o.key);
                 }
               }}
               className={cn(
-                "inline-flex h-11 items-center gap-1.5 rounded-full px-4 font-display text-[15px] transition",
+                "inline-flex h-11 items-center gap-1 rounded-full px-3 font-display text-[15px] transition min-[400px]:gap-1.5 min-[400px]:px-4",
                 o.active ? "bg-sunset-300 text-tar" : "text-sea-100"
               )}
             >
