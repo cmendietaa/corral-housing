@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyListingInput, httpUrl, listingInputSchema } from "./listing";
+import { emptyListingInput, httpUrl, listingInputSchema, starredFirst } from "./listing";
 
 describe("httpUrl", () => {
   it("accepts http and https links", () => {
@@ -20,5 +20,18 @@ describe("listing link", () => {
   it("still has to be http(s) when one is given", () => {
     expect(listingInputSchema.safeParse({ ...emptyListingInput(), title: "x", url: "javascript:alert(1)" }).success).toBe(false);
     expect(listingInputSchema.safeParse({ ...emptyListingInput(), title: "x", url: "https://example.com" }).success).toBe(true);
+  });
+});
+
+describe("starredFirst", () => {
+  it("moves starred places to the top and keeps the rest in order", () => {
+    const items = [
+      { id: "a", starred: false },
+      { id: "b", starred: true },
+      { id: "c", starred: false },
+      { id: "d", starred: true }
+    ];
+    expect(starredFirst(items).map((x) => x.id)).toEqual(["b", "d", "a", "c"]);
+    expect(items.map((x) => x.id)).toEqual(["a", "b", "c", "d"]);
   });
 });

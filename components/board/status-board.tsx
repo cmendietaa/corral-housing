@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
-import { STATUS_LABELS, type Board, type Listing, type ListingPatch, type ListingStatus } from "@/lib/listing";
+import { STATUS_LABELS, starredFirst, type Board, type Listing, type ListingPatch, type ListingStatus } from "@/lib/listing";
 import { cn } from "@/lib/utils";
 import { FenceFallback, StreetPhoto } from "./street-photo";
 import { NextAction } from "./next-action";
@@ -30,7 +30,7 @@ type Props = {
  */
 export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props) {
   const columnRefs = useRef(new Map<ListingStatus, HTMLElement>());
-  const byStatus = (s: ListingStatus) => listings.filter((l) => l.status === s);
+  const byStatus = (s: ListingStatus) => starredFirst(listings.filter((l) => l.status === s));
 
   return (
     <div className="pb-24 lg:pb-10">

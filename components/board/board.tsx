@@ -12,7 +12,7 @@ import { AddBoardButton, Band, BandToggle, CrewBoards, FenceFooter } from "@/com
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
 import { streetHeadline } from "@/lib/address";
-import { isClosedStatus, type Listing, type ListingInput, type ListingPatch } from "@/lib/listing";
+import { isClosedStatus, starredFirst, type Listing, type ListingInput, type ListingPatch } from "@/lib/listing";
 import type { BoardSnapshot, BoardStore } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 import { CompareTray, CompareView } from "./compare-view";
@@ -270,8 +270,9 @@ export function Board({
   const movePin = useCallback((id: string, lat: number, lng: number) => void patch(id, { lat, lng }), [patch]);
 
   const listings = useMemo(() => snap?.listings ?? [], [snap]);
-  const open = listings.filter((l) => !isClosedStatus(l.status));
-  const washed = listings.filter((l) => isClosedStatus(l.status));
+  // Starred places first in each group; the Rank tab keeps its own order.
+  const open = starredFirst(listings.filter((l) => !isClosedStatus(l.status)));
+  const washed = starredFirst(listings.filter((l) => isClosedStatus(l.status)));
   const selected = listings.find((l) => l.id === selectedId) ?? null;
   const sheet = listings.find((l) => l.id === sheetId) ?? null;
   const checkedPlaces = checked.map((id) => listings.find((l) => l.id === id)).filter((l): l is Listing => Boolean(l));

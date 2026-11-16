@@ -25,6 +25,11 @@ export function isClosedStatus(status: ListingStatus): boolean {
   return status === "passed" || status === "unavailable";
 }
 
+/** Starred places first; otherwise the original order is kept. */
+export function starredFirst<T extends { starred: boolean }>(items: readonly T[]): T[] {
+  return [...items.filter((l) => l.starred), ...items.filter((l) => !l.starred)];
+}
+
 export const PARKING_OPTIONS = ["garage", "driveway", "street", "none"] as const;
 export const PARKING_LABELS: Record<(typeof PARKING_OPTIONS)[number], string> = {
   garage: "Garage",
