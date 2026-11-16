@@ -20,7 +20,7 @@ type Props = {
   listing: Listing;
   members: Member[];
   onSave: (patch: ListingPatch) => Promise<void> | void;
-  /** `inline`: "NEXT  task  MAYA · FRI" in one box (selected-place card). `crew`: owner's board beside the task (Status cards, phone sheet). */
+  /** `inline`: "NEXT" beside the task, with "MAYA · FRI" under it (selected-place card). `crew`: owner's board beside the task (Status cards, phone sheet). */
   variant?: "inline" | "crew";
   className?: string;
 };
@@ -75,8 +75,12 @@ export function NextAction({ listing, members, onSave, variant = "inline", class
       {variant === "inline" ? (
         <>
           <span className="label shrink-0 text-stone-700">Next</span>
-          <span className="min-w-0 flex-1 text-sm leading-snug text-tar">{listing.nextAction}</span>
-          {od ? <span className={cn("label shrink-0", od.overdue ? "text-danger" : "text-tar")}>{od.text}</span> : null}
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm leading-snug text-tar">{listing.nextAction}</span>
+            {od ? (
+              <span className={cn("label mt-0.5 block", od.overdue ? "text-danger" : "text-stone-700")}>{od.text}</span>
+            ) : null}
+          </span>
         </>
       ) : (
         <>
