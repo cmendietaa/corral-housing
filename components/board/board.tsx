@@ -64,6 +64,7 @@ export function Board({
   const [notice, setNotice] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const rowRefs = useRef(new Map<string, HTMLElement>());
+  const mapSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,6 +125,38 @@ export function Board({
       void loadPhotos();
     });
   }, [store, loadPhotos]);
+
+  // Desktop map: fill the screen below wherever the map's top is. At the top of
+  // the page that's under the header; once the header scrolls away the map grows
+  // to the full height instead of leaving a blank strip under it.
+  const hasBoard = snap !== null;
+  useEffect(() => {
+    const el = mapSectionRef.current;
+    if (!el || tab !== "map") return;
+    const wide = window.matchMedia("(min-width: 1024px)");
+    let frame = 0;
+    const fit = () => {
+      frame = 0;
+      if (!wide.matches) {
+        el.style.height = "";
+        return;
+      }
+      const top = Math.max(16, el.getBoundingClientRect().top);
+      el.style.height = `${Math.max(540, Math.round(window.innerHeight - top - 16))}px`;
+    };
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(fit);
+    };
+    fit();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      el.style.height = "";
+    };
+  }, [tab, hasBoard, comparing]);
 
   const members = snap?.board.members;
   const photoCtx = useMemo(() => {
@@ -508,10 +541,11 @@ export function Board({
           <div className={cn("px-2 pb-28 pt-4 lg:px-0 lg:pb-0", pane === "map" && "max-lg:hidden")}>{ledger}</div>
 
           <section
+            ref={mapSectionRef}
             aria-label="Map of places"
             className={cn(
               "relative overflow-hidden bg-shell-light",
-              // Fits under the header band at the top of the page, so the card and tray are in view.
+              // Height is set from the scroll position (see the effect above); this is the first-paint fallback.
               "lg:sticky lg:top-4 lg:block lg:h-[calc(100vh-320px)] lg:min-h-[540px] lg:rounded-[200px_32px_32px_32px]",
               pane === "list" ? "max-lg:hidden" : "max-lg:min-h-0 max-lg:flex-1"
             )}

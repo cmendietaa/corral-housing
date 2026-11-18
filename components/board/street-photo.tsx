@@ -81,7 +81,7 @@ export function StreetPhoto({
             onLoad={() => setState("loaded")}
             onError={() => setState("failed")}
             className={cn(
-              "washed h-full w-full object-cover transition-opacity duration-300",
+              "photo-tone h-full w-full object-cover transition-opacity duration-300",
               state === "loaded" ? "opacity-100" : "opacity-0"
             )}
           />

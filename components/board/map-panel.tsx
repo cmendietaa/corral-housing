@@ -118,9 +118,20 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
 
     // The container's real size arrives after layout (and after the phone
     // List/Map switch reveals it). Re-measure, and fit once it's real.
+    // Only a width change re-fits: the desktop map grows taller as the page
+    // scrolls, and re-fitting on every frame would make the pins slide.
+    let lastWidth = 0;
+    let lastHeight = 0;
     const ro = new ResizeObserver(() => {
       map.resize();
-      if (!fitted.current || !userMoved.current) fitToCluster(false);
+      const width = el.clientWidth;
+      const height = el.clientHeight;
+      if (!fitted.current || (!userMoved.current && width !== lastWidth)) fitToCluster(false);
+      // Taller only: resize keeps the center, which would slide the pins down by
+      // half the growth; pan it back so the view stays anchored to the top edge.
+      else if (width === lastWidth && lastHeight && height !== lastHeight) map.panBy([0, (height - lastHeight) / 2], { animate: false });
+      lastWidth = width;
+      lastHeight = height;
     });
     ro.observe(el);
 
