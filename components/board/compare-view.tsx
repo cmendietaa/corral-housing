@@ -187,12 +187,22 @@ export function CompareView({
                     attribution="tiny"
                     className="h-[92px] w-full rounded-[22px]"
                   />
-                  <p className="mt-1.5 font-display text-[13px] leading-tight text-tar">{name}</p>
                 </div>
               );
             })}
           </div>
-          <dl className="mt-4 divide-y divide-divider">
+          {/* The names stay pinned while the rows scroll, so each column stays identifiable. */}
+          <div
+            className="sticky top-0 z-10 -mx-4 grid gap-2 border-b border-divider bg-shell px-4 py-2.5"
+            style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
+          >
+            {places.map((p) => (
+              <p key={p.id} className="min-w-0 font-display text-[13px] leading-tight text-tar">
+                {streetHeadline(p.address, p.title)}
+              </p>
+            ))}
+          </div>
+          <dl className="divide-y divide-divider">
             {rows.map((row) => (
               <div key={row.key} className="py-3">
                 <dt className="label text-stone-700">{row.label}</dt>

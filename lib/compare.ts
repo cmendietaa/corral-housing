@@ -167,7 +167,7 @@ export function buildComparison(
       key: "commute",
       label: "To campus",
       cells: withBest(
-        commutes.map((c) => (c === null ? unknown("No pin") : { text: `~${c.bikeMin} min bike`, short: `~${c.bikeMin}m` })),
+        commutes.map((c) => (c === null ? unknown("No pin") : { text: `~${c.bikeMin} min bike`, short: `~${c.bikeMin} min bike` })),
         commutes.map((c) => c?.bikeMin ?? null),
         "low"
       )

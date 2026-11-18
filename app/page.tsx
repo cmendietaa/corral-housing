@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { CalendarCheck, Columns3, Link2, MapPinned } from "lucide-react";
+import { CalendarCheck, Columns3, ListOrdered, MapPinned, Sparkles } from "lucide-react";
 import { Band, FenceFooter } from "@/components/brand/band";
 import { BoardPreview } from "@/components/brand/board-preview";
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
 
 const steps = [
-  { icon: Link2, title: "Save", body: "Paste a listing link from any site." },
+  { icon: Sparkles, title: "Autofill", body: "Paste a post or drop a screenshot. Rent, beds and dates fill in for you to check." },
   { icon: MapPinned, title: "Map", body: "Every place on one map of IV and Goleta." },
+  { icon: ListOrdered, title: "Rank", body: "Say what matters. See which place fits best, and why." },
   { icon: Columns3, title: "Compare", body: "Two or three side by side. Unknowns stay unknown." },
   { icon: CalendarCheck, title: "Follow up", body: "One next step per place, with a who and a when." }
 ] as const;
@@ -37,8 +38,8 @@ export default function Home() {
         <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 [&>*]:min-w-0">
           <div>
             <p className="max-w-xl text-lg text-stone-800">
-              Stop losing Isla Vista listings in the group chat. Save places from any site, see them on one map,
-              compare them side by side, and know who&apos;s following up on what.
+              Stop losing Isla Vista listings in the group chat. Save places from any site or screenshot, see them
+              on one map, rank them by what matters to you, and know who&apos;s following up on what.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button asChild size="lg">
@@ -57,7 +58,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <ul className="mt-16 grid gap-x-8 gap-y-6 border-t border-divider pt-8 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-16 grid gap-x-8 gap-y-6 border-t border-divider pt-8 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map(({ icon: Icon, title, body }) => (
             <li key={title} className="flex gap-3">
               <Icon className="mt-0.5 h-5 w-5 shrink-0 text-sea-700" strokeWidth={2.75} aria-hidden="true" />
