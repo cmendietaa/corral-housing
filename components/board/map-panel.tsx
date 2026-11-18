@@ -34,9 +34,13 @@ const isMapped = (l: Listing): l is Mapped => l.lat !== null && l.lng !== null;
  */
 function overlayPadding(el: HTMLElement) {
   const wide = window.matchMedia("(min-width: 1024px)").matches;
+  // Desktop: the board clips the full-height map to the screen, so part of its
+  // bottom can be out of view; keep pins above that.
+  const frame = el.closest("section");
+  const hidden = wide && frame ? Math.max(0, el.getBoundingClientRect().bottom - frame.getBoundingClientRect().bottom) : 0;
   return wide
     ? // The card ends 348px in (18 + 330); add half a price tag so tags clear it.
-      { top: 110, bottom: 90, left: Math.min(400, el.clientWidth - 220), right: 90 }
+      { top: 110, bottom: 90 + hidden, left: Math.min(400, el.clientWidth - 220), right: 90 }
     : { top: 150, bottom: 230, left: 55, right: 55 };
 }
 
@@ -98,12 +102,12 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
       touchPitch: false
     });
     map.touchZoomRotate.disableRotation();
-    // The OpenStreetMap credit must stay visible: bottom-right on desktop (beside the
-    // tray), top-left on phones (the bottom belongs to the place card and the switch).
-    const wide = window.matchMedia("(min-width: 1024px)").matches;
-    map.addControl(new AttributionControl({ compact: false }), wide ? "bottom-right" : "top-left");
     // Top-right, because the panel has a big 200px curve at its top-left corner.
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    // The OpenStreetMap credit must stay visible. Phones: top-left (the bottom
+    // belongs to the place card and the switch). Desktop: the board draws it on
+    // the map's frame, because the map's own bottom edge can be clipped.
+    if (!window.matchMedia("(min-width: 1024px)").matches) map.addControl(new AttributionControl({ compact: false }), "top-left");
     map.on("style.load", () => applyCoastalStyle(map));
     map.on("load", () => setReady(true));
     map.on("movestart", (e) => {
@@ -120,18 +124,9 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
     // List/Map switch reveals it). Re-measure, and fit once it's real.
     // Only a width change re-fits: the desktop map grows taller as the page
     // scrolls, and re-fitting on every frame would make the pins slide.
-    let lastWidth = 0;
-    let lastHeight = 0;
     const ro = new ResizeObserver(() => {
       map.resize();
-      const width = el.clientWidth;
-      const height = el.clientHeight;
-      if (!fitted.current || (!userMoved.current && width !== lastWidth)) fitToCluster(false);
-      // Taller only: resize keeps the center, which would slide the pins down by
-      // half the growth; pan it back so the view stays anchored to the top edge.
-      else if (width === lastWidth && lastHeight && height !== lastHeight) map.panBy([0, (height - lastHeight) / 2], { animate: false });
-      lastWidth = width;
-      lastHeight = height;
+      if (!fitted.current || !userMoved.current) fitToCluster(false);
     });
     ro.observe(el);
 

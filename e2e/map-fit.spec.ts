@@ -14,7 +14,8 @@ test("open places in the main cluster are all in view on the map", async ({ page
   if (isPhone(page)) await page.getByRole("group", { name: "View" }).filter({ visible: true }).getByRole("button", { name: "Map" }).click();
   await page.waitForTimeout(2500); // the map settles after the first fit
 
-  const map = (await page.locator(".maplibregl-map").boundingBox())!;
+  // The visible frame: on desktop the map is taller than the screen and clipped.
+  const map = (await page.locator("section[aria-label='Map of places']").boundingBox())!;
   const card = isPhone(page)
     ? (await page.getByRole("button", { name: /Sabado Tarde, 6512/ }).filter({ visible: true }).last().boundingBox())!
     : (await page.locator("section[aria-label='Map of places'] .no-scrollbar").first().boundingBox())!;
@@ -25,6 +26,7 @@ test("open places in the main cluster are all in view on the map", async ({ page
     expect(pin.x, `${tag} left edge`).toBeGreaterThanOrEqual(map.x);
     expect(pin.x + pin.width, `${tag} right edge`).toBeLessThanOrEqual(map.x + map.width);
     expect(pin.y, `${tag} top edge`).toBeGreaterThanOrEqual(map.y);
+    expect(pin.y + pin.height, `${tag} bottom edge`).toBeLessThanOrEqual(map.y + map.height);
     const overlapsCard =
       pin.x < card.x + card.width && pin.x + pin.width > card.x && pin.y < card.y + card.height && pin.y + pin.height > card.y;
     expect(overlapsCard, `${tag} under the card`).toBe(false);

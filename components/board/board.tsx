@@ -126,9 +126,10 @@ export function Board({
     });
   }, [store, loadPhotos]);
 
-  // Desktop map: fill the screen below wherever the map's top is. At the top of
-  // the page that's under the header; once the header scrolls away the map grows
-  // to the full height instead of leaving a blank strip under it.
+  // Desktop map frame: fill the screen below wherever its top is. At the top of
+  // the page that's under the header; once the header scrolls away the frame
+  // grows to the full height instead of leaving a blank strip under it. Only the
+  // frame changes size; the map inside stays full height (no canvas resize).
   const hasBoard = snap !== null;
   useEffect(() => {
     const el = mapSectionRef.current;
@@ -550,9 +551,13 @@ export function Board({
               pane === "list" ? "max-lg:hidden" : "max-lg:min-h-0 max-lg:flex-1"
             )}
           >
-            <MapBoundary>
-              <MapPanel listings={listings} selectedId={selectedId} onSelect={selectFromMap} onMovePin={movePin} />
-            </MapBoundary>
+            {/* Desktop: the map is always a full screen tall and the section clips it,
+                so scrolling reveals more map instead of resizing (and blanking) the canvas. */}
+            <div className="h-full lg:h-[calc(100vh-32px)] lg:min-h-[540px]">
+              <MapBoundary>
+                <MapPanel listings={listings} selectedId={selectedId} onSelect={selectFromMap} onMovePin={movePin} />
+              </MapBoundary>
+            </div>
 
             {/* Desktop: the selected place, bottom-left; the compare tray, bottom-right. */}
             {selected ? (
@@ -568,7 +573,14 @@ export function Board({
                 />
               </div>
             ) : null}
-            {tray("absolute bottom-[18px] right-[18px] z-20 hidden lg:flex")}
+            {tray("absolute bottom-[30px] right-[18px] z-20 hidden lg:flex")}
+
+            {/* Desktop map credit, on the frame rather than the map: the map's own bottom edge can be clipped. */}
+            <p className="absolute bottom-1.5 right-5 z-10 hidden text-[11px] text-stone-700 lg:block">
+              <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer" className="hover:underline">OpenFreeMap</a>{" "}
+              <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer" className="hover:underline">© OpenMapTiles</a> Data from{" "}
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:underline">OpenStreetMap</a>
+            </p>
 
             {/* Phones: the selected place floats above the switch. */}
             {selected && pane === "map" ? (
