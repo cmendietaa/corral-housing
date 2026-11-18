@@ -15,8 +15,8 @@ export const SERVICE_AREA = { south: 34.38, north: 34.47, west: -119.95, east: -
  * displays (Street View Static caps at 640px a side). CSS crops to the frame.
  */
 export const PHOTO_SIZES = {
-  row: "104x152",
-  card: "640x330",
+  row: "132x192",
+  card: "640x446",
   compare: "640x320",
   kanban: "560x220",
   sheet: "640x614"
@@ -45,10 +45,13 @@ export function bearing(from: { lat: number; lng: number }, to: { lat: number; l
   return (Math.round((Math.atan2(y, x) * 180) / Math.PI) + 360) % 360;
 }
 
+/** Bump when the framing or sizes change, so browsers don't keep a day-old photo. */
+export const PHOTO_VERSION = 2;
+
 /** The client-side URL for a place's photo, or null when the place has no pin. */
 export function streetViewSrc(lat: number | null, lng: number | null, size: PhotoSize = "card"): string | null {
   if (lat === null || lng === null) return null;
-  return `/api/streetview?lat=${roundCoord(lat)}&lng=${roundCoord(lng)}&s=${size}`;
+  return `/api/streetview?lat=${roundCoord(lat)}&lng=${roundCoord(lng)}&s=${size}&v=${PHOTO_VERSION}`;
 }
 
 /** "2019-04" -> "Apr 2019", "2019" -> "2019". */

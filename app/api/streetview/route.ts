@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
     const heading = bearing(meta.location, target);
     const imageUrl =
       `${GOOGLE}?size=${PHOTO_SIZES[parsed.data.s]}&pano=${meta.pano_id}&heading=${heading}` +
-      `&fov=80&pitch=5&return_error_code=true&key=${key}`;
+      // A 65° level view fills the frame with the building rather than sky and street.
+      `&fov=65&pitch=0&return_error_code=true&key=${key}`;
     const image = await fetch(imageUrl, { cache: "no-store" });
     if (!image.ok || !image.headers.get("content-type")?.startsWith("image/")) {
       return notFound("Street View didn't return a photo.");

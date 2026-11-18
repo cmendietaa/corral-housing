@@ -32,7 +32,7 @@ describe("bearing", () => {
 
 describe("streetViewSrc", () => {
   it("builds our own route URL and rounds coordinates", () => {
-    expect(streetViewSrc(34.411851234, -119.858151234, "row")).toBe("/api/streetview?lat=34.41185&lng=-119.85815&s=row");
+    expect(streetViewSrc(34.411851234, -119.858151234, "row")).toBe("/api/streetview?lat=34.41185&lng=-119.85815&s=row&v=2");
     expect(roundCoord(34.4118549)).toBe(34.41185);
   });
   it("has no photo for places without a pin", () => {

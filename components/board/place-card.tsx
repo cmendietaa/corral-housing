@@ -65,7 +65,7 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         enabled={photos}
         attribution="long"
         hint
-        className="h-[170px] w-full"
+        className="h-[230px] w-full"
       >
         <button
           type="button"
