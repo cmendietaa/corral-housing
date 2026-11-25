@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ArrowLeft, ArrowUpRight, Pencil, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { ArrowLeft, ArrowUpRight, Pencil, Plus, X } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
 import { formatRent, rentPerPerson } from "@/lib/compare";
-import { formatBedsBaths } from "@/lib/format";
+import { formatBeds, formatBedsBaths } from "@/lib/format";
 import { commuteToCampus, formatCommute } from "@/lib/commute";
 import type { Board, Listing, ListingPatch } from "@/lib/listing";
 import { Button } from "@/components/ui/button";
@@ -38,15 +38,127 @@ function OpenListing({ url, className }: { url: string; className?: string }) {
   );
 }
 
+const NOTES_MAX = 2000;
+
+/** The group's notes on a place: shown in full, added or edited in place. */
+export function PlaceNotes({
+  notes,
+  label,
+  onSave,
+  className
+}: {
+  notes: string | null;
+  label: string;
+  onSave: (notes: string | null) => Promise<void>;
+  className?: string;
+}) {
+  const id = useId();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  function start() {
+    setDraft(notes ?? "");
+    setEditing(true);
+  }
+
+  async function save() {
+    const next = draft.trim() === "" ? null : draft.trim();
+    setSaving(true);
+    try {
+      if (next !== notes) await onSave(next);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className={className}>
+        <label htmlFor={`${id}-notes`} className="label mb-1.5 block text-stone-700">
+          Notes
+        </label>
+        <textarea
+          id={`${id}-notes`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              setEditing(false);
+            }
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void save();
+          }}
+          autoFocus
+          rows={4}
+          maxLength={NOTES_MAX}
+          placeholder="Anything the group should know: vibe, noise, landlord, deposit…"
+          className="w-full rounded-[18px] border border-divider bg-shell-light px-3.5 py-2.5 text-sm text-tar placeholder:text-stone-600"
+        />
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={saving}
+            className="h-9 rounded-full bg-sea-700 px-4 text-sm font-semibold text-shell hover:bg-sea-800 disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save notes"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="h-9 rounded-full px-3 text-sm font-semibold text-stone-700 hover:bg-shell-mid hover:text-tar"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!notes) {
+    return (
+      <button
+        type="button"
+        onClick={start}
+        className={cn("inline-flex items-center gap-1.5 text-[13px] font-semibold text-stone-700 hover:text-tar", className)}
+      >
+        <Plus className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
+        Add a note
+      </button>
+    );
+  }
+
+  return (
+    <section aria-label={`Notes on ${label}`} className={cn("rounded-[20px] bg-shell-mid px-4 py-3", className)}>
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <h3 className="label text-stone-700">Notes</h3>
+        <button
+          type="button"
+          onClick={start}
+          aria-label={`Edit notes on ${label}`}
+          className="text-xs font-semibold text-sea-700 underline underline-offset-2 hover:text-sea-900"
+        >
+          Edit
+        </button>
+      </div>
+      <p className="whitespace-pre-line break-words text-sm text-tar">{notes}</p>
+    </section>
+  );
+}
+
 /** Desktop: the selected place, floating over the map's bottom-left corner. */
 export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: Shared & { onClose: () => void }) {
   const headline = streetHeadline(listing.address, listing.title);
   const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
+  const commute = formatCommute(commuteToCampus(listing.lat, listing.lng));
   const meta = [
     headline !== listing.title ? listing.title : null,
     formatBedsBaths(listing.beds, listing.baths) || null,
     perPerson !== null ? `${formatRent(perPerson)} / person` : null,
-    formatCommute(commuteToCampus(listing.lat, listing.lng)) ? `about ${formatCommute(commuteToCampus(listing.lat, listing.lng))} to UCSB` : null
+    commute ? `about ${commute} to UCSB` : null
   ]
     .filter(Boolean)
     .join(" · ");
@@ -89,7 +201,8 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
           {listing.url ? <OpenListing url={listing.url} /> : null}
         </div>
         <NextAction listing={listing} members={board.members} onSave={onPatch} />
-        <TourPhotoStrip listingId={listing.id} label={headline} />
+        <PlaceNotes notes={listing.notes} label={headline} onSave={(notes) => onPatch({ notes })} />
+        <TourPhotoStrip listing={listing} label={headline} streetEnabled={photos} />
         <button
           type="button"
           onClick={onEdit}
@@ -132,7 +245,7 @@ export function MapMiniCard({
         size="row"
         enabled={photos}
         attribution="tiny"
-        className="h-24 w-[66px] rounded-full"
+        className="h-24 w-[72px] rounded-b-[14px] rounded-t-[36px]"
       />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
@@ -246,7 +359,7 @@ export function PlaceSheet({
               : stat(formatRent(listing.rentCents), perPerson !== null ? `${formatRent(perPerson)} / person` : null)}
             {listing.beds === null
               ? stat("Beds?", listing.baths === null ? null : `${listing.baths} ba`, true)
-              : stat(`${listing.beds} bd`, listing.baths === null ? "Baths unknown" : `${listing.baths} ba`)}
+              : stat(formatBeds(listing.beds), listing.baths === null ? "Baths unknown" : `${listing.baths} ba`)}
             {leaseTile(listing, stat)}
           </div>
 
@@ -257,7 +370,9 @@ export function PlaceSheet({
 
           <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" className="mt-4" />
 
-          <TourPhotoStrip listingId={listing.id} label={headline} className="mt-4" />
+          <PlaceNotes notes={listing.notes} label={headline} onSave={(notes) => onPatch({ notes })} className="mt-4" />
+
+          <TourPhotoStrip listing={listing} label={headline} streetEnabled={photos} className="mt-4" />
 
           {listing.lat === null ? (
             <Button type="button" variant="secondary" className="mt-3 w-full" onClick={onDropPin}>

@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
+import { formatBeds } from "@/lib/format";
 import { STATUS_LABELS, starredFirst, type Board, type Listing, type ListingPatch, type ListingStatus } from "@/lib/listing";
 import { cn } from "@/lib/utils";
 import { FenceFallback, StreetPhoto } from "./street-photo";
@@ -158,7 +159,7 @@ function StatusCard({
   onOpen: () => void;
 }) {
   const headline = streetHeadline(listing.address, listing.title);
-  const meta = [listing.title !== headline ? listing.title : null, listing.beds !== null ? `${listing.beds} bd` : null, listing.baths !== null ? `${listing.baths} ba` : null]
+  const meta = [listing.title !== headline ? listing.title : null, listing.beds !== null ? formatBeds(listing.beds) : null, listing.baths !== null ? `${listing.baths} ba` : null]
     .filter(Boolean)
     .join(" · ");
   return (

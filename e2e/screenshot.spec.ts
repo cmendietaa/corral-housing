@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 
 /**
  * Screenshot autofill on the demo. The API route is stubbed, so these tests
@@ -25,7 +25,7 @@ async function openAddForm(page: Page) {
   );
   await page.goto("/demo");
   await page.getByRole("button", { name: "Add a place" }).filter({ visible: true }).first().click();
-  return page.getByRole("dialog");
+  return page.getByRole("dialog", { name: "Add a place" });
 }
 
 test("the sample screenshot fills the form, and the place saves without a link", async ({ page }) => {
@@ -39,9 +39,10 @@ test("the sample screenshot fills the form, and the place saves without a link",
 
   await dialog.getByRole("button", { name: "Try a sample screenshot" }).click();
   await expect(dialog.getByRole("button", { name: "View screenshot 1" })).toBeVisible();
-  await dialog.getByRole("button", { name: "Autofill", exact: true }).click();
+  await dialog.getByRole("button", { name: "Round it up", exact: true }).click();
 
-  await expect(dialog.getByText("Filled 9 fields from your screenshot. Check them against it before saving.")).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Check what Corral found" })).toBeVisible();
+  await expect(dialog.getByText(/Rounded up \d+ details from your screenshot/)).toBeVisible();
   expect(requests).toHaveLength(1);
   expect(requests[0]!.contentType).toMatch(/^multipart\/form-data/);
   expect(requests[0]!.size).toBeLessThan(1.5 * 1024 * 1024);
@@ -49,13 +50,13 @@ test("the sample screenshot fills the form, and the place saves without a link",
   await expect(dialog.getByLabel("Rent for the whole place")).toHaveValue("5100");
 
   // Check the fields against the screenshot at full size, then close it.
-  await dialog.getByRole("button", { name: "View screenshot 1" }).click();
+  await dialog.getByRole("button", { name: "your screenshot", exact: true }).click();
   const viewer = page.getByRole("dialog", { name: "Screenshot 1 of 1" });
   await expect(viewer.getByRole("img", { name: "Screenshot 1 of the listing" })).toBeVisible();
   await viewer.getByRole("button", { name: "Close screenshot" }).click();
   await expect(viewer).toBeHidden();
 
-  await dialog.getByRole("button", { name: "Add place" }).click();
+  await dialog.getByRole("button", { name: "Into the corral" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("button", { name: "Sueno Rd, 6741", exact: true })).toBeVisible();
 });
@@ -65,7 +66,7 @@ test("an uploaded screenshot can be removed, and an unreadable one says to paste
     route.fulfill({ status: 503, json: { error: "Screenshot reading isn't available right now. Paste the listing's text instead." } })
   );
   const dialog = await openAddForm(page);
-  const autofill = dialog.getByRole("button", { name: "Autofill", exact: true });
+  const autofill = dialog.getByRole("button", { name: "Round it up", exact: true });
   await expect(autofill).toBeDisabled();
 
   await dialog.getByLabel("Add screenshots of the listing").setInputFiles("public/samples/listing-screenshot.jpg");

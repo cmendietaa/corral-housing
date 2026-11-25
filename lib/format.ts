@@ -45,9 +45,14 @@ export function formatDueShort(iso: string, today: Date = new Date()): { text: s
   return { text: shortDate.format(calendar(iso)), overdue: false };
 }
 
-/** "4 bd · 2 ba", leaving out what isn't known. */
+/** "4 bd", or "Studio" for zero bedrooms. */
+export function formatBeds(beds: number): string {
+  return beds === 0 ? "Studio" : `${beds} bd`;
+}
+
+/** "4 bd · 2 ba" or "Studio · 1 ba", leaving out what isn't known. */
 export function formatBedsBaths(beds: number | null, baths: number | null): string {
-  return [beds === null ? null : `${beds} bd`, baths === null ? null : `${baths} ba`].filter(Boolean).join(" · ");
+  return [beds === null ? null : formatBeds(beds), baths === null ? null : `${baths} ba`].filter(Boolean).join(" · ");
 }
 
 /** "4 beds", "1 bath", or "Beds unknown" when missing. */

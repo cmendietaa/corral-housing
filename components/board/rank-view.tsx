@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Ban, Check, ChevronDown, Plus, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
@@ -22,6 +22,7 @@ import {
   type Requirement
 } from "@/lib/rank";
 import { cn } from "@/lib/utils";
+import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
 import { StreetPhoto, FenceFallback } from "./street-photo";
 
@@ -70,6 +71,8 @@ const REQUIREMENT_LABELS: Record<Requirement, string> = {
 };
 
 type Props = {
+  /** The fine print's note under the list (desktop). */
+  footNote?: string | null;
   listings: Listing[];
   board: Board;
   photos: boolean;
@@ -82,7 +85,7 @@ type Props = {
 };
 
 /** The Rank tab: your priorities on the left, the places that fit them best on the right. */
-export function RankView({ listings, board, photos, checked, checkDisabled, onToggleCheck, onCompare, onOpen, onEdit }: Props) {
+export function RankView({ footNote, listings, board, photos, checked, checkDisabled, onToggleCheck, onCompare, onOpen, onEdit }: Props) {
   const { priorities, update, reset } = usePriorities(board);
   const people = board.members.length || null;
   const ranking = useMemo(() => rankPlaces(listings, priorities, people), [listings, priorities, people]);
@@ -94,10 +97,10 @@ export function RankView({ listings, board, photos, checked, checkDisabled, onTo
   const panel = <PrioritiesPanel priorities={priorities} onChange={update} onReset={reset} />;
 
   return (
-    <div className="pb-28 lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6 lg:pb-10">
-      {/* Desktop: priorities beside the list */}
-      <aside aria-label="Your priorities" className="hidden lg:block">
-        <div className="sticky top-4 rounded-[32px] bg-shell-deep p-5">{panel}</div>
+    <div className="pb-28 lg:grid lg:h-full lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 lg:pb-0">
+      {/* Desktop: priorities beside the list. Each side scrolls on its own. */}
+      <aside aria-label="Your priorities" className="pane-scroll hidden lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:py-5">
+        <div className="rounded-[32px] bg-shell-deep p-5">{panel}</div>
       </aside>
 
       {/* Phones: a summary that opens the priorities */}
@@ -112,7 +115,8 @@ export function RankView({ listings, board, photos, checked, checkDisabled, onTo
       </button>
       {editing ? <PrioritiesSheet onClose={() => setEditing(false)}>{panel}</PrioritiesSheet> : null}
 
-      <section aria-label="Ranked places" className="min-w-0 max-w-[820px] space-y-4">
+      <section aria-label="Ranked places" className="pane-scroll min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:py-5 lg:pr-2">
+       <div className="max-w-[820px] space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="label text-stone-700">Best fit for you · {ranking.ranked.length}</h2>
@@ -174,6 +178,8 @@ export function RankView({ listings, board, photos, checked, checkDisabled, onTo
             {closedCount} washed-out {closedCount === 1 ? "place isn't" : "places aren't"} ranked (Passed or Unavailable).
           </p>
         ) : null}
+        <FinePrint note={footNote} className="hidden pt-6 lg:flex" />
+       </div>
       </section>
     </div>
   );
@@ -236,21 +242,26 @@ function RankCard({
   const score = formatScore(r);
 
   return (
-    <article aria-label={`#${r.rank} ${name}, ${score} out of 10`} className="rounded-[26px] bg-shell p-3 shadow-sm sm:p-4">
-      <div className="flex items-start gap-3">
-        <span aria-hidden="true" className="w-6 shrink-0 pt-1 text-center font-display text-xl text-tar">
-          {r.rank}
-        </span>
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[18px] bg-shell-deep sm:h-[72px] sm:w-24">
+    <article aria-label={`#${r.rank} ${name}, ${score} out of 10`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="relative h-[92px] w-[120px] shrink-0 sm:h-[124px] sm:w-[176px]">
           {r.place.lat === null ? (
-            <FenceFallback />
+            <div className="h-full w-full overflow-hidden rounded-[20px] bg-shell-deep">
+              <FenceFallback />
+            </div>
           ) : (
-            <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="row" enabled={photos} attribution="tiny" className="h-full w-full" />
+            <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full rounded-[20px]" />
           )}
+          <span
+            aria-hidden="true"
+            className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-shell px-2 font-display text-[15px] leading-none text-tar shadow-sm"
+          >
+            {r.rank}
+          </span>
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex items-start gap-2">
-            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-0.5 text-left font-display text-[17px] leading-tight text-tar hover:underline">
+            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-0.5 text-left font-display text-[17px] leading-tight text-tar hover:underline sm:text-[19px]">
               {name}
             </button>
             <div className="shrink-0 text-right">
@@ -258,7 +269,7 @@ function RankCard({
                 <span className="font-display text-[22px] leading-none text-tar">{score}</span>
                 <span className="text-[13px] text-stone-700">/10</span>
               </p>
-              <span aria-hidden="true" className="mt-1.5 block h-1.5 w-16 overflow-hidden rounded-full bg-shell-deep">
+              <span aria-hidden="true" className="mt-1.5 block h-1.5 w-14 overflow-hidden rounded-full bg-shell-deep">
                 <span className="block h-full rounded-full bg-sea-700" style={{ width: `${r.score}%` }} />
               </span>
             </div>
@@ -285,7 +296,7 @@ function RankCard({
               ))}
             </p>
           ) : null}
-          <div className="mt-2 flex items-center gap-4">
+          <div className="mt-1 flex items-center gap-4">
             <button
               type="button"
               aria-expanded={why}
@@ -310,7 +321,7 @@ function RankCard({
         </div>
       </div>
       {why ? (
-        <div id={whyId} className="mt-2 space-y-2 rounded-[20px] bg-shell-mid p-3 sm:ml-9">
+        <div id={whyId} className="mt-2.5 space-y-2 rounded-[20px] bg-shell-mid p-3">
           <Breakdown r={r} />
           {r.vsAbove ? <p className="pt-1 text-[13px] leading-snug text-stone-800">{r.vsAbove}</p> : null}
         </div>
@@ -376,12 +387,12 @@ function HeldSection({
         {items.map((h) => {
           const name = streetHeadline(h.place.address, h.place.title);
           return (
-            <li key={h.place.id} className="flex items-center gap-3 rounded-[18px] bg-shell px-3 py-2.5">
-              <div className={cn("h-11 w-11 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
+            <li key={h.place.id} className="flex items-center gap-3 rounded-[20px] bg-shell p-2 pr-3">
+              <div className={cn("h-14 w-20 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
                 {h.place.lat === null ? (
                   <FenceFallback />
                 ) : (
-                  <StreetPhoto listingId={h.place.id} lat={h.place.lat} lng={h.place.lng} label={name} size="row" enabled={photos} attribution="tiny" className="h-full w-full" />
+                  <StreetPhoto listingId={h.place.id} lat={h.place.lat} lng={h.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -406,6 +417,15 @@ function HeldSection({
 // ---------------------------------------------------------------------------
 // Priorities
 
+/** Shorter names for the rows; the full names stay as the controls' accessible labels. */
+const FACTOR_SHORT: Record<Factor, string> = {
+  price: "Price",
+  bike: "Bike time to campus",
+  bedrooms: "Bedrooms",
+  bathrooms: "Bathrooms",
+  amenities: "Parking & laundry"
+};
+
 function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Priorities; onChange: (p: Priorities) => void; onReset: () => void }) {
   const id = useId();
   const [maxText, setMaxText] = useState(centsToDollarsInput(p.maxRentPerPersonCents));
@@ -414,125 +434,181 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
     setLastMax(p.maxRentPerPersonCents);
     setMaxText(centsToDollarsInput(p.maxRentPerPersonCents));
   }
-  const field = "mt-1 h-11 w-full rounded-full border border-divider bg-shell-light px-4 text-sm text-tar";
+  const field = "mt-1.5 h-11 w-full rounded-full border border-divider bg-shell-light px-4 text-sm text-tar";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-baseline justify-between">
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3 px-1">
+        <div>
           <h2 className="font-display text-xl text-tar">Your priorities</h2>
-          <button type="button" onClick={onReset} className="text-[13px] font-semibold text-sea-900 underline underline-offset-4">
-            Reset
-          </button>
+          <p className="mt-0.5 text-[13px] text-stone-700">Just yours, saved on this device.</p>
         </div>
-        <p className="mt-1 text-[13px] text-stone-700">Saved on this device. Your roommates set their own.</p>
+        <button type="button" onClick={onReset} className="mt-1 text-[13px] font-semibold text-sea-900 underline underline-offset-4">
+          Reset
+        </button>
       </div>
 
-      <fieldset className="space-y-3">
-        <legend className="label mb-2 text-stone-700">Must have</legend>
-        <div>
-          <label htmlFor={`${id}-max`} className="text-[13px] font-semibold text-tar">
-            Max rent per person
-          </label>
-          <input
-            id={`${id}-max`}
-            inputMode="numeric"
-            placeholder="No max"
-            value={maxText}
-            onChange={(e) => {
-              setMaxText(e.target.value);
-              const cents = e.target.value.trim() === "" ? null : parseDollars(e.target.value);
-              if (cents === null || Number.isFinite(cents)) {
-                setLastMax(cents);
-                onChange({ ...p, maxRentPerPersonCents: cents });
-              }
-            }}
-            className={field}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
+      <Group id={`${id}-must`} title="Must-haves" hint="Places that miss one are set aside.">
+        <div className="space-y-4">
           <div>
-            <label htmlFor={`${id}-beds`} className="text-[13px] font-semibold text-tar">
-              Bedrooms
+            <label htmlFor={`${id}-max`} className="text-[13px] font-semibold text-tar">
+              Max rent per person
             </label>
-            <select
-              id={`${id}-beds`}
-              value={p.minBeds ?? ""}
-              onChange={(e) => onChange({ ...p, minBeds: e.target.value ? Number(e.target.value) : null })}
-              className={cn(field, "px-3")}
-            >
-              <option value="">Any</option>
-              {[1, 2, 3, 4, 5, 6].map((n) => (
-                <option key={n} value={n}>
-                  {n}+
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 mt-[3px] -translate-y-1/2 text-sm text-stone-700">
+                $
+              </span>
+              <input
+                id={`${id}-max`}
+                inputMode="numeric"
+                placeholder="No max"
+                value={maxText}
+                onChange={(e) => {
+                  setMaxText(e.target.value);
+                  const cents = e.target.value.trim() === "" ? null : parseDollars(e.target.value);
+                  if (cents === null || Number.isFinite(cents)) {
+                    setLastMax(cents);
+                    onChange({ ...p, maxRentPerPersonCents: cents });
+                  }
+                }}
+                className={cn(field, "pl-8")}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label htmlFor={`${id}-beds`} className="text-[13px] font-semibold text-tar">
+                Bedrooms
+              </label>
+              <select
+                id={`${id}-beds`}
+                value={p.minBeds ?? ""}
+                onChange={(e) => onChange({ ...p, minBeds: e.target.value ? Number(e.target.value) : null })}
+                className={cn(field, "px-3")}
+              >
+                <option value="">Any</option>
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={n}>
+                    {n}+
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor={`${id}-move`} className="text-[13px] font-semibold text-tar">
+                Move in by
+              </label>
+              <input
+                id={`${id}-move`}
+                type="date"
+                value={p.moveInBy ?? ""}
+                onChange={(e) => onChange({ ...p, moveInBy: e.target.value || null })}
+                className={cn(field, "px-3")}
+              />
+            </div>
           </div>
           <div>
-            <label htmlFor={`${id}-move`} className="text-[13px] font-semibold text-tar">
-              Move in by
-            </label>
-            <input
-              id={`${id}-move`}
-              type="date"
-              value={p.moveInBy ?? ""}
-              onChange={(e) => onChange({ ...p, moveInBy: e.target.value || null })}
-              className={cn(field, "px-3")}
-            />
+            <p className="text-[13px] font-semibold text-tar">Also need</p>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              <Chip label="Laundry" title="In unit or on site" checked={p.needsLaundry} onChange={(v) => onChange({ ...p, needsLaundry: v })} />
+              <Chip label="Off-street parking" checked={p.needsParking} onChange={(v) => onChange({ ...p, needsParking: v })} />
+            </div>
           </div>
         </div>
-        <Toggle label="Laundry in unit or on site" checked={p.needsLaundry} onChange={(v) => onChange({ ...p, needsLaundry: v })} />
-        <Toggle label="Off-street parking" checked={p.needsParking} onChange={(v) => onChange({ ...p, needsParking: v })} />
-      </fieldset>
+      </Group>
 
-      <fieldset>
-        <legend className="label mb-3 text-stone-700">What matters</legend>
-        <div className="space-y-3.5">
+      <Group id={`${id}-weights`} title="What matters most" hint="More bars, more weight in the ranking.">
+        <div className="-my-1 divide-y divide-divider">
           {FACTORS.map((f) => (
-            <LevelControl key={f} label={FACTOR_LABELS[f]} value={p.weights[f]} onChange={(v) => onChange({ ...p, weights: { ...p.weights, [f]: v } })} />
+            <LevelControl
+              key={f}
+              label={FACTOR_LABELS[f]}
+              short={FACTOR_SHORT[f]}
+              value={p.weights[f]}
+              onChange={(v) => onChange({ ...p, weights: { ...p.weights, [f]: v } })}
+            />
           ))}
         </div>
-      </fieldset>
+      </Group>
     </div>
   );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Group({ id, title, hint, children }: { id: string; title: string; hint: string; children: React.ReactNode }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-tar">
-      <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span
-        aria-hidden="true"
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-[1.5px] border-stone-600 peer-checked:border-sea-800 peer-checked:bg-sea-800 peer-focus-visible:ring-2 peer-focus-visible:ring-focus"
-      >
-        {checked ? <Check className="h-3.5 w-3.5 text-shell" strokeWidth={3.5} /> : null}
-      </span>
+    <section aria-labelledby={id} className="rounded-[24px] bg-shell p-4">
+      <h3 id={id} className="font-display text-[16px] text-tar">
+        {title}
+      </h3>
+      <p className="mb-3.5 mt-0.5 text-xs text-stone-700">{hint}</p>
+      {children}
+    </section>
+  );
+}
+
+/** An on/off pill for a must-have. */
+function Chip({ label, title, checked, onChange }: { label: string; title?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const Icon = checked ? Check : Plus;
+  return (
+    <label
+      title={title}
+      className={cn(
+        "relative inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-[13px] transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus",
+        checked ? "border-sea-800 bg-sea-800 font-semibold text-shell" : "border-divider bg-shell-light text-tar hover:bg-shell-mid"
+      )}
+    >
+      <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <Icon className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
       {label}
     </label>
   );
 }
 
-function LevelControl({ label, value, onChange }: { label: string; value: Level; onChange: (v: Level) => void }) {
+/**
+ * How much one factor counts: "Don't care", then one to three bars, like a
+ * signal meter. Real radio buttons underneath, so arrow keys move between levels.
+ */
+function LevelControl({ label, short, value, onChange }: { label: string; short: string; value: Level; onChange: (v: Level) => void }) {
+  const name = useId();
   return (
-    <div role="radiogroup" aria-label={label}>
-      <p className="mb-1 text-[13px] font-semibold text-tar">{label}</p>
-      <div className="grid grid-cols-4 gap-0.5 rounded-full border border-divider bg-shell-light p-0.5">
-        {LEVEL_LABELS.map((l, i) => (
-          <button
-            key={l}
-            type="button"
-            role="radio"
-            aria-checked={value === i}
-            onClick={() => onChange(i as Level)}
-            className={cn(
-              "h-9 rounded-full px-1 text-xs transition",
-              value === i ? "bg-sea-800 font-semibold text-shell" : "text-tar hover:bg-shell-mid"
-            )}
-          >
-            {l}
-          </button>
-        ))}
+    <div role="radiogroup" aria-label={label} className="flex items-center gap-3 py-2.5">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold leading-tight text-tar">{short}</p>
+        <p className={cn("mt-0.5 text-xs", value === 0 ? "text-stone-600" : "font-semibold text-sea-900")}>{LEVEL_LABELS[value]}</p>
+      </div>
+      <div className="flex items-end">
+        {LEVEL_LABELS.map((l, i) => {
+          const on = i === 0 ? value === 0 : value >= i;
+          return (
+            <span key={l} className={cn("relative flex h-10 items-end justify-center pb-2.5", i === 0 ? "mr-1 w-9" : "w-7")} title={l}>
+              <input
+                type="radio"
+                name={name}
+                aria-label={l}
+                checked={value === i}
+                onChange={() => onChange(i as Level)}
+                className="peer absolute inset-0 z-10 cursor-pointer appearance-none rounded-full opacity-0"
+              />
+              {i === 0 ? (
+                <Ban
+                  aria-hidden="true"
+                  className={cn("h-[18px] w-[18px] transition-colors", on ? "text-stone-800" : "text-stone-400 peer-hover:text-stone-600")}
+                  strokeWidth={2.5}
+                />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "block w-2 rounded-[3px] transition-colors",
+                    i === 1 ? "h-2" : i === 2 ? "h-3.5" : "h-5",
+                    on ? "bg-sea-700" : "bg-stone-300 peer-hover:bg-stone-400"
+                  )}
+                />
+              )}
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0.5 rounded-full peer-focus-visible:ring-2 peer-focus-visible:ring-focus" />
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -552,10 +628,10 @@ function PrioritiesSheet({ onClose, children }: { onClose: () => void; children:
         onClose();
       }}
       aria-label="Your priorities"
-      className="mb-0 mt-auto max-h-[88dvh] w-full max-w-none overflow-y-auto rounded-t-[32px] bg-shell p-0 text-tar backdrop:bg-tar/40 lg:hidden"
+      className="mb-0 mt-auto max-h-[88dvh] w-full max-w-none overflow-y-auto rounded-t-[32px] bg-shell-deep p-0 text-tar backdrop:bg-tar/40 lg:hidden"
     >
       <div className="px-5 pt-5">{children}</div>
-      <div className="sticky bottom-0 bg-shell px-5 pb-6 pt-3">
+      <div className="sticky bottom-0 bg-shell-deep px-5 pb-6 pt-3">
         <Button className="w-full" onClick={() => ref.current?.close()}>
           Show ranking
         </Button>
