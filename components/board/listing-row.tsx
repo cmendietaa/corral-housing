@@ -94,7 +94,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
       }}
       className={cn(
         "grid cursor-pointer scroll-mt-28 items-center gap-3 rounded-[24px] p-2.5 transition-colors",
-        "grid-cols-[52px_minmax(0,1fr)_auto] lg:grid-cols-[24px_66px_minmax(0,1fr)_auto] lg:pr-3.5",
+        "grid-cols-[84px_minmax(0,1fr)_auto] lg:grid-cols-[24px_112px_minmax(0,1fr)_auto] lg:pr-3.5",
         selected ? "bg-sea-100" : "hover:bg-shell-mid",
         closed && "opacity-55"
       )}
@@ -121,7 +121,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
 
       {/* Col 2: Street View board. Washed-out places skip the photo. */}
       {closed ? (
-        <div className="h-[76px] w-[56px] lg:h-24 lg:w-[72px]" aria-hidden="true" />
+        <div className="h-16 w-[84px] lg:h-[84px] lg:w-[112px]" aria-hidden="true" />
       ) : (
         <StreetPhoto
           listingId={listing.id}
@@ -131,7 +131,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           size="row"
           enabled={photos}
           attribution="tiny"
-          className="h-[76px] w-[56px] rounded-[14px] lg:h-24 lg:w-[72px] lg:rounded-[16px]"
+          className="h-16 w-[84px] rounded-[14px] lg:h-[84px] lg:w-[112px] lg:rounded-[16px]"
         />
       )}
 
