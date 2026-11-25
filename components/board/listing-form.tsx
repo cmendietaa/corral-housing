@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ImagePlus, Loader2, Sparkles, X } from "lucide-react";
+import { ImagePlus, Link2, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { streetHeadline } from "@/lib/address";
@@ -19,68 +19,42 @@ import {
 } from "@/lib/listing";
 import type { ParsedListing } from "@/lib/parse-listing";
 import { shrinkScreenshot } from "@/lib/photo-shrink";
+import { MAX_PHOTOS_PER_PLACE } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
+import { fillEmpty, parsedToDraft, toDraft, validateDraft, type Draft, type DraftErrors } from "./place-draft";
 
-type Draft = {
-  url: string;
-  title: string;
-  address: string;
-  rent: string;
-  beds: string;
-  baths: string;
-  leaseStart: string;
-  leaseEnd: string;
-  parking: string;
-  laundry: string;
-  notes: string;
-};
-
-function toDraft(l: ListingInput): Draft {
-  return {
-    url: l.url ?? "",
-    title: l.title,
-    address: l.address ?? "",
-    rent: centsToDollarsInput(l.rentCents),
-    beds: l.beds === null ? "" : String(l.beds),
-    baths: l.baths === null ? "" : String(l.baths),
-    leaseStart: l.leaseStart ?? "",
-    leaseEnd: l.leaseEnd ?? "",
-    parking: l.parking ?? "",
-    laundry: l.laundry ?? "",
-    notes: l.notes ?? ""
-  };
-}
-
-function num(value: string): number | null {
-  const v = value.trim();
-  if (v === "") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : Number.NaN;
-}
-
-const blank = (s: string) => (s.trim() === "" ? null : s.trim());
-
-type Errors = Partial<Record<keyof Draft, string>>;
+type Errors = DraftErrors;
 
 type Props = {
   open: boolean;
   /** Null when adding a new place. */
   listing: Listing | null;
   onClose: () => void;
-  onSubmit: (input: ListingInput) => Promise<void>;
+  /** `photos` are images picked in the form (add mode only), uploaded once the place exists. */
+  onSubmit: (input: ListingInput, photos: File[]) => Promise<void>;
   onDelete?: (listing: Listing) => Promise<void>;
   /** Demo only: a fictional listing screenshot people can try autofill with. */
   sampleScreenshot?: string;
+  /** Whether this board stores photos (shows the Photos section when adding). */
+  canAddPhotos?: boolean;
 };
+
+/** A photo picked while adding a place, previewed from memory until it uploads. */
+type Pic = { id: string; file: File; url: string };
 
 /** A screenshot waiting to be read: shrunk in the browser, kept only in memory. */
 type Shot = { id: string; blob: Blob; url: string };
 
-export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot }: Props) {
+export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot, canAddPhotos = false }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const id = useId();
   const base = listing ?? emptyListingInput();
   const [draft, setDraft] = useState<Draft>(() => toDraft(base));
+  // The latest draft, for reads that finish after the person kept typing.
+  const latestDraft = useRef(draft);
+  useEffect(() => {
+    latestDraft.current = draft;
+  });
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -93,18 +67,52 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
     error: false
   });
   const [filled, setFilled] = useState<Set<keyof Draft>>(new Set());
+  const [linkRead, setLinkRead] = useState<{ busy: boolean; message: string | null; tone: "info" | "fallback" | "error" }>({
+    busy: false,
+    message: null,
+    tone: "info"
+  });
   const [shots, setShots] = useState<Shot[]>([]);
   const [preparing, setPreparing] = useState(0);
   const [viewing, setViewing] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const shotsRef = useRef<Shot[]>([]);
+  const [pics, setPics] = useState<Pic[]>([]);
+  const [picNote, setPicNote] = useState<string | null>(null);
+  const [picDragging, setPicDragging] = useState(false);
+  const picRef = useRef<HTMLInputElement>(null);
+  const picsRef = useRef<Pic[]>([]);
 
-  // Release the screenshots' memory when the form closes.
+  // Release the screenshots' and photos' memory when the form closes.
   useEffect(() => {
     shotsRef.current = shots;
-  }, [shots]);
-  useEffect(() => () => shotsRef.current.forEach((s) => URL.revokeObjectURL(s.url)), []);
+    picsRef.current = pics;
+  }, [shots, pics]);
+  useEffect(
+    () => () => {
+      shotsRef.current.forEach((s) => URL.revokeObjectURL(s.url));
+      picsRef.current.forEach((p) => URL.revokeObjectURL(p.url));
+    },
+    []
+  );
+
+  function addPics(files: File[]) {
+    const images = files.filter((f) => !f.type || f.type.startsWith("image/"));
+    if (images.length === 0) return setPicNote("That isn't an image. Add a photo (JPEG, PNG or HEIC).");
+    const room = Math.max(0, MAX_PHOTOS_PER_PLACE - pics.length);
+    const take = images.slice(0, room);
+    setPicNote(take.length < images.length ? `A place can have up to ${MAX_PHOTOS_PER_PLACE} photos, so the extra ones weren't added.` : null);
+    setPics((list) => [...list, ...take.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }))]);
+  }
+
+  function removePic(id: string) {
+    setPics((list) => {
+      const gone = list.find((p) => p.id === id);
+      if (gone) URL.revokeObjectURL(gone.url);
+      return list.filter((p) => p.id !== id);
+    });
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -188,31 +196,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
         setAutofill({ busy: false, message: body.error ?? "Couldn't read that text. Fill the fields in below.", error: true });
         return;
       }
-      const f = body.fields;
-      const incoming: Partial<Draft> = {
-        url: f.url ?? undefined,
-        title: f.title ?? undefined,
-        address: f.address ?? undefined,
-        rent: f.rentCents === null ? undefined : centsToDollarsInput(f.rentCents),
-        beds: f.beds === null ? undefined : String(f.beds),
-        baths: f.baths === null ? undefined : String(f.baths),
-        leaseStart: f.leaseStart ?? undefined,
-        leaseEnd: f.leaseEnd ?? undefined,
-        parking: f.parking ?? undefined,
-        laundry: f.laundry ?? undefined
-      };
-      // Computed here (not inside a state updater) so the count below is right.
-      const changed = new Set<keyof Draft>();
-      const next = { ...draft };
-      for (const [k, v] of Object.entries(incoming) as [keyof Draft, string | undefined][]) {
-        // Never overwrite something the person already typed.
-        if (v !== undefined && v !== "" && next[k].trim() === "") {
-          next[k] = v;
-          changed.add(k);
-        }
-      }
-      setDraft(next);
-      setFilled(changed);
+      const changed = fillFrom(body.fields);
       const count = `${changed.size} ${changed.size === 1 ? "field" : "fields"}`;
       const fromShots = withShots && body.source === "ai";
       const message =
@@ -229,49 +213,61 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
     }
   }
 
+  /** Fill only the fields that are still empty; returns which ones changed. */
+  function fillFrom(f: ParsedListing): Set<keyof Draft> {
+    const { next, changed } = fillEmpty(latestDraft.current, parsedToDraft(f));
+    latestDraft.current = next;
+    setDraft(next);
+    setFilled((prev) => new Set([...prev, ...changed]));
+    return changed;
+  }
+
+  /**
+   * Read the listing link's page and fill what it says. Big listing sites
+   * whose terms forbid apps reading them are never fetched; for those (and any
+   * site that blocks it) the person is pointed to paste or a screenshot.
+   */
+  async function importLink() {
+    setLinkRead({ busy: true, message: null, tone: "info" });
+    try {
+      const res = await fetch("/api/import-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: draft.url })
+      });
+      const body = (await res.json()) as { fields?: ParsedListing; source?: "ai" | "parser"; note?: string; site?: string; fallback?: string; message?: string; error?: string };
+      if (body.fallback) {
+        setPasteOpen(true);
+        setLinkRead({ busy: false, message: body.message ?? "This site can't be read. Paste the text or add a screenshot.", tone: "fallback" });
+        return;
+      }
+      if (!res.ok || !body.fields) {
+        setLinkRead({ busy: false, message: body.error ?? "Couldn't read that page. Fill the fields in below.", tone: "error" });
+        return;
+      }
+      const changed = fillFrom(body.fields);
+      const count = `${changed.size} ${changed.size === 1 ? "field" : "fields"}`;
+      const message =
+        changed.size === 0
+          ? "Didn't find listing details on that page. Paste the text or add a screenshot instead."
+          : `Filled ${count} from ${body.site ?? "the page"}. It can be wrong, so check each one against the listing before saving.`;
+      setLinkRead({ busy: false, message: body.note ? `${message} ${body.note}` : message, tone: changed.size ? "info" : "fallback" });
+      if (!changed.size) setPasteOpen(true);
+    } catch {
+      setLinkRead({ busy: false, message: "Couldn't reach the server. Fill the fields in below.", tone: "error" });
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-    const rentCents = parseDollars(draft.rent);
-    const beds = num(draft.beds);
-    const baths = num(draft.baths);
-    const next: Errors = {};
-    if (Number.isNaN(rentCents)) next.rent = "Enter a monthly amount like 5400";
-    if (Number.isNaN(beds)) next.beds = "Enter a number";
-    if (Number.isNaN(baths)) next.baths = "Enter a number";
-
-    const candidate: ListingInput = {
-      ...base,
-      url: blank(draft.url),
-      title: draft.title.trim(),
-      address: blank(draft.address),
-      rentCents: Number.isNaN(rentCents) ? null : rentCents,
-      beds: Number.isNaN(beds) ? null : beds,
-      baths: Number.isNaN(baths) ? null : baths,
-      leaseStart: blank(draft.leaseStart),
-      leaseEnd: blank(draft.leaseEnd),
-      parking: (blank(draft.parking) as ListingInput["parking"]) ?? null,
-      laundry: (blank(draft.laundry) as ListingInput["laundry"]) ?? null,
-      notes: blank(draft.notes)
-    };
-
-    const parsed = listingInputSchema.safeParse(candidate);
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0];
-        const field = key === "rentCents" ? "rent" : (key as keyof Draft);
-        if (field in draft && !next[field]) next[field] = issue.message;
-      }
-    }
-    if (candidate.leaseStart && candidate.leaseEnd && candidate.leaseEnd < candidate.leaseStart) {
-      next.leaseEnd = "Lease end is before the start";
-    }
+    const { input, errors: next } = validateDraft(draft, base);
     setErrors(next);
-    if (Object.keys(next).length > 0 || !parsed.success) return;
+    if (!input) return;
 
     setSaving(true);
     try {
-      await onSubmit(parsed.data);
+      await onSubmit(input, pics.map((p) => p.file));
       onClose();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Couldn't save this place. Try again.");
@@ -369,7 +365,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
               <div className="mt-3 space-y-2.5">
                 <label htmlFor={`${id}-paste`} className="block text-sm text-stone-800">
                   Paste the listing&apos;s text or add screenshots of it (a post, a chat, a listing page). Corral fills in what
-                  it can; you check it before saving. Links aren&apos;t opened and screenshots aren&apos;t saved.
+                  it can; you check it before saving. Screenshots aren&apos;t saved. Have a link? Use Fill from link below.
                 </label>
                 <textarea
                   id={`${id}-paste`}
@@ -473,7 +469,32 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
 
           <Section title="The place">
             <Field label="Listing link" htmlFor={`${id}-url`} filled={filled.has("url")} error={errors.url} errorId={`${id}-url-error`} hint="if there is one" wide>
-              <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" />
+              <div className="flex gap-2">
+                <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" className="min-w-0 flex-1" />
+                {listing ? null : (
+                  <Button
+                    type="button"
+                    variant="sea"
+                    size="md"
+                    className="shrink-0 max-sm:px-4"
+                    disabled={linkRead.busy || !/^https?:\/\/\S+\.\S+/i.test(draft.url.trim())}
+                    onClick={() => void importLink()}
+                  >
+                    <Link2 className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
+                    {linkRead.busy ? "Reading…" : "Fill from link"}
+                  </Button>
+                )}
+              </div>
+              <p
+                aria-live="polite"
+                className={cn(
+                  "text-sm empty:hidden",
+                  linkRead.message && "mt-2 rounded-[16px] px-3.5 py-2.5",
+                  linkRead.tone === "error" ? "bg-sunset-100 font-semibold text-danger" : linkRead.tone === "fallback" ? "bg-sunset-100 text-tar" : "bg-sea-100 text-sea-900"
+                )}
+              >
+                {linkRead.message}
+              </p>
             </Field>
             <Field
               label="Name"
@@ -556,6 +577,83 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
             </Field>
           </Section>
 
+          {!listing && canAddPhotos ? (
+            <fieldset
+              className={cn("min-w-0 rounded-[22px]", picDragging && "outline-2 outline-offset-4 outline-sea-700 outline-dashed")}
+              onDragOver={(e) => {
+                if (!e.dataTransfer.types.includes("Files")) return;
+                e.preventDefault();
+                setPicDragging(true);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPicDragging(false);
+              }}
+              onDrop={(e) => {
+                if (!e.dataTransfer.files.length) return;
+                e.preventDefault();
+                setPicDragging(false);
+                addPics([...e.dataTransfer.files]);
+              }}
+            >
+              <legend className="font-display mb-3 w-full border-b border-line pb-1.5 text-base font-bold text-ink">Photos</legend>
+              <p className="mb-3 text-sm text-muted">
+                Photos from your tour, or ones you saved from the listing. Everyone on the board sees them. The first one
+                leads; you can change that later.
+              </p>
+              <ul aria-label="Photos to add" className="flex flex-wrap items-center gap-2.5">
+                {pics.map((p, i) => (
+                  <li key={p.id} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.url} alt={`Photo ${i + 1} to add`} className="h-16 w-16 rounded-2xl border border-divider object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePic(p.id)}
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-tar text-shell shadow-sm"
+                    >
+                      <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+                {pics.length < MAX_PHOTOS_PER_PLACE ? (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => picRef.current?.click()}
+                      className="flex h-11 items-center gap-1.5 rounded-full border-[1.5px] border-dashed border-stone-400 px-3.5 text-sm font-semibold text-stone-700 hover:border-tar hover:text-tar"
+                    >
+                      <ImagePlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                      {pics.length ? "Add more" : "Add photos"}
+                    </button>
+                  </li>
+                ) : null}
+                {pics.length ? (
+                  <li className="text-xs text-stone-700">
+                    {pics.length} of {MAX_PHOTOS_PER_PLACE}
+                  </li>
+                ) : null}
+              </ul>
+              {picNote ? (
+                <p aria-live="polite" className="mt-2 text-xs font-semibold text-danger">
+                  {picNote}
+                </p>
+              ) : null}
+              <input
+                ref={picRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                aria-label="Add photos of this place"
+                onChange={(e) => {
+                  const files = [...(e.target.files ?? [])];
+                  e.target.value = "";
+                  if (files.length) addPics(files);
+                }}
+              />
+            </fieldset>
+          ) : null}
+
           {formError ? (
             <p role="alert" className="rounded-sm bg-coral-soft px-3 py-2 text-sm text-danger">
               {formError}
@@ -591,7 +689,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
 }
 
 /** A screenshot at full size, so the person can check the filled-in fields against it. */
-function ScreenshotViewer({ url, index, count, onClose }: { url: string; index: number; count: number; onClose: () => void }) {
+export function ScreenshotViewer({ url, index, count, onClose }: { url: string; index: number; count: number; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;

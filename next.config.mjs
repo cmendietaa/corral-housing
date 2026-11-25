@@ -14,7 +14,14 @@ const securityHeaders = [
 
 const nextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Development only: Safari keeps reusing an old copy of the dev stylesheet (same address,
+      // new contents), so new styles don't show up. Tell browsers not to store it at all.
+      ...(process.env.NODE_ENV === "development"
+        ? [{ source: "/_next/static/:path*", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] }]
+        : [])
+    ];
   }
 };
 

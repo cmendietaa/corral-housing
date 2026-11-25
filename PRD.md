@@ -20,7 +20,7 @@ A private shared board for existing roommate groups looking for off-campus lease
 |---|---|
 | Private group workspace | In separate browser sessions, a creator makes a board, an invited roommate joins and can edit, and a signed-in outsider cannot read or modify the board even with its URL. Invalid or expired invitations show a helpful error. |
 | Quick capture | A member can add a place with just a URL and address or title, then reopen and edit it. Unknown rent and bedrooms render as Unknown. URLs open the original source and accept only HTTP(S). |
-| Autofill (stretch) | Pasting listing text fills rent, beds, baths, lease dates and address for review before saving. Without an AI key, a deterministic parser fills what it can. Listing URLs are never scraped. |
+| Autofill (stretch) | Pasting listing text fills rent, beds, baths, lease dates and address for review before saving. Without an AI key, a deterministic parser fills what it can. "Fill from link" reads the one page a member pasted, once, when they ask, and fills facts only for review. It never fetches sites whose terms forbid apps reading their listings (Zillow, Apartments.com, Craigslist and similar), respects robots.txt, stops at bot checks, and stores none of the page; those sites fall back to paste or screenshot. |
 | Map | The map opens centered on IV and Goleta. Members can drop or correct a pin. Selecting a pin selects the corresponding listing, and selecting a mapped listing highlights its pin. Missing coordinates or map failure do not block the list or comparison. |
 | Comparison | Members select two or three places and compare the same rows in a consistent order. Unknown rent does not sort as zero or appear to meet a budget. The comparison is readable on a phone. |
 | Progress | Shared status supports Considering, Contacted, Tour scheduled, Applied, Passed and Unavailable. A separate next action has a description and optional assignee and due date. Changes persist after reload. The shortlist star is independent of status. |
@@ -29,7 +29,7 @@ A private shared board for existing roommate groups looking for off-campus lease
 Optional after the core works: a status filter, and an equal-share rent estimate when group size and rent are known.
 
 ## Scope boundaries
-V1 covers manual capture of listing links and facts, private board sharing, mapping, comparisons and follow-through. Deferred: public listing aggregation, scraping, automatic imports from URLs, dorms, roommate matching, chat, voting, rent negotiations, in-app applications, notifications and real-time updates.
+V1 covers manual capture of listing links and facts, private board sharing, mapping, comparisons and follow-through. Deferred: public listing aggregation, crawling or scraping listing sites, background or bulk imports from URLs, dorms, roommate matching, chat, voting, rent negotiations, in-app applications, notifications and real-time updates.
 
 ## Validation
 Hallway-test a rough board with 1–2 friends on day 7, using a few real links. Watch which facts they look for, which fields they leave blank, and where they would go back to the group chat. Revise the comparison rows and capture form once, then freeze V1.

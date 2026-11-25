@@ -29,6 +29,10 @@ Deployed project + public repo for the ACM.Industry 2027 application, due around
 - **Scope:** the demo plus private boards (auth, invites, RLS).
 - **Extras:** AI listing autofill only. Distance to campus, dark mode and an activity feed are out.
 
+## Design identity
+
+Every screen uses Corral's motifs (fence boards, the setting sun, the stripe, the wave edge, the lasso, rent tags) instead of generic UI, keeps small print to what matters, and treats loading and saving as moments. The full rules and where the shared pieces live are in README → Design identity. New features are designed against them before they're built.
+
 ## Stack
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (`@supabase/ssr`, Google auth, Postgres, RLS) · MapLibre GL v5 + OpenFreeMap vector tiles (no API key), restyled to the Coastal IV palette · Zod · Vitest · Playwright · Vercel.
 

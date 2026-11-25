@@ -22,7 +22,7 @@ type Props = {
   onToggleCheck: () => void;
   /** Select on desktop, open the place sheet on phones (the board decides). */
   onActivate: () => void;
-  onPatch: (patch: ListingPatch) => Promise<void>;
+  onPatch: (patch: ListingPatch) => Promise<boolean | void>;
   photos: boolean;
 };
 
@@ -121,7 +121,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
 
       {/* Col 2: Street View board. Washed-out places skip the photo. */}
       {closed ? (
-        <div className="h-[76px] w-[52px] lg:h-24 lg:w-[66px]" aria-hidden="true" />
+        <div className="h-[76px] w-[56px] lg:h-24 lg:w-[72px]" aria-hidden="true" />
       ) : (
         <StreetPhoto
           listingId={listing.id}
@@ -131,7 +131,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           size="row"
           enabled={photos}
           attribution="tiny"
-          className="h-[76px] w-[52px] rounded-full lg:h-24 lg:w-[66px]"
+          className="h-[76px] w-[56px] rounded-b-[12px] rounded-t-[28px] lg:h-24 lg:w-[72px] lg:rounded-b-[14px] lg:rounded-t-[36px]"
         />
       )}
 

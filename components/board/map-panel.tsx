@@ -29,7 +29,7 @@ const isMapped = (l: Listing): l is Mapped => l.lat !== null && l.lng !== null;
 
 /**
  * The part of the map that overlays don't cover: on desktop the place card
- * (bottom-left, 330px) and the 200px top-left curve; on phones the mini card
+ * (bottom-left, 330px) and the controls along the top; on phones the mini card
  * and the List / Map switch at the bottom.
  */
 function overlayPadding(el: HTMLElement) {
@@ -40,7 +40,7 @@ function overlayPadding(el: HTMLElement) {
   const hidden = wide && frame ? Math.max(0, el.getBoundingClientRect().bottom - frame.getBoundingClientRect().bottom) : 0;
   return wide
     ? // The card ends 348px in (18 + 330); add half a price tag so tags clear it.
-      { top: 110, bottom: 90 + hidden, left: Math.min(400, el.clientWidth - 220), right: 90 }
+      { top: 90, bottom: 90 + hidden, left: Math.min(400, el.clientWidth - 220), right: 90 }
     : { top: 150, bottom: 230, left: 55, right: 55 };
 }
 
@@ -102,12 +102,14 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
       touchPitch: false
     });
     map.touchZoomRotate.disableRotation();
-    // Top-right, because the panel has a big 200px curve at its top-left corner.
+    // Top-right, next to "Show all places"; the place card sits bottom-left.
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     // The OpenStreetMap credit must stay visible. Phones: top-left (the bottom
     // belongs to the place card and the switch). Desktop: the board draws it on
-    // the map's frame, because the map's own bottom edge can be clipped.
-    if (!window.matchMedia("(min-width: 1024px)").matches) map.addControl(new AttributionControl({ compact: false }), "top-left");
+    // the map's frame, because the map's own bottom edge can be clipped. Always
+    // added and hidden on desktop by CSS (`[data-map-credit]` in globals.css), so
+    // resizing the window never shows both credits or neither.
+    map.addControl(new AttributionControl({ compact: false }), "top-left");
     map.on("style.load", () => applyCoastalStyle(map));
     map.on("load", () => setReady(true));
     map.on("movestart", (e) => {
@@ -227,7 +229,7 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} data-map-credit className="h-full w-full" />
 
       {placing ? (
         <p className="pointer-events-none absolute left-1/2 top-4 z-10 w-max max-w-[calc(100%-7rem)] -translate-x-1/2 rounded-full bg-sea-800 px-4 py-2 text-center text-sm font-semibold text-sea-100 shadow-lg">

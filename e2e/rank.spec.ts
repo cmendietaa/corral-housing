@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 
 /**
  * The Rank tab on the demo board: requirements hold places back with a reason,

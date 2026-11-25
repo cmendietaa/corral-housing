@@ -14,9 +14,12 @@ export function Band({
   variant = "full",
   children,
   stripeRight,
+  sun = true,
   className
 }: {
   variant?: "full" | "compact" | "thin";
+  /** False when the header places its own <BandSun /> in the gap between its content. */
+  sun?: boolean;
   children?: React.ReactNode;
   /** Sits on the right of the stripe, overlapping it (crew boards and the add button). */
   stripeRight?: React.ReactNode;
@@ -35,7 +38,7 @@ export function Band({
     <header className={cn("relative isolate overflow-hidden", className)}>
       <div className="relative overflow-hidden bg-sunset-300">
         {/* The sun, partly set behind the stripe. */}
-        <div
+        {sun ? <div
           aria-hidden="true"
           className={cn(
             "absolute -z-0 rounded-full bg-sunset-200",
@@ -43,7 +46,7 @@ export function Band({
               ? "bottom-[-34px] right-[14%] h-[100px] w-[100px] lg:bottom-[-56px] lg:right-[300px] lg:h-[170px] lg:w-[170px]"
               : "bottom-[-40px] right-[22%] h-[78px] w-[78px] lg:right-[300px] lg:h-[110px] lg:w-[110px] lg:bottom-[-58px]"
           )}
-        />
+        /> : null}
         <div className="relative">{children}</div>
       </div>
       <div className={cn("corral-stripe relative", full ? "h-10 lg:h-16" : "h-6 lg:h-10")}>
@@ -55,6 +58,25 @@ export function Band({
       </div>
       <div className="corral-wave" aria-hidden="true" />
     </header>
+  );
+}
+
+/**
+ * The sun for a header row: put it in a `relative flex-1 self-stretch` gap
+ * between the row's content, so it sits centered in the open sky and never
+ * behind a title or a button. It sets into the stripe below the row
+ * (the row has 12px of bottom padding).
+ */
+export function BandSun({ size = "md", className }: { size?: "sm" | "md"; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full bg-sunset-200",
+        size === "md" ? "bottom-[-78px] h-[120px] w-[120px]" : "bottom-[-50px] h-[68px] w-[68px]",
+        className
+      )}
+    />
   );
 }
 
@@ -118,8 +140,11 @@ export function AddBoardButton({
 
 const FENCE = ["bg-sea-700", "bg-sunset-500", "bg-glass-500", "bg-sea-300", "bg-sunset-300"];
 
-/** The board fence and the sea-800 footer bar. */
-export function FenceFooter({ className }: { className?: string }) {
+/** Said once, on the public pages (landing, sign-in, privacy, terms); boards don't repeat it. */
+export const NOT_AFFILIATED = "Not affiliated with UCSB.";
+
+/** The board fence and the sea-800 footer bar. `note` is the line on the left, if any. */
+export function FenceFooter({ className, note = NOT_AFFILIATED }: { className?: string; note?: string | null }) {
   return (
     <footer className={cn("mt-auto", className)}>
       <div aria-hidden="true" className="flex h-5 items-end gap-[6px] overflow-hidden px-6">
@@ -128,13 +153,24 @@ export function FenceFooter({ className }: { className?: string }) {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 bg-sea-800 px-6 py-3.5 text-xs text-sea-100">
-        <span>Not affiliated with UCSB. Demo data is fictional.</span>
+        {note ? <span>{note}</span> : null}
         <span className="ml-auto flex gap-4">
           <a href="/privacy" className="underline-offset-4 hover:underline">Privacy</a>
           <a href="/terms" className="underline-offset-4 hover:underline">Terms</a>
         </span>
       </div>
     </footer>
+  );
+}
+
+/** The footer's fine print, for panes that scroll on their own (desktop Map and Rank). */
+export function FinePrint({ className, note }: { className?: string; note?: string | null }) {
+  return (
+    <p className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 px-2 text-xs text-stone-700", className)}>
+      {note ? <span>{note}</span> : null}
+      <a href="/privacy" className="underline-offset-4 hover:underline">Privacy</a>
+      <a href="/terms" className="underline-offset-4 hover:underline">Terms</a>
+    </p>
   );
 }
 

@@ -22,6 +22,9 @@ export type ListingRow = {
   next_action: string | null;
   next_action_assignee: string | null;
   next_action_due: string | null;
+  /** Missing until the photo-choices migration is applied; the schema defaults fill in. */
+  cover_photo?: string | null;
+  street_view?: boolean;
   updated_at: string;
 };
 
@@ -49,6 +52,8 @@ export function rowToListing(r: ListingRow): Listing {
     nextAction: r.next_action,
     nextActionAssignee: r.next_action_assignee,
     nextActionDue: r.next_action_due,
+    cover: r.cover_photo ?? null,
+    streetView: r.street_view ?? true,
     updatedAt: r.updated_at
   });
 }
@@ -71,7 +76,9 @@ const COLUMN: Record<keyof ListingPatch, keyof ListingRow> = {
   notes: "notes",
   nextAction: "next_action",
   nextActionAssignee: "next_action_assignee",
-  nextActionDue: "next_action_due"
+  nextActionDue: "next_action_due",
+  cover: "cover_photo",
+  streetView: "street_view"
 };
 
 /** App patch → column update. Only known, writable columns pass through. */

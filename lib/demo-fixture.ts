@@ -66,6 +66,8 @@ export function createDemoSnapshot(now: Date = new Date()): BoardSnapshot {
     nextAction: null,
     nextActionAssignee: null,
     nextActionDue: null,
+    cover: null,
+    streetView: true,
     starred: false,
     updatedAt: stamp
   } satisfies Partial<Listing>;

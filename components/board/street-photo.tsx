@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatPhotoDate, streetViewSrc, type PhotoSize } from "@/lib/streetview";
 import { cn } from "@/lib/utils";
-import { useFirstTourPhoto } from "./tour-photos";
+import { useCover } from "./tour-photos";
 
 /**
  * A Street View frame. The frame's size and shape come from `className`, and
@@ -22,7 +22,7 @@ export function StreetPhoto({
   className,
   children
 }: {
-  /** When the place has tour photos, the first one replaces Street View. */
+  /** The place, so the frame shows its chosen cover (one of the group's photos or Street View). */
   listingId?: string;
   lat: number | null;
   lng: number | null;
@@ -31,7 +31,7 @@ export function StreetPhoto({
   size: PhotoSize;
   /** Whether Street View is configured on this deployment. Without it, no request is made. */
   enabled: boolean;
-  /** The required Google credit, shown whenever a photo is. */
+  /** Google's credit: written out on large frames; thumbnails rely on the logo in the image. */
   attribution?: "short" | "long" | "tiny";
   /** Large frames explain why there's no photo. */
   hint?: boolean;
@@ -39,8 +39,9 @@ export function StreetPhoto({
   /** Overlays (back button, star) drawn on top of the frame. */
   children?: React.ReactNode;
 }) {
-  const tour = useFirstTourPhoto(listingId);
-  const src = tour?.url ?? (enabled ? streetViewSrc(lat, lng, size) : null);
+  const cover = useCover(listingId);
+  const tour = cover.kind === "photo" ? cover.photo : null;
+  const src = tour?.url ?? (cover.kind === "street" && enabled ? streetViewSrc(lat, lng, size) : null);
   const [state, setState] = useState<"loading" | "loaded" | "failed">("loading");
   // A new pin means a new photo.
   const [lastSrc, setLastSrc] = useState(src);
@@ -75,7 +76,7 @@ export function StreetPhoto({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
-            alt={tour ? `Tour photo of ${label}` : `Street View near ${label}`}
+            alt={tour ? `Photo of ${label}` : `Street View near ${label}`}
             loading="lazy"
             decoding="async"
             onLoad={() => setState("loaded")}
@@ -88,7 +89,17 @@ export function StreetPhoto({
           {state === "loaded" ? tour ? <TourCredit kind={attribution} /> : <Credit kind={attribution} taken={takenLabel} /> : null}
         </>
       ) : (
-        <FenceFallback text={hint ? (noPin ? "Drop a pin to see the street" : "No street photo here") : undefined} />
+        <FenceFallback
+          text={
+            hint
+              ? cover.kind === "none"
+                ? "No photos yet"
+                : noPin
+                  ? "Drop a pin to see the street"
+                  : "No street photo here"
+              : undefined
+          }
+        />
       )}
       {children}
     </div>
@@ -99,17 +110,19 @@ function TourCredit({ kind }: { kind: "short" | "long" | "tiny" }) {
   if (kind !== "long") return null;
   return (
     <span className="pointer-events-none absolute bottom-2.5 right-2.5 rounded-full bg-shell px-2 py-0.5 text-[10px] font-semibold text-tar">
-      Tour photo
+      Your photo
     </span>
   );
 }
 
 function Credit({ kind, taken }: { kind: "short" | "long" | "tiny"; taken?: string | null }) {
+  // Thumbnails carry Google's logo in the image itself; a second credit on top only crowds them.
+  if (kind === "tiny") return null;
   return (
     <span
       className={cn(
         "pointer-events-none absolute rounded-full bg-shell font-semibold text-tar",
-        kind === "tiny" ? "bottom-1 right-1 px-1 text-[7px] leading-3" : "bottom-2.5 right-2.5 px-2 py-0.5 text-[10px]"
+        "bottom-2.5 right-2.5 px-2 py-0.5 text-[10px]"
       )}
     >
       {kind === "long" ? `Street View${taken ? ` · ${taken}` : ""} · © Google` : "© Google"}

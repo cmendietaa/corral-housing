@@ -76,4 +76,23 @@ describe("local demo store", () => {
     await store.addListing({ ...emptyListingInput(), title: "x", url: "https://example.com" });
     expect((await store.load()).listings).toHaveLength(7);
   });
+
+  it("edits the demo board's details from settings, and they stay after a reload", async () => {
+    const storage = memoryStorage();
+    const store = createLocalStore({ storage, now });
+    await store.settings!.updateBoard({ name: "  Bluffs or bust ", leaseYear: "2027–28", budgetPerPersonCents: 150000 });
+    const reloaded = await createLocalStore({ storage, now }).load();
+    expect(reloaded.board).toMatchObject({ name: "Bluffs or bust", budgetPerPersonCents: 150000 });
+    await expect(store.settings!.updateBoard({ name: " ", leaseYear: "", budgetPerPersonCents: null })).rejects.toThrow();
+  });
+
+  it("lists the fictional roommates but offers no member changes", async () => {
+    const store = createLocalStore({ storage: memoryStorage(), now });
+    const s = await store.settings!.load();
+    expect(s.members.map((m) => m.name)).toEqual(["Maya", "Jordan", "Sam", "Priya"]);
+    expect(s.members.some((m) => m.isMe)).toBe(false);
+    expect(s.canEditBoard).toBe(true);
+    expect(store.settings!.removeMember).toBeUndefined();
+    expect(store.settings!.leave).toBeUndefined();
+  });
 });

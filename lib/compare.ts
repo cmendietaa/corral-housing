@@ -149,7 +149,7 @@ export function buildComparison(
       key: "beds",
       label: "Bedrooms",
       cells: withBest(
-        places.map((p) => (p.beds === null ? unknown() : { text: String(p.beds) })),
+        places.map((p) => (p.beds === null ? unknown() : { text: p.beds === 0 ? "Studio" : String(p.beds) })),
         places.map((p) => p.beds),
         "high"
       )

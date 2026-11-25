@@ -3,20 +3,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lookupPin } from "@/lib/geocode-client";
 import { shrinkPhoto } from "@/lib/photo-shrink";
+import { resolveCover } from "@/lib/cover";
 import { MAX_PHOTOS_PER_PLACE, type Photo } from "@/lib/stores/types";
 import { TourPhotosContext } from "./tour-photos";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { List, ListOrdered, Map as MapIcon, Plus, SquareKanban } from "lucide-react";
-import { AddBoardButton, Band, BandToggle, CrewBoards, FenceFooter } from "@/components/brand/band";
+import { useRouter } from "next/navigation";
+import { List, ListOrdered, Map as MapIcon, Plus, Settings, SquareKanban } from "lucide-react";
+import { AddBoardButton, Band, BandSun, BandToggle, CrewBoards, FenceFooter, FinePrint } from "@/components/brand/band";
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
 import { streetHeadline } from "@/lib/address";
 import { isClosedStatus, starredFirst, type Listing, type ListingInput, type ListingPatch } from "@/lib/listing";
-import type { BoardSnapshot, BoardStore } from "@/lib/stores/types";
+import { NOT_ON_BOARD, type BoardSnapshot, type BoardStore } from "@/lib/stores/types";
+import { INCOMING_KEY, readMessage, type Incoming, type SentPage } from "@/lib/send/payload";
 import { cn } from "@/lib/utils";
+import { BoardSettingsDialog } from "./board-settings";
 import { CompareTray, CompareView } from "./compare-view";
 import { InviteDialog } from "./invite-dialog";
+import { AddPlaceFlow } from "./add-place";
 import { ListingForm } from "./listing-form";
 import { ListingRow } from "./listing-row";
 import { MapBoundary } from "./map-boundary";
@@ -63,8 +68,11 @@ export function Board({
   const [formKey, setFormKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
+  const [incoming, setIncoming] = useState<SentPage | null>(null);
+  const afterAdd = useRef<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const router = useRouter();
   const rowRefs = useRef(new Map<string, HTMLElement>());
-  const mapSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +81,13 @@ export function Board({
       .then((s) => {
         if (cancelled) return;
         setSnap(s);
+        // Send to Corral: a listing sent from the browser opens straight into Round it up.
+        const sent = takeIncoming(s.board.id);
+        if (sent) {
+          setIncoming(sent);
+          setFormKey((k) => k + 1);
+          setForm({ mode: "add" });
+        }
         // Open with the first place in the running selected, so the map card shows something.
         setSelectedId(s.listings.find((l) => !isClosedStatus(l.status) && l.lat !== null)?.id ?? null);
       })
@@ -121,45 +136,50 @@ export function Board({
       store
         .load()
         .then((s) => setSnap(s))
-        .catch(() => {});
+        // Removed from the board, or it was deleted: say so instead of showing stale places.
+        .catch((e: unknown) => e instanceof Error && e.message === NOT_ON_BOARD && setLoadError(NOT_ON_BOARD));
       void loadPhotos();
     });
   }, [store, loadPhotos]);
 
-  // Desktop map frame: fill the screen below wherever its top is. At the top of
-  // the page that's under the header; once the header scrolls away the frame
-  // grows to the full height instead of leaving a blank strip under it. Only the
-  // frame changes size; the map inside stays full height (no canvas resize).
-  const hasBoard = snap !== null;
+
+
   useEffect(() => {
-    const el = mapSectionRef.current;
-    if (!el || tab !== "map") return;
-    const wide = window.matchMedia("(min-width: 1024px)");
-    let frame = 0;
-    const fit = () => {
-      frame = 0;
-      if (!wide.matches) {
-        el.style.height = "";
-        return;
+    if (!notice) return;
+    const t = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [notice]);
+
+  // Scroll the whole list item, so a place's opened details come into view with it.
+  const scrollToRow = useCallback((id: string) => {
+    window.requestAnimationFrame(() => {
+      const row = rowRefs.current.get(id);
+      (row?.closest("li") ?? row)?.scrollIntoView({ block: "nearest", behavior: smooth() });
+    });
+  }, []);
+
+  const replace = useCallback((next: Listing) => {
+    setSnap((s) => (s ? { ...s, listings: s.listings.map((l) => (l.id === next.id ? next : l)) } : s));
+  }, []);
+
+  const patch = useCallback(
+    async (id: string, changes: ListingPatch) => {
+      const before = snap?.listings.find((l) => l.id === id);
+      if (before) replace({ ...before, ...changes });
+      try {
+        replace(await store.updateListing(id, changes));
+        return true;
+      } catch (e) {
+        if (before) replace(before);
+        setNotice(e instanceof Error ? e.message : "Couldn't save that change.");
+        return false;
       }
-      const top = Math.max(16, el.getBoundingClientRect().top);
-      el.style.height = `${Math.max(540, Math.round(window.innerHeight - top - 16))}px`;
-    };
-    const schedule = () => {
-      if (!frame) frame = window.requestAnimationFrame(fit);
-    };
-    fit();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      el.style.height = "";
-    };
-  }, [tab, hasBoard, comparing]);
+    },
+    [snap, store, replace]
+  );
 
   const members = snap?.board.members;
+  const boardListings = snap?.listings;
   const photoCtx = useMemo(() => {
     if (!store.addPhoto || !store.deletePhoto) return null;
     const addPhoto = store.addPhoto.bind(store);
@@ -169,6 +189,18 @@ export function Board({
       photosFor: (id: string) => photoList.filter((p) => p.listingId === id),
       uploadingFor: (id: string) => uploading[id] ?? 0,
       memberName: (id: string | null) => (id ? (members?.find((m) => m.id === id)?.name ?? null) : null),
+      coverFor: (id: string) =>
+        resolveCover(
+          boardListings?.find((l) => l.id === id),
+          photoList.filter((p) => p.listingId === id)
+        ),
+      setCover: (id: string, cover: string) => void patch(id, { cover }),
+      setStreetView: (id: string, show: boolean) => {
+        const l = boardListings?.find((x) => x.id === id);
+        // Hiding Street View also drops it as the cover, so the next photo leads.
+        void patch(id, show || l?.cover !== "street" ? { streetView: show } : { streetView: show, cover: null });
+        setNotice(show ? "Street View is back for this place." : "Street View hidden for this place.");
+      },
       async add(listingId: string, files: File[]) {
         const room = MAX_PHOTOS_PER_PLACE - photoList.filter((p) => p.listingId === listingId).length - (uploading[listingId] ?? 0);
         const batch = files.slice(0, Math.max(0, room));
@@ -197,49 +229,24 @@ export function Board({
         }
       }
     };
-  }, [store, photoList, uploading, members]);
+  }, [store, photoList, uploading, members, boardListings, patch]);
 
-  useEffect(() => {
-    if (!notice) return;
-    const t = window.setTimeout(() => setNotice(null), 4000);
-    return () => window.clearTimeout(t);
-  }, [notice]);
-
-  const scrollToRow = useCallback((id: string) => {
-    window.requestAnimationFrame(() => rowRefs.current.get(id)?.scrollIntoView({ block: "nearest", behavior: smooth() }));
-  }, []);
-
-  const replace = useCallback((next: Listing) => {
-    setSnap((s) => (s ? { ...s, listings: s.listings.map((l) => (l.id === next.id ? next : l)) } : s));
-  }, []);
-
-  const patch = useCallback(
-    async (id: string, changes: ListingPatch) => {
-      const before = snap?.listings.find((l) => l.id === id);
-      if (before) replace({ ...before, ...changes });
-      try {
-        replace(await store.updateListing(id, changes));
-      } catch (e) {
-        if (before) replace(before);
-        setNotice(e instanceof Error ? e.message : "Couldn't save that change.");
-      }
-    },
-    [snap, store, replace]
-  );
-
-  async function add(input: ListingInput) {
+  async function add(input: ListingInput, files: File[] = []) {
     // Place the pin from the address; dropping it by hand is only the fallback.
     const pin = input.lat === null ? await lookupPin(input.address) : null;
     const created = await store.addListing(pin ? { ...input, ...pin } : input);
     setSnap((s) => (s ? { ...s, listings: [created, ...s.listings] } : s));
     setSelectedId(created.id);
-    setNotice(
+    // Photos picked in the form upload in the background; the place shows them as they land.
+    if (files.length && photoCtx) void photoCtx.add(created.id, files);
+    // The add flow says "…is in the corral" itself; the board only follows up when the pin needs a hand.
+    afterAdd.current =
       created.lat === null
         ? created.address
-          ? `Added ${streetHeadline(created.address, created.title)}. Couldn't find that address on the map, so click the map to drop its pin.`
-          : `Added ${streetHeadline(created.address, created.title)}. Add an address, or click the map to drop its pin.`
-        : `Added ${streetHeadline(created.address, created.title)}.`
-    );
+          ? `Couldn't find ${streetHeadline(created.address, created.title)} on the map. Click the map to drop its pin.`
+          : `Add an address for ${streetHeadline(created.address, created.title)}, or click the map to drop its pin.`
+        : null;
+    return created;
   }
 
   async function saveEdit(id: string, input: ListingInput) {
@@ -312,6 +319,18 @@ export function Board({
   const checkedPlaces = checked.map((id) => listings.find((l) => l.id === id)).filter((l): l is Listing => Boolean(l));
   const onMap = listings.filter((l) => l.lat !== null).length;
 
+  if (loadError === NOT_ON_BOARD && store.kind === "private") {
+    return (
+      <div role="alert" className="mx-auto mt-16 max-w-lg rounded-[30px] bg-sea-100 p-8 text-center">
+        <h1 className="font-display text-[26px] text-tar">You&apos;re no longer on this board</h1>
+        <p className="mt-2 text-stone-800">It was deleted, or you were removed. Ask a roommate for a new invite link to get back in.</p>
+        <Link href="/boards" className="mt-5 inline-block font-semibold text-sea-700 underline underline-offset-4">
+          Back to your boards
+        </Link>
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <p role="alert" className="m-6 rounded-[22px] bg-sunset-100 px-5 py-4 text-danger">
@@ -332,6 +351,8 @@ export function Board({
 
   const board = snap.board;
   const isDemo = store.kind === "demo";
+  // Boards don't repeat the UCSB line from the public pages; only the demo needs a note.
+  const footNote = isDemo ? "Demo data is fictional." : null;
   const kicker = `Isla Vista & Goleta · Lease ${board.leaseYear}`;
   const tabToggle = (
     <BandToggle
@@ -374,24 +395,26 @@ export function Board({
     <section aria-label="Places" className="min-w-0">
       <div className="mb-3 flex items-center justify-between gap-3 px-2">
         <h2 className="label text-stone-700">Still in the running · {open.length}</h2>
-        {makeInviteLink ? (
-          <div className="flex items-center gap-1 lg:hidden">
-            <Link href="/boards" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-stone-800 hover:bg-shell-mid">
-              Boards
-            </Link>
-            <Button size="sm" variant="secondary" onClick={() => setInviting(true)}>
-              Invite
-            </Button>
-          </div>
-        ) : null}
-        {isDemo && store.reset ? (
-          <p className="rounded-full bg-glass-200 px-3.5 py-1.5 text-[13px] text-glass-900">
-            Fictional demo ·{" "}
-            <button type="button" onClick={() => void resetDemo()} className="font-semibold underline underline-offset-4">
-              Reset
-            </button>
-          </p>
-        ) : null}
+        <div className="flex items-center gap-1">
+          {makeInviteLink ? (
+            <div className="flex items-center gap-1 lg:hidden">
+              <Link href="/boards" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-stone-800 hover:bg-shell-mid">
+                Boards
+              </Link>
+              <Button size="sm" variant="secondary" onClick={() => setInviting(true)}>
+                Invite
+              </Button>
+            </div>
+          ) : null}
+          {isDemo && store.reset ? (
+            <p className="rounded-full bg-glass-200 px-3.5 py-1.5 text-[13px] text-glass-900">
+              Fictional demo ·{" "}
+              <button type="button" onClick={() => void resetDemo()} className="font-semibold underline underline-offset-4">
+                Reset
+              </button>
+            </p>
+          ) : null}
+        </div>
       </div>
       {listings.length === 0 ? (
         <EmptyBoard onAdd={() => openForm({ mode: "add" })} />
@@ -427,56 +450,47 @@ export function Board({
       className={cn(
         "flex min-h-screen flex-col",
         // Phone map: exactly one screen tall, so the map, card and switch all fit.
-        tab === "map" && pane === "map" && "max-lg:h-dvh max-lg:min-h-0 max-lg:overflow-hidden"
+        tab === "map" && pane === "map" && "max-lg:h-dvh max-lg:min-h-0 max-lg:overflow-hidden",
+        // Desktop map and rank: one screen tall, with each side scrolling on its own.
+        tab !== "status" && "lg:h-dvh lg:min-h-0 lg:overflow-hidden"
       )}
     >
-      {/* ---------- Desktop header band ---------- */}
+      {/* ---------- Desktop header band: one slim band on every tab, so switching
+          views doesn't jump and the board name always says where you are. ---------- */}
       <div className="hidden lg:block">
-        {tab === "map" ? (
-          <Band
-            stripeRight={
-              <>
-                <CrewBoards members={board.members} />
-                <AddBoardButton onClick={() => openForm({ mode: "add" })} />
-              </>
-            }
-          >
-            <div className="px-10 pb-7 pt-7">
-              <div className="flex items-center gap-3">
-                <Link href="/" aria-label="Corral home">
-                  <Wordmark />
-                </Link>
-                <div className="ml-auto flex items-center gap-3">
-                  {tabToggle}
-                  {makeInviteLink ? (
-                    <>
-                      <Link href="/boards" className="h-11 rounded-full px-4 py-2.5 font-display text-[15px] text-tar hover:bg-sunset-200">
-                        Boards
-                      </Link>
-                      <Button variant="secondary" size="md" onClick={() => setInviting(true)}>
-                        Invite
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-              <p className="label mt-7 text-tar">{kicker}</p>
-              <h1 className="mt-2 font-display text-[50px] leading-[1.05] text-tar">{board.name}</h1>
+        <Band variant="compact" sun={false}>
+          <div className="flex items-center gap-6 px-10 py-3">
+            <Link href="/" aria-label="Corral home" className="shrink-0">
+              <Wordmark />
+            </Link>
+            <span aria-hidden="true" className="h-9 w-px shrink-0 bg-tar/20" />
+            <div className="min-w-0">
+              <p className="label truncate text-tar">{kicker}</p>
+              <h1 className="truncate font-display text-[28px] leading-tight text-tar">{board.name}</h1>
             </div>
-          </Band>
-        ) : (
-          <Band variant="compact">
-            <div className="flex items-center gap-8 px-10 py-3">
-              <Link href="/" aria-label="Corral home">
-                <Wordmark />
-              </Link>
-              <h1 className="font-display text-[28px] leading-tight text-tar">
-                {tab === "rank" ? "Which place fits you best" : "Where each place stands"}
-              </h1>
-              <div className="ml-auto">{tabToggle}</div>
+            {/* Open sky between the name and the controls: the sun sets here, when there's room for it.
+                The name gets space first; the gap only takes what's left. */}
+            <div className="@container relative min-w-0 flex-1 self-stretch">
+              <BandSun className="hidden @min-[140px]:block" />
             </div>
-          </Band>
-        )}
+            <div className="flex shrink-0 items-center gap-3">
+              {tabToggle}
+              {makeInviteLink ? (
+                <>
+                  <Link href="/boards" className="h-11 rounded-full px-4 py-2.5 font-display text-[15px] text-tar hover:bg-sunset-200">
+                    Boards
+                  </Link>
+                  <Button variant="secondary" size="md" onClick={() => setInviting(true)}>
+                    Invite
+                  </Button>
+                </>
+              ) : null}
+              {store.settings ? <SettingsButton onClick={() => setSettingsOpen(true)} /> : null}
+              <CrewBoards members={board.members} size="sm" />
+              <AddBoardButton size="sm" onClick={() => openForm({ mode: "add" })} />
+            </div>
+          </div>
+        </Band>
       </div>
 
       {/* ---------- Phone header band ---------- */}
@@ -490,22 +504,28 @@ export function Board({
                 </Link>
                 <h1 className="mt-5 font-display text-[30px] leading-[1.05] text-tar">{board.name}</h1>
               </div>
-              <AddBoardButton size="sm" onClick={() => openForm({ mode: "add" })} />
+              <div className="flex shrink-0 items-start gap-1">
+                {store.settings ? <SettingsButton onClick={() => setSettingsOpen(true)} className="mt-3.5" /> : null}
+                <AddBoardButton size="sm" onClick={() => openForm({ mode: "add" })} />
+              </div>
             </div>
           </Band>
         ) : (
-          <Band variant="compact">
+          <Band variant="compact" sun={false}>
             <div className="flex items-center gap-3 px-4 py-3">
-              <Link href="/" aria-label="Corral home">
+              <Link href="/" aria-label="Corral home" className="shrink-0">
                 <Wordmark size="sm" />
               </Link>
               {tab === "status" ? (
-                <h1 className="font-display text-lg text-tar">Where things stand</h1>
+                <h1 className="min-w-0 truncate font-display text-lg text-tar">Where things stand</h1>
               ) : tab === "rank" ? (
-                <h1 className="font-display text-lg text-tar">Best fit for you</h1>
-              ) : (
-                <p className="label ml-auto text-tar">{onMap} on the map</p>
-              )}
+                <h1 className="min-w-0 truncate font-display text-lg text-tar">Best fit for you</h1>
+              ) : null}
+              <div className="@container relative min-w-0 flex-1 self-stretch">
+                <BandSun size="sm" className="hidden @min-[76px]:block" />
+              </div>
+              {tab === "map" ? <p className="label shrink-0 text-tar">{onMap} on the map</p> : null}
+              {store.settings ? <SettingsButton onClick={() => setSettingsOpen(true)} className="-my-1 -mr-1.5" /> : null}
             </div>
           </Band>
         )}
@@ -517,8 +537,9 @@ export function Board({
           <StatusBoard listings={listings} board={board} photos={photos} onPatch={patch} onOpen={activate} />
         </main>
       ) : tab === "rank" ? (
-        <main className="flex-1 px-4 pt-5 lg:px-6 lg:pt-6">
+        <main className="flex-1 px-4 pt-5 lg:min-h-0 lg:px-6 lg:pt-0">
           <RankView
+            footNote={footNote}
             listings={listings}
             board={board}
             photos={photos}
@@ -538,28 +559,29 @@ export function Board({
           />
         </main>
       ) : (
-        <main className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[540px_minmax(0,1fr)] lg:gap-5 lg:px-6 lg:pb-8 lg:pt-4">
-          <div className={cn("px-2 pb-28 pt-4 lg:px-0 lg:pb-0", pane === "map" && "max-lg:hidden")}>{ledger}</div>
+        <main className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[540px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 lg:px-6 lg:pb-6">
+          <div className={cn("pane-scroll px-2 pb-28 pt-4 lg:-mr-2 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:px-0 lg:pb-6 lg:pr-2", pane === "map" && "max-lg:hidden")}>
+            {ledger}
+            <FinePrint note={footNote} className="mt-8 hidden lg:flex" />
+          </div>
 
           <section
-            ref={mapSectionRef}
             aria-label="Map of places"
             className={cn(
               "relative overflow-hidden bg-shell-light",
-              // Height is set from the scroll position (see the effect above); this is the first-paint fallback.
-              "lg:sticky lg:top-4 lg:block lg:h-[calc(100vh-320px)] lg:min-h-[540px] lg:rounded-[200px_32px_32px_32px]",
+              // Desktop: fills its side of the screen and never scrolls; the list beside it does.
+              "lg:mt-4 lg:block lg:min-h-0 lg:rounded-[32px]",
               pane === "list" ? "max-lg:hidden" : "max-lg:min-h-0 max-lg:flex-1"
             )}
           >
-            {/* Desktop: the map is always a full screen tall and the section clips it,
-                so scrolling reveals more map instead of resizing (and blanking) the canvas. */}
-            <div className="h-full lg:h-[calc(100vh-32px)] lg:min-h-[540px]">
+            <div className="h-full">
               <MapBoundary>
                 <MapPanel listings={listings} selectedId={selectedId} onSelect={selectFromMap} onMovePin={movePin} />
               </MapBoundary>
             </div>
 
-            {/* Desktop: the selected place, bottom-left; the compare tray, bottom-right. */}
+            {/* Desktop: the selected place, bottom-left; the compare tray, bottom-right.
+                With square map corners the card never runs under a curve, so its close button stays visible. */}
             {selected ? (
               <div className="no-scrollbar absolute bottom-[18px] left-[18px] z-20 hidden max-h-[calc(100%-36px)] overflow-y-auto rounded-[30px] lg:block">
                 <PlaceCard
@@ -597,8 +619,10 @@ export function Board({
         <div className="fixed inset-x-0 bottom-[5.5rem] z-30 flex justify-center px-4 lg:hidden">{tray("")}</div>
       ) : null}
 
-      <div className={cn("hidden lg:block", tab === "map" && pane === "list" && "max-lg:block")}>
-        <FenceFooter className="mt-6 lg:mt-2" />
+      {/* The fence footer closes pages that scroll as a whole: Status on desktop, the list on phones.
+          Map and Rank on desktop end each pane with the same fine print instead. */}
+      <div className={cn("hidden", tab === "status" && "lg:block", tab === "map" && pane === "list" && "max-lg:block")}>
+        <FenceFooter note={footNote} className="mt-6 lg:mt-2" />
       </div>
 
       {/* Phones: List / Map / Status switch */}
@@ -658,13 +682,62 @@ export function Board({
 
       {inviting && makeInviteLink ? <InviteDialog makeLink={makeInviteLink} onClose={() => setInviting(false)} /> : null}
 
-      {form ? (
+      {settingsOpen && store.settings ? (
+        <BoardSettingsDialog
+          settings={store.settings}
+          board={board}
+          isDemo={isDemo}
+          onClose={() => setSettingsOpen(false)}
+          onChanged={() => {
+            store
+              .load()
+              .then((s) => setSnap(s))
+              .catch(() => {});
+          }}
+          onInvite={
+            makeInviteLink
+              ? () => {
+                  setSettingsOpen(false);
+                  setInviting(true);
+                }
+              : undefined
+          }
+          onGone={() => router.push("/boards")}
+        />
+      ) : null}
+
+      {form?.mode === "add" ? (
+        <AddPlaceFlow
+          key={formKey}
+          onClose={() => {
+            setForm(null);
+            setIncoming(null);
+            if (afterAdd.current) setNotice(afterAdd.current);
+            afterAdd.current = null;
+          }}
+          onSubmit={(input, files) => add(input, files)}
+          onAnother={() => {
+            setIncoming(null);
+            openForm({ mode: "add" });
+          }}
+          incoming={incoming ?? undefined}
+          canAddPhotos={photoCtx !== null}
+          sampleScreenshot={isDemo ? "/samples/listing-screenshot.jpg" : undefined}
+          streetPhotos={photos}
+          people={board.members.length || null}
+          budgetPerPersonCents={board.budgetPerPersonCents}
+        />
+      ) : form ? (
         <ListingForm
           key={formKey}
           open
           listing={form.mode === "edit" ? form.listing : null}
           onClose={() => setForm(null)}
-          onSubmit={(input) => (form.mode === "edit" ? saveEdit(form.listing.id, input) : add(input))}
+          onSubmit={async (input, files) => {
+            if (form.mode === "edit") await saveEdit(form.listing.id, input);
+            else await add(input, files);
+          }}
+          canAddPhotos={photoCtx !== null}
           onDelete={form.mode === "edit" ? remove : undefined}
           sampleScreenshot={isDemo ? "/samples/listing-screenshot.jpg" : undefined}
         />
@@ -677,6 +750,34 @@ export function Board({
       </div>
     </div>
     </TourPhotosContext.Provider>
+  );
+}
+
+/** A listing sent to this board from /send, taken once (so a reload doesn't reopen it). */
+function takeIncoming(boardId: string): SentPage | null {
+  try {
+    const raw = window.sessionStorage.getItem(INCOMING_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Incoming;
+    if (parsed.boardId !== boardId) return null;
+    window.sessionStorage.removeItem(INCOMING_KEY);
+    return readMessage({ type: "corral:page", page: parsed.page });
+  } catch {
+    return null;
+  }
+}
+
+function SettingsButton({ onClick, className }: { onClick: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Board settings"
+      title="Board settings"
+      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-tar transition hover:bg-tar/10 lg:h-11 lg:w-11", className)}
+    >
+      <Settings className="h-[18px] w-[18px] lg:h-5 lg:w-5" strokeWidth={2.5} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -700,7 +801,7 @@ function BoardSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading board" className="flex min-h-screen flex-col">
       <Band>
-        <div className="h-[150px] lg:h-[230px]" />
+        <div className="h-[150px] lg:h-[72px]" />
       </Band>
       <div className="grid flex-1 gap-5 px-4 pt-4 lg:grid-cols-[540px_minmax(0,1fr)] lg:px-6">
         <div className="space-y-3">
@@ -708,7 +809,7 @@ function BoardSkeleton() {
             <div key={i} className="h-24 animate-pulse rounded-[24px] bg-shell-deep" />
           ))}
         </div>
-        <div className="hidden animate-pulse rounded-[200px_32px_32px_32px] bg-shell-light lg:block" />
+        <div className="hidden animate-pulse rounded-[32px] bg-shell-light lg:block" />
       </div>
     </div>
   );

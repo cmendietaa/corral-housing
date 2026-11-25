@@ -19,7 +19,7 @@ export function ownerDue(listing: Pick<Listing, "nextActionAssignee" | "nextActi
 type Props = {
   listing: Listing;
   members: Member[];
-  onSave: (patch: ListingPatch) => Promise<void> | void;
+  onSave: (patch: ListingPatch) => Promise<boolean | void> | void;
   /** `inline`: "NEXT" beside the task, with "MAYA · FRI" under it (selected-place card). `crew`: owner's board beside the task (Status cards, phone sheet). */
   variant?: "inline" | "crew";
   className?: string;
@@ -35,8 +35,8 @@ export function NextAction({ listing, members, onSave, variant = "inline", class
         members={members}
         onCancel={() => setEditing(false)}
         onSave={async (patch) => {
-          await onSave(patch);
-          setEditing(false);
+          // If it didn't save, keep the editor (and what they typed) open.
+          if ((await onSave(patch)) !== false) setEditing(false);
         }}
       />
     );
@@ -105,7 +105,7 @@ function NextActionEditor({
 }: {
   listing: Listing;
   members: Member[];
-  onSave: (patch: ListingPatch) => Promise<void>;
+  onSave: (patch: ListingPatch) => Promise<boolean | void>;
   onCancel: () => void;
 }) {
   const id = useId();

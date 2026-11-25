@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createDemoSnapshot } from "@/lib/demo-fixture";
 import {
+  boardDetailsSchema,
   listingInputSchema,
   listingSchema,
   type Listing,
@@ -92,6 +93,23 @@ export function createLocalStore(options: {
 
   return {
     kind: "demo",
+
+    // The demo's details can be edited here like a real board's. Its roommates
+    // are fictional, so there's no one to remove and no invite links.
+    settings: {
+      async load() {
+        return {
+          members: read().board.members.map((m, i) => ({ id: m.id, name: m.name, role: i === 0 ? "owner" : "member", isMe: false })),
+          invites: [],
+          canEditBoard: true
+        };
+      },
+      async updateBoard(details) {
+        const d = boardDetailsSchema.parse(details);
+        const snap = read();
+        write({ ...snap, board: { ...snap.board, name: d.name, leaseYear: d.leaseYear, budgetPerPersonCents: d.budgetPerPersonCents } });
+      }
+    },
 
     async load() {
       return clone(read());

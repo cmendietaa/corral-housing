@@ -76,6 +76,13 @@ export const listingSchema = z.object({
   nextAction: z.string().trim().max(200).nullable(),
   nextActionAssignee: z.string().nullable(),
   nextActionDue: isoDate.nullable(),
+  /**
+   * The photo that leads: "street" for Street View, a photo's id, or null to
+   * pick automatically (the first added photo, else Street View).
+   */
+  cover: z.string().max(64).nullable().default(null),
+  /** False hides Street View for this place (wrong building, ugly angle). */
+  streetView: z.boolean().default(true),
   updatedAt: z.string()
 });
 
@@ -97,6 +104,16 @@ export type Board = {
   budgetPerPersonCents: number | null;
 };
 
+/** What the settings screen can change about a board. Same limits as the database. */
+export const boardDetailsSchema = z.object({
+  name: z.string().trim().min(1, "Give the board a name").max(80, "Keep the name under 80 characters"),
+  leaseYear: z.string().trim().max(20, "Keep the lease year short, like 2027–28"),
+  budgetPerPersonCents: z.number().int().nonnegative().nullable()
+});
+
+/** A roommate's name on a board. */
+export const displayNameSchema = z.string().trim().min(1, "Add your name").max(40, "Keep your name under 40 characters");
+
 export function emptyListingInput(): ListingInput {
   return {
     title: "",
@@ -116,6 +133,8 @@ export function emptyListingInput(): ListingInput {
     notes: null,
     nextAction: null,
     nextActionAssignee: null,
-    nextActionDue: null
+    nextActionDue: null,
+    cover: null,
+    streetView: true
   };
 }
