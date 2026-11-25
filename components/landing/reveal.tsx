@@ -15,7 +15,7 @@ export function Reveal({ as: Tag = "div", className, children, ...rest }: { as?:
     if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
     // Only hide what isn't on screen yet, so nothing visible blinks.
     const box = el.getBoundingClientRect();
-    if (box.top < window.innerHeight * 0.85) return;
+    if (box.top < window.innerHeight) return;
     el.dataset.armed = "true";
     const io = new IntersectionObserver(
       (entries) => {

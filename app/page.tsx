@@ -73,7 +73,7 @@ function Stars({ value, className }: { value: number; className?: string }) {
   return (
     <span role="img" aria-label={`${value} out of 5`} className={cn("relative inline-block", className)}>
       {row(false)}
-      <span className="reveal-fill absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${(value / 5) * 100}%` }}>
+      <span className="reveal-fill absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${(value / 5) * 100}%`, ["--fill" as string]: `${(value / 5) * 100}%` }}>
         {row(true)}
       </span>
     </span>

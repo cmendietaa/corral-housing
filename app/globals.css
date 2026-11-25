@@ -514,6 +514,10 @@ dialog::backdrop {
 
 @media (prefers-reduced-motion: reduce) {
   .reveal-up, .reveal-board, .reveal-fill { transition: none; }
+  /* If reduced motion turns on after a section was armed, show it anyway. */
+  [data-armed="true"]:not([data-shown="true"]) .reveal-up { opacity: 1; transform: none; }
+  [data-armed="true"]:not([data-shown="true"]) .reveal-board { transform: none; }
+  [data-armed="true"]:not([data-shown="true"]) .reveal-fill { width: var(--fill) !important; }
   .corral-postcard { animation: none; }
   .corral-sun-rest { animation: none; }
 }
