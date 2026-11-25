@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import { Check, Star } from "lucide-react";
+import { Bike, Check, Star } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
 import { formatRent, rentPerPerson } from "@/lib/compare";
 import { formatBedsBaths } from "@/lib/format";
@@ -70,17 +70,9 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
   const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
   const od = ownerDue(listing, board.members);
   const commute = commuteToCampus(listing.lat, listing.lng);
-  const meta = [
-    headline !== listing.title ? listing.title : null,
-    formatBedsBaths(listing.beds, listing.baths) || null,
-    commute ? `~${commute.bikeMin} min bike to UCSB` : null
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  // Phones: shorter, without the nickname.
-  const phoneMeta = [formatBedsBaths(listing.beds, listing.baths) || null, commute ? `~${commute.bikeMin} min bike` : null]
-    .filter(Boolean)
-    .join(" · ");
+  // The nickname gets its own line (desktop); the facts stay short enough to never cut off.
+  const nickname = headline !== listing.title ? listing.title : null;
+  const size = formatBedsBaths(listing.beds, listing.baths) || null;
   const toggleStar = () => void onPatch({ starred: !listing.starred });
 
   return (
@@ -147,8 +139,20 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           </button>
           {area ? <span className="label hidden text-stone-700 lg:inline">{area}</span> : null}
         </h3>
-        {meta ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{meta}</p> : null}
-        {phoneMeta ? <p className="mt-0.5 truncate text-[13px] text-stone-700 lg:hidden">{phoneMeta}</p> : null}
+        {nickname ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{nickname}</p> : null}
+        {size || commute ? (
+          <p className="mt-0.5 flex items-center gap-1.5 whitespace-nowrap text-[13px] text-stone-700">
+            {size}
+            {size && commute ? <span aria-hidden="true">·</span> : null}
+            {commute ? (
+              <span className="inline-flex items-center gap-1">
+                <Bike className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
+                <span className="sr-only">Bike to campus:</span>
+                {commute.bikeMin} min
+              </span>
+            ) : null}
+          </p>
+        ) : null}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <StatusChip status={listing.status} />
           {listing.lat === null && !closed ? (
