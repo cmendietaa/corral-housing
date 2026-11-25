@@ -52,6 +52,7 @@ Corral should be recognizable from any cropped screenshot. The palette (sunset, 
 
 **Rules**
 
+- Motifs for decoration, counts and scenes; familiar symbols for controls. A button whose meaning isn't obvious gets a familiar symbol (a star for the shortlist) or a word ("Best", "Rope in"). One symbol, one meaning: the little sun only ever means "Corral found this in the listing".
 - No generic stand-ins: no sparkles for AI, no pale info boxes with an icon, no stock dashed buttons, no stock icons where a motif or a small Corral scene says more. Lucide is fine for plain controls (close, back, plus, minus).
 - Little small print. A heading doesn't need a sentence under it. Keep a helper line only when it tells people something they'd otherwise miss (a per-person split, a pin's bike time, why a site can't be read); explain a pattern once, not on every field.
 - Moments, not cuts. Loading is a scene (the sun sets as the fence goes up), and it lands before moving on (the count, then the next screen rises in). Respect reduced motion.
