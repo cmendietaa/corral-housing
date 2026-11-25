@@ -134,7 +134,7 @@ test("a place can be saved without a listing link", async ({ page }) => {
   await openDemo(page);
   await page.getByRole("button", { name: "Add a place" }).filter({ visible: true }).first().click();
   const dialog = page.getByRole("dialog", { name: "Add a place" });
-  await dialog.getByRole("button", { name: /Start from an address/ }).click();
+  await dialog.getByRole("button", { name: /Fill it in by hand/ }).click();
   await expect(dialog.getByLabel("Address")).toBeFocused();
   await dialog.getByLabel("Address").fill("6700 Trigo Rd, Isla Vista");
   await dialog.getByLabel(/^Name/).fill("Friend's place");
@@ -163,6 +163,5 @@ test("after adding, the place drops into the corral, and you can round up anothe
   await dialog.getByRole("button", { name: "Into the corral" }).click();
   await expect(dialog.getByText("Trigo Rd, 6700 is in the corral")).toBeVisible();
   await dialog.getByRole("button", { name: "Round up another" }).click();
-  await expect(dialog.getByRole("heading", { name: "Round it up" })).toBeVisible();
   await expect(dialog.getByLabel("Paste a link or the listing's text")).toHaveValue("");
 });

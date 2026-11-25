@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Minus, Plus, X } from "lucide-react";
-import { FenceIcon, FenceRow, KnotIcon, LassoIcon, PinIcon, SettingSun, SunMark } from "@/components/brand/motifs";
+import { ArrowLeft, ArrowUpRight, ImagePlus, Plus, X } from "lucide-react";
+import { FenceIcon, LassoIcon, PinIcon, SettingSun, SunMark } from "@/components/brand/motifs";
 import { MAX_SCREENSHOT_BYTES, MAX_SCREENSHOTS } from "@/lib/extract/image";
 import { streetHeadline } from "@/lib/address";
 import { commuteToCampus } from "@/lib/commute";
@@ -432,10 +432,10 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
           {reading ? (
             <RoundingUp what={reading} landed={landed} onStop={() => readAbort.current?.abort()} />
           ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3 sm:px-8">
-            {/* The pen: a little fence behind a box you toss things into. */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:flex sm:flex-col sm:justify-center sm:px-8 sm:pb-10">
+            {/* One box for anything: a link, text, or screenshots dropped anywhere on it. */}
             <div
-              className="relative pt-7"
+              className="relative"
               onDragOver={(e) => {
                 if (!e.dataTransfer.types.includes("Files")) return;
                 e.preventDefault();
@@ -451,18 +451,8 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
                 void addShots([...e.dataTransfer.files]);
               }}
             >
-              <FenceRow className="absolute left-6 top-0" />
-              <section aria-labelledby={`${id}-roundup`} className="relative overflow-hidden rounded-[30px] bg-shell-deep">
-                <div className="flex items-center gap-3 px-5 pt-5">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sunset-300 text-sunset-700">
-                    <LassoIcon className="h-6 w-6" />
-                  </span>
-                  <h3 id={`${id}-roundup`} className="min-w-0 font-display text-[22px] leading-tight">
-                    Round it up
-                  </h3>
-                </div>
-
-                <div className="mx-5 mt-4 overflow-hidden rounded-[18px] bg-shell-light shadow-[0_1px_0_rgb(32_30_29/0.08)]">
+              <section aria-label="Round it up" className="relative overflow-hidden rounded-[30px] bg-shell-deep p-4 sm:p-5">
+                <div className="overflow-hidden rounded-[18px] bg-shell-light shadow-[0_1px_0_rgb(32_30_29/0.08)]">
                   <span aria-hidden="true" className="corral-stripe-x block h-2" />
                   <label htmlFor={`${id}-capture`} className="sr-only">
                     Paste a link or the listing&apos;s text
@@ -480,64 +470,87 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
                       if (!e.clipboardData.getData("text/plain")) e.preventDefault();
                       void addShots(images);
                     }}
-                    rows={3}
+                    rows={4}
                     maxLength={8000}
-                    placeholder="Paste a link, the listing, or a group-chat message"
+                    placeholder="Paste a link, the listing, or a group-chat message. Screenshots work too."
                     className="block w-full resize-none border-0 bg-shell-light px-4 py-3 text-[15px] leading-relaxed text-tar outline-none placeholder:text-stone-600"
                   />
                 </div>
                 {link ? (
-                  <p className="mx-5 mt-2 inline-flex items-center gap-2 rounded-full bg-shell-light py-1 pl-1.5 pr-3 text-[13px] font-semibold text-sea-900">
+                  <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-shell-light py-1 pl-1.5 pr-3 text-[13px] font-semibold text-sea-900">
                     <SunMark className="h-5 w-5" />
                     Link spotted. Corral will read that page.
                   </p>
                 ) : null}
 
-                {/* The loop: screenshots go in the rope. */}
-                <div
-                  className={cn(
-                    "relative mx-5 mt-4 flex min-h-[72px] flex-wrap items-center gap-3 rounded-[42px] border-[3px] border-dashed border-sunset-600 px-5 py-3",
-                    dragging && "bg-sunset-100"
-                  )}
-                >
-                  {shots.length > 0 ? (
-                    <ul aria-label="Screenshots" className="flex items-center gap-2">
-                      {shots.map((s, i) => (
-                        <li key={s.id} className="relative">
-                          <button type="button" onClick={() => setViewing(i)} aria-label={`View screenshot ${i + 1}`} className="block">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={s.url} alt="" className={cn("h-14 w-10 rounded-lg border border-divider object-cover object-top", i % 2 ? "rotate-3" : "-rotate-3")} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeShot(s.id)}
-                            aria-label={`Remove screenshot ${i + 1}`}
-                            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-tar text-shell"
-                          >
-                            <X className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {preparing > 0 ? <SettingSun label="Preparing a screenshot" /> : null}
-                  <div className="min-w-0 flex-1">
-                    {shots.length + preparing < MAX_SCREENSHOTS ? (
-                      <button type="button" onClick={() => shotInput.current?.click()} className="text-left">
-                        <span className="block text-[15px] font-bold text-sunset-800">
-                          {shots.length ? "Add another screenshot" : "Drop screenshots in the loop"}
-                        </span>
-                      </button>
-                    ) : (
-                      <span className="text-[13px] text-stone-800">That&apos;s {MAX_SCREENSHOTS}, the most Corral reads at once.</span>
-                    )}
-                    {sampleScreenshot && shots.length + preparing === 0 ? (
-                      <button type="button" onClick={() => void loadSample()} className="mt-1 block text-[13px] font-semibold text-sea-700 underline underline-offset-4">
-                        Try a sample screenshot
-                      </button>
+                {shots.length > 0 || preparing > 0 ? (
+                  <ul aria-label="Screenshots" className="mt-3 flex flex-wrap items-center gap-2.5">
+                    {shots.map((s, i) => (
+                      <li key={s.id} className="relative">
+                        <button type="button" onClick={() => setViewing(i)} aria-label={`View screenshot ${i + 1}`} className="block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={s.url} alt="" className={cn("h-14 w-10 rounded-lg border border-divider object-cover object-top", i % 2 ? "rotate-3" : "-rotate-3")} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeShot(s.id)}
+                          aria-label={`Remove screenshot ${i + 1}`}
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-tar text-shell"
+                        >
+                          <X className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                        </button>
+                      </li>
+                    ))}
+                    {preparing > 0 ? (
+                      <li>
+                        <SettingSun label="Preparing a screenshot" />
+                      </li>
                     ) : null}
-                  </div>
-                  <KnotIcon className="absolute -bottom-[18px] right-10 h-9 w-9 rounded-full bg-shell-deep text-sunset-600" />
+                  </ul>
+                ) : null}
+
+                {note ? (
+                  <p
+                    role={note.tone === "error" ? "alert" : "status"}
+                    className={cn("mt-3 rounded-[18px] px-4 py-3 text-sm", note.tone === "error" ? "bg-sunset-100 font-semibold text-danger" : "bg-sunset-100 text-sunset-900")}
+                  >
+                    {note.text}
+                    {note.tone === "fallback" && draft.url ? <span className="mt-1 block font-semibold text-glass-800">The link is kept on the place.</span> : null}
+                  </p>
+                ) : null}
+
+                {/* One row: add screenshots on the left, round it up on the right. Drop images anywhere on the card. */}
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+                  {shots.length + preparing < MAX_SCREENSHOTS ? (
+                    <button
+                      type="button"
+                      onClick={() => shotInput.current?.click()}
+                      className={cn(
+                        "inline-flex h-11 items-center gap-2 rounded-full border-2 border-dashed border-sunset-600/80 px-4 text-sm font-bold text-sunset-800 transition hover:bg-sunset-100",
+                        dragging && "bg-sunset-100"
+                      )}
+                    >
+                      <ImagePlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                      {shots.length ? "Add another screenshot" : "Add screenshots"}
+                    </button>
+                  ) : (
+                    <span className="text-[13px] text-stone-800">That&apos;s {MAX_SCREENSHOTS}, the most Corral reads at once.</span>
+                  )}
+                  {sampleScreenshot && shots.length + preparing === 0 ? (
+                    <button type="button" onClick={() => void loadSample()} className="text-[13px] font-semibold text-sea-700 underline underline-offset-4">
+                      Try a sample screenshot
+                    </button>
+                  ) : null}
+                  <span className="flex-1" />
+                  <button
+                    type="button"
+                    onClick={() => void roundUp()}
+                    disabled={!canRead}
+                    className="inline-flex h-[52px] shrink-0 items-center justify-center gap-2.5 rounded-full bg-sunset-500 pl-4 pr-6 font-display text-lg text-tar shadow-sm transition hover:bg-sunset-400 disabled:cursor-not-allowed disabled:opacity-50 max-sm:w-full"
+                  >
+                    <LassoIcon className="h-6 w-6" />
+                    Round it up
+                  </button>
                   <input
                     ref={shotInput}
                     type="file"
@@ -552,52 +565,24 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
                     }}
                   />
                 </div>
-
-                {note ? (
-                  <p
-                    role={note.tone === "error" ? "alert" : "status"}
-                    className={cn(
-                      "mx-5 mt-5 rounded-[18px] px-4 py-3 text-sm",
-                      note.tone === "error" ? "bg-sunset-100 font-semibold text-danger" : "bg-sunset-100 text-sunset-900"
-                    )}
-                  >
-                    {note.text}
-                    {note.tone === "fallback" && draft.url ? <span className="mt-1 block font-semibold text-glass-800">The link is kept on the place.</span> : null}
-                  </p>
-                ) : null}
-
-                <div className="flex items-center justify-end px-5 pb-5 pt-4 max-sm:flex-col max-sm:items-stretch">
-                  <button
-                    type="button"
-                    onClick={() => void roundUp()}
-                    disabled={!canRead}
-                    className="inline-flex h-[52px] shrink-0 items-center justify-center gap-2.5 rounded-full bg-sunset-500 pl-4 pr-6 font-display text-lg text-tar shadow-sm transition hover:bg-sunset-400 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <LassoIcon className="h-6 w-6" />
-                    Round it up
-                  </button>
-                </div>
               </section>
             </div>
 
-            <div className="my-6 flex items-center gap-3 font-display text-[15px] text-sunset-800">
-              <span aria-hidden="true" className="flex-1 border-t-[3px] border-dashed border-sunset-600/45" />
-              nothing to paste?
-              <span aria-hidden="true" className="flex-1 border-t-[3px] border-dashed border-sunset-600/45" />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <ChoiceButton
-                art={<AddressArt />}
-                title="Start from an address"
-                onClick={() => startBy("address")}
-              />
-              <ChoiceButton
-                art={<HandArt />}
-                title="Fill it in by hand"
-                onClick={() => startBy("title")}
-              />
-            </div>
+            {/* Nothing to paste: one way in, by hand, starting from the address. */}
+            <button
+              type="button"
+              onClick={() => startBy("address")}
+              className="mt-5 flex w-full items-center gap-4 rounded-[24px] border border-divider bg-shell-light p-3 pr-5 text-left transition hover:bg-shell-mid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              <HandArt />
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-[18px] text-tar">Fill it in by hand</span>
+                <span className="block text-[13px] text-stone-700">Nothing to paste? Start from the address.</span>
+              </span>
+              <span aria-hidden="true" className="font-display text-xl text-sunset-600">
+                →
+              </span>
+            </button>
           </div>
           )}
         </div>
@@ -887,15 +872,6 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
   );
 }
 
-function ChoiceButton({ art, title, onClick }: { art: React.ReactNode; title: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="group flex items-center gap-3.5 rounded-[22px] border border-divider bg-shell-light p-3 text-left transition hover:bg-shell-mid">
-      {art}
-      <span className="min-w-0 font-display text-[17px] leading-tight">{title}</span>
-    </button>
-  );
-}
-
 /** While Corral reads: the sun sets behind the corral as the fence goes up, board by board. */
 function RoundingUp({ what, landed, onStop }: { what: string; landed: number | null; onStop: () => void }) {
   const done = landed !== null;
@@ -1088,20 +1064,6 @@ function FenceCount({ n }: { n: number }) {
 
 function reducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** A pin standing on the horizon at sunset. */
-function AddressArt() {
-  return (
-    <span aria-hidden="true" className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-[18px] bg-sunset-300">
-      <span className="absolute left-1/2 top-4 h-9 w-9 -translate-x-1/2 rounded-full bg-sunset-100" />
-      <span className="corral-stripe absolute inset-x-0 bottom-0 h-3.5" />
-      <svg viewBox="0 0 24 24" className="absolute bottom-2 left-1/2 h-8 w-8 -translate-x-1/2 transition group-hover:-translate-y-0.5">
-        <path d="M12 22s-7-6.4-7-11.7a7 7 0 0 1 14 0C19 15.6 12 22 12 22z" fill="#0b4163" />
-        <circle cx="12" cy="10" r="2.6" fill="#fff2eb" />
-      </svg>
-    </span>
-  );
 }
 
 /** Two fence boards up, and a dashed one still to fill in. */
