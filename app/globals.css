@@ -165,11 +165,58 @@
   );
 }
 
-/* The wave edge under the stripe: scallops 28px apart, 13px radius. */
+/*
+ * The tide: where the sea meets the next band. A front swell in the sea's
+ * color with a lighter swell peeking out behind it. Set --tide-front (the
+ * color above) and --tide-back (the lighter water); the element's own
+ * background is the color below (transparent shows the page). Add
+ * .corral-tide-drift to let the two swells drift past each other.
+ */
+.corral-tide,
 .corral-wave {
-  height: 18px;
-  margin-top: -1px;
-  background: radial-gradient(circle at 50% 0, var(--color-sea-700) 13px, transparent 14px) 0 0 / 28px 18px repeat-x;
+  position: relative;
+  height: 22px;
+}
+.corral-wave { margin-top: -1px; }
+.corral-tide::before,
+.corral-tide::after,
+.corral-wave::before,
+.corral-wave::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  -webkit-mask-size: 320px 22px;
+  mask-size: 320px 22px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+}
+.corral-tide::before,
+.corral-wave::before {
+  background: var(--tide-back, var(--color-sea-300));
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V10C240%2010%20240%2022%20160%2022C80%2022%2080%2010%200%2010Z%22/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V10C240%2010%20240%2022%20160%2022C80%2022%2080%2010%200%2010Z%22/%3E%3C/svg%3E");
+  -webkit-mask-position: 150px 0;
+  mask-position: 150px 0;
+}
+.corral-tide::after,
+.corral-wave::after {
+  background: var(--tide-front, var(--color-sea-700));
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V5C240%205%20240%2016%20160%2016C80%2016%2080%205%200%205Z%22/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V5C240%205%20240%2016%20160%2016C80%2016%2080%205%200%205Z%22/%3E%3C/svg%3E");
+}
+@keyframes corral-tide-front {
+  from { -webkit-mask-position: 0 0; mask-position: 0 0; }
+  to { -webkit-mask-position: -320px 0; mask-position: -320px 0; }
+}
+@keyframes corral-tide-back {
+  from { -webkit-mask-position: 150px 0; mask-position: 150px 0; }
+  to { -webkit-mask-position: 470px 0; mask-position: 470px 0; }
+}
+.corral-tide-drift::after { animation: corral-tide-front 14s linear infinite; }
+.corral-tide-drift::before { animation: corral-tide-back 22s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .corral-tide-drift::before,
+  .corral-tide-drift::after { animation: none; }
 }
 
 /* The stripe running sideways: a tab underline, a heading rule, the top edge of a card. */
@@ -435,4 +482,42 @@ dialog::backdrop {
     animation-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Landing page motion. Things rise, stand up or fill in as they scroll into view
+   (Reveal sets data-armed, then data-shown); postcards drift in and bob gently. */
+[data-armed="true"]:not([data-shown="true"]) .reveal-up { opacity: 0; transform: translateY(28px); }
+[data-armed="true"]:not([data-shown="true"]) .reveal-board { transform: scaleY(0); }
+[data-armed="true"]:not([data-shown="true"]) .reveal-fill { width: 0 !important; }
+.reveal-up { transition: opacity 0.6s ease-out, transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1); transition-delay: calc(var(--i, 0) * 110ms); }
+.reveal-board { transform-origin: bottom; transition: transform 0.6s cubic-bezier(0.3, 1.4, 0.6, 1); transition-delay: calc(var(--i, 0) * 70ms); }
+.reveal-fill { transition: width 0.9s ease-out; transition-delay: calc(0.3s + var(--i, 0) * 150ms); }
+
+@keyframes corral-card-in {
+  from { opacity: 0; transform: translateY(70px) rotate(calc(var(--r) * 2.5)); }
+  to { opacity: 1; transform: translateY(0) rotate(var(--r)); }
+}
+@keyframes corral-bob {
+  0%, 100% { transform: translateY(0) rotate(var(--r)); }
+  50% { transform: translateY(-7px) rotate(var(--r)); }
+}
+.corral-postcard {
+  transform: rotate(var(--r));
+  animation: corral-card-in 0.9s cubic-bezier(0.3, 1.25, 0.6, 1) both, corral-bob 6s ease-in-out infinite;
+  animation-delay: calc(0.2s + var(--i, 0) * 0.18s), calc(1.3s + var(--i, 0) * 0.7s);
+}
+@keyframes corral-sun-rest {
+  from { transform: translate(-50%, -40px); }
+  to { transform: translate(-50%, 0); }
+}
+.corral-sun-rest { transform: translate(-50%, 0); animation: corral-sun-rest 2.4s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up, .reveal-board, .reveal-fill { transition: none; }
+  /* If reduced motion turns on after a section was armed, show it anyway. */
+  [data-armed="true"]:not([data-shown="true"]) .reveal-up { opacity: 1; transform: none; }
+  [data-armed="true"]:not([data-shown="true"]) .reveal-board { transform: none; }
+  [data-armed="true"]:not([data-shown="true"]) .reveal-fill { width: var(--fill) !important; }
+  .corral-postcard { animation: none; }
+  .corral-sun-rest { animation: none; }
 }
