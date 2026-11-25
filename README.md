@@ -51,7 +51,7 @@ Corral should be recognizable from any cropped screenshot. The palette (sunset, 
 | Rent tags | Hanging price tags | Map pins and prices |
 | The lasso toggle | The rope loop with "Rope in" / "Roped in" | Picking places to compare (always with its label) |
 | The empty lot | Pale sky, the sun sitting on a fence | Any place without a photo |
-| The fit fence | Five one-color boards, filled like a star rating, plus the number | A place's rank score |
+| Fit stars | Five sunset stars with the score out of 5 beside them ("4.3 · Great fit") | A place's rank score; stars are familiar, so this one stays a star |
 | Rope-tag buttons | The rent-tag shape with a knot | One-tap moves ("Move to Tour scheduled") |
 | The open gate | Two posts, gate boards swung open | Signing in, loading a board ("Opening the gate…") |
 
