@@ -271,7 +271,7 @@ function RankCard({
   return (
     <article aria-label={`#${r.rank} ${name}, ${score} out of 5`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="h-[112px] w-[84px] shrink-0 overflow-hidden rounded-t-[42px] rounded-b-[14px] sm:h-[132px] sm:w-[100px] sm:rounded-t-[50px] sm:rounded-b-[16px]">
+        <div className="h-[92px] w-[120px] shrink-0 overflow-hidden rounded-[18px] sm:h-[124px] sm:w-[170px] sm:rounded-[20px]">
           {r.place.lat === null ? (
             <EmptyLot />
           ) : (
@@ -409,7 +409,7 @@ function HeldSection({
           const name = streetHeadline(h.place.address, h.place.title);
           return (
             <li key={h.place.id} className="flex items-center gap-3 rounded-[20px] bg-shell p-2 pr-3">
-              <div className={cn("h-[64px] w-12 shrink-0 overflow-hidden rounded-t-[24px] rounded-b-[9px] bg-shell-deep", dim && "opacity-60 grayscale")}>
+              <div className={cn("h-14 w-20 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
                 {h.place.lat === null ? (
                   <EmptyLot size="sm" />
                 ) : (

@@ -131,7 +131,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           size="row"
           enabled={photos}
           attribution="tiny"
-          className="h-[76px] w-[56px] rounded-b-[12px] rounded-t-[28px] lg:h-24 lg:w-[72px] lg:rounded-b-[14px] lg:rounded-t-[36px]"
+          className="h-[76px] w-[56px] rounded-[14px] lg:h-24 lg:w-[72px] lg:rounded-[16px]"
         />
       )}
 

@@ -142,7 +142,7 @@ export function CompareView({
           {places.map((p) => {
             const name = streetHeadline(p.address, p.title);
             return (
-              <div key={p.id} className="overflow-hidden rounded-t-[160px] bg-shell-light">
+              <div key={p.id} className="overflow-hidden rounded-t-[26px] bg-shell-light">
                 <StreetPhoto
                   listingId={p.id}
                   lat={p.lat}
@@ -210,7 +210,7 @@ export function CompareView({
                     size="row"
                     enabled={photos}
                     attribution="tiny"
-                    className="h-[104px] w-full rounded-b-[14px] rounded-t-[52px]"
+                    className="h-[92px] w-full rounded-[16px]"
                   />
                 </div>
               );

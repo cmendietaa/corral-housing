@@ -340,7 +340,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pb-5 sm:px-7">
           {/* The place itself: photo, name, where it is. */}
           <div className="flex gap-4 rounded-[26px] bg-shell-light p-3">
-            <div className="h-[132px] w-[104px] shrink-0 overflow-hidden rounded-t-[52px] rounded-b-[16px] max-sm:h-[112px] max-sm:w-[86px]">
+            <div className="h-[132px] w-[176px] shrink-0 overflow-hidden rounded-[20px] max-sm:h-[96px] max-sm:w-[112px]">
               {listing && listing.lat !== null && listing.lng !== null ? (
                 <StreetPhoto listingId={listing.id} lat={listing.lat} lng={listing.lng} label={headline ?? ""} size="card" enabled={streetPhotos} attribution="tiny" className="h-full w-full" />
               ) : (
@@ -625,7 +625,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
                 {pics.map((p, i) => (
                   <li key={p.id} className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={`Photo ${i + 1} to add`} className="h-16 w-12 rounded-t-[24px] rounded-b-[9px] object-cover" />
+                    <img src={p.url} alt={`Photo ${i + 1} to add`} className="h-16 w-16 rounded-[14px] object-cover" />
                     <button
                       type="button"
                       onClick={() => removePic(p.id)}

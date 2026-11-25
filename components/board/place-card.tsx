@@ -261,7 +261,7 @@ export function MapMiniCard({
         size="row"
         enabled={photos}
         attribution="tiny"
-        className="h-24 w-[72px] rounded-b-[14px] rounded-t-[36px]"
+        className="h-24 w-[72px] rounded-[16px]"
       />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
