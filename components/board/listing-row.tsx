@@ -141,11 +141,11 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
         </h3>
         {nickname ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{nickname}</p> : null}
         {size || commute ? (
-          <p className="mt-0.5 flex items-center gap-1.5 whitespace-nowrap text-[13px] text-stone-700">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-stone-700">
             {size}
             {size && commute ? <span aria-hidden="true">·</span> : null}
             {commute ? (
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
                 <Bike className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
                 <span className="sr-only">Bike to campus:</span>
                 {commute.bikeMin} min
