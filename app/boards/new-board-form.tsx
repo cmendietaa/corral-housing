@@ -8,9 +8,11 @@ import { createBoard, type CreateBoardState } from "./actions";
 export function NewBoardForm() {
   const [state, action, pending] = useActionState<CreateBoardState, FormData>(createBoard, { error: null });
   return (
-    <form action={action} className="rounded-[30px] bg-shell-deep p-5 sm:p-6">
-      <h2 className="font-display text-xl text-tar">Start a board</h2>
-      <p className="mt-1 text-sm text-stone-700">One board per lease search. You can invite your roommates next.</p>
+    <form action={action} className="rounded-[30px] border-2 border-dashed border-sunset-600/80 p-5 sm:p-6">
+      <h2 className="flex items-center gap-3 font-display text-xl text-sunset-800">
+        <span aria-hidden="true" className="block h-9 w-3 rounded-t-full rounded-b-[2px] border-2 border-dashed border-sunset-600" />
+        Start a new board
+      </h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <label className="block">
           <span className="label text-stone-700">Board name</span>

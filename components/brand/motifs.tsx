@@ -204,3 +204,27 @@ export function GateLoading({ label = "Opening the gate…", className }: { labe
     </div>
   );
 }
+
+/** The open gate (sign in): two posts, the gate boards swung open, the sun behind. */
+export function OpenGate({ className }: { className?: string }) {
+  const left = ["bg-sea-700", "bg-sunset-500", "bg-glass-500"];
+  const right = ["bg-sea-300", "bg-sunset-400", "bg-sea-700"];
+  const heights = [96, 104, 98];
+  return (
+    <span aria-hidden="true" className={cn("relative block h-[150px] w-[300px]", className)}>
+      <span className="absolute bottom-0 left-1/2 h-[130px] w-[130px] -translate-x-1/2 rounded-full bg-sunset-200" />
+      <span className="absolute bottom-0 left-3 h-[140px] w-5 rounded-t-full rounded-b-[3px] bg-sunset-700" />
+      <span className="absolute bottom-0 right-3 h-[140px] w-5 rounded-t-full rounded-b-[3px] bg-sunset-700" />
+      <span className="absolute bottom-0 left-10 flex origin-bottom-left skew-y-[-8deg] items-end gap-1.5">
+        {left.map((c, i) => (
+          <span key={i} className={cn("block w-3.5 rounded-t-full rounded-b-[2px]", c)} style={{ height: heights[i] }} />
+        ))}
+      </span>
+      <span className="absolute bottom-0 right-10 flex origin-bottom-right skew-y-[8deg] items-end gap-1.5">
+        {right.map((c, i) => (
+          <span key={i} className={cn("block w-3.5 rounded-t-full rounded-b-[2px]", c)} style={{ height: heights[2 - i] }} />
+        ))}
+      </span>
+    </span>
+  );
+}

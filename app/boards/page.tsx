@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { PageShell, SignOutButton } from "@/components/brand/page-shell";
-import { CrewPill } from "@/components/brand/band";
+import { OpenGate } from "@/components/brand/motifs";
+import { CREW } from "@/components/board/status-style";
+import { cn } from "@/lib/utils";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NewBoardForm } from "./new-board-form";
@@ -25,11 +27,10 @@ export default async function BoardsPage({ searchParams }: { searchParams: Promi
   if (!user) {
     return (
       <PageShell title="Your boards">
-        <div className="mx-auto max-w-lg rounded-[30px] bg-shell-deep p-8 text-center">
-          <h2 className="font-display text-[26px] text-tar">Sign in to see your boards</h2>
-          <p className="mt-2 text-stone-700">
-            Private boards are shared only with the roommates you invite. Sign in with Google to start one or open yours.
-          </p>
+        <div className="mx-auto flex max-w-lg flex-col items-center px-2 pt-4 text-center">
+          <OpenGate />
+          <h2 className="mt-5 font-display text-[32px] leading-tight text-tar">The gate&apos;s open</h2>
+          <p className="mt-2 text-stone-800">Your boards are shared only with the roommates you invite.</p>
           {signin === "failed" ? (
             <p role="alert" className="mt-3 text-sm font-semibold text-danger">
               Sign-in didn&apos;t finish. Try again.
@@ -73,16 +74,30 @@ export default async function BoardsPage({ searchParams }: { searchParams: Promi
                 href={`/boards/${b.id}`}
                 className="flex items-center gap-4 rounded-[26px] bg-shell-light p-5 shadow-sm transition hover:bg-shell-mid"
               >
+                {/* The board's crew as a little fence, one board per roommate. */}
+                <span className="flex h-14 shrink-0 items-end gap-1" aria-label={`${b.board_members.length} roommates`}>
+                  {b.board_members.slice(0, 6).map((m, i) => (
+                    <span
+                      key={m.user_id}
+                      className={cn("block w-3.5 rounded-t-full rounded-b-[2px]", CREW[i % CREW.length]!.bg)}
+                      style={{ height: [50, 56, 46, 54, 48, 52][i] }}
+                    />
+                  ))}
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-display text-xl text-tar">{b.name}</span>
                   <span className="mt-1 block text-sm text-stone-700">
-                    {[b.lease_year ? `Lease ${b.lease_year}` : null, `${b.listings[0]?.count ?? 0} places`].filter(Boolean).join(" · ")}
+                    {[
+                      `${b.board_members.length} ${b.board_members.length === 1 ? "roommate" : "roommates"}`,
+                      `${b.listings[0]?.count ?? 0} places`,
+                      b.lease_year ? `Lease ${b.lease_year}` : null
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </span>
                 </span>
-                <span className="flex items-end gap-1" aria-label={`${b.board_members.length} roommates`}>
-                  {b.board_members.slice(0, 5).map((m, i) => (
-                    <CrewPill key={m.user_id} name={m.display_name} index={i} size="sm" />
-                  ))}
+                <span aria-hidden="true" className="font-display text-xl text-sunset-600">
+                  →
                 </span>
               </Link>
             </li>

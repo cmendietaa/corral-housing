@@ -29,6 +29,7 @@ import { MapMiniCard, PlaceCard, PlaceSheet } from "./place-card";
 import { RankView } from "./rank-view";
 import { StatusBoard } from "./status-board";
 import { FenceFallback } from "./street-photo";
+import { GateLoading } from "@/components/brand/motifs";
 
 const MapPanel = dynamic(() => import("./map-panel"), {
   ssr: false,
@@ -804,13 +805,8 @@ function BoardSkeleton() {
       <Band>
         <div className="h-[150px] lg:h-[72px]" />
       </Band>
-      <div className="grid flex-1 gap-5 px-4 pt-4 lg:grid-cols-[540px_minmax(0,1fr)] lg:px-6">
-        <div className="space-y-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-[24px] bg-shell-deep" />
-          ))}
-        </div>
-        <div className="hidden animate-pulse rounded-[32px] bg-shell-light lg:block" />
+      <div className="flex flex-1 items-center justify-center px-4 pb-24">
+        <GateLoading />
       </div>
     </div>
   );

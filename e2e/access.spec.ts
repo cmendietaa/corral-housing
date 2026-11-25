@@ -18,7 +18,7 @@ test("a private board asks a signed-out visitor to sign in, and reveals nothing"
 
 test("the boards page offers sign-in and the demo", async ({ page }) => {
   await page.goto("/boards");
-  await expect(page.getByRole("heading", { name: "Sign in to see your boards" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The gate's open" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Try the demo board" })).toBeVisible();
 });
 
