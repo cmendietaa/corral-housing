@@ -75,7 +75,7 @@ export function Stepper({
       <button type="button" onClick={() => onStep(-1)} aria-label={less} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-divider bg-shell-light hover:bg-shell-mid">
         <Minus className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
       </button>
-      <input {...input} placeholder="?" className={cn("w-12 min-w-0 flex-1 border-0 bg-transparent text-center font-display tabular-nums outline-none placeholder:text-stone-500", zero ? "text-lg" : "text-[22px]")} />
+      <input {...input} placeholder="?" className={cn("w-12 min-w-0 flex-1 rounded-full border-0 bg-transparent text-center font-display tabular-nums outline-none placeholder:text-stone-500 focus-visible:ring-2 focus-visible:ring-focus", zero ? "text-lg" : "text-[22px]")} />
       <button type="button" onClick={() => onStep(1)} aria-label={more} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-divider bg-shell-light hover:bg-shell-mid">
         <Plus className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
       </button>

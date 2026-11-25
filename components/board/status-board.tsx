@@ -96,6 +96,22 @@ export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props)
       </nav>
 
       <div
+        // Phones: swiping between columns moves the highlight in the stage row too.
+        onScroll={(e) => {
+          const box = e.currentTarget.getBoundingClientRect();
+          let best: ListingStatus | "washed" = shown;
+          let bestGap = Infinity;
+          for (const st of [...COLUMNS, "washed" as const]) {
+            const el = columnRefs.current.get(st === "washed" ? "passed" : st);
+            if (!el) continue;
+            const gap = Math.abs(el.getBoundingClientRect().left - box.left - 16);
+            if (gap < bestGap) {
+              bestGap = gap;
+              best = st;
+            }
+          }
+          if (best !== shown) setShown(best);
+        }}
         className={cn(
           "no-scrollbar mt-4 flex snap-x snap-mandatory gap-3.5 overflow-x-auto pb-2 max-lg:-mx-4 max-lg:px-4 lg:mt-0 lg:grid lg:snap-none lg:overflow-visible",
           "lg:grid-cols-[repeat(4,minmax(0,1fr))_190px]"

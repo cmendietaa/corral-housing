@@ -449,7 +449,7 @@ function DetailsSection({
               Budget per person
             </label>
             {/* A rent tag: knot on the left, rounded on the right. */}
-            <div className="mt-1.5 flex h-11 items-center gap-2 rounded-l-[12px] rounded-r-[22px] border-[1.5px] border-tar bg-shell-light pl-3 pr-4">
+            <div className="mt-1.5 flex h-11 items-center gap-2 rounded-l-[12px] rounded-r-[22px] border-[1.5px] border-tar bg-shell-light pl-3 pr-4 focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-shell">
               <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full border-[1.5px] border-tar" />
               <span aria-hidden="true" className="font-display text-lg text-tar">
                 $

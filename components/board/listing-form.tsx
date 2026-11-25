@@ -341,7 +341,8 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
           {/* The place itself: photo, name, where it is. */}
           <div className="flex gap-4 rounded-[26px] bg-shell-light p-3">
             <div className="h-[132px] w-[176px] shrink-0 overflow-hidden rounded-[20px] max-sm:h-[96px] max-sm:w-[112px]">
-              {listing && listing.lat !== null && listing.lng !== null ? (
+              {/* StreetPhoto shows an uploaded cover even without a pin, and the empty lot when there's nothing. */}
+              {listing ? (
                 <StreetPhoto listingId={listing.id} lat={listing.lat} lng={listing.lng} label={headline ?? ""} size="card" enabled={streetPhotos} attribution="tiny" className="h-full w-full" />
               ) : (
                 <EmptyLot />

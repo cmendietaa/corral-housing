@@ -432,10 +432,11 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
           {reading ? (
             <RoundingUp what={reading} landed={landed} onStop={() => readAbort.current?.abort()} />
           ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:flex sm:flex-col sm:justify-center sm:px-8 sm:pb-10">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:flex sm:flex-col sm:px-8 sm:pb-10">
             {/* One box for anything: a link, text, or screenshots dropped anywhere on it. */}
+            {/* Auto margins center the card but collapse when it overflows, so its top stays reachable. */}
             <div
-              className="relative"
+              className="relative sm:mt-auto"
               onDragOver={(e) => {
                 if (!e.dataTransfer.types.includes("Files")) return;
                 e.preventDefault();
@@ -572,7 +573,7 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
             <button
               type="button"
               onClick={() => startBy("address")}
-              className="mt-5 flex w-full items-center gap-4 rounded-[24px] border border-divider bg-shell-light p-3 pr-5 text-left transition hover:bg-shell-mid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="mt-5 flex w-full sm:mb-auto items-center gap-4 rounded-[24px] border border-divider bg-shell-light p-3 pr-5 text-left transition hover:bg-shell-mid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               <HandArt />
               <span className="min-w-0 flex-1">

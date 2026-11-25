@@ -201,10 +201,12 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
               <li className="inline-flex items-center gap-2 rounded-full bg-glass-200 px-2.5 py-1 font-semibold text-glass-800">
                 <span className="inline-flex items-center gap-1">
                   <Bike className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  <span className="sr-only">Bike:</span>
                   {commute.bikeMin} min
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Footprints className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  <span className="sr-only">Walk:</span>
                   {commute.walkMin} min
                 </span>
                 <span className="font-normal">to campus</span>
