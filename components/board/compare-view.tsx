@@ -62,7 +62,17 @@ export function CompareTray({
 function Cell({ cell, compact = false }: { cell: CompareCell; compact?: boolean }) {
   const text = compact && cell.short ? cell.short : cell.text;
   if (cell.best) {
-    return <span className="inline-block rounded-full bg-sea-200 px-3 py-0.5 font-bold text-sea-900">{text}</span>;
+    return compact ? (
+      <span className="inline-flex flex-col rounded-[12px] bg-sunset-200 px-2.5 py-1 font-bold leading-tight text-tar">
+        {text}
+        <span className="text-[11px] text-sunset-700">Best</span>
+      </span>
+    ) : (
+      <span className="inline-flex items-baseline gap-1.5 rounded-full bg-sunset-200 px-3 py-0.5 font-bold text-tar">
+        {text}
+        <span className="text-xs text-sunset-700">· Best</span>
+      </span>
+    );
   }
   if (cell.unknown) {
     return <span className="inline-block rounded-full bg-shell-mid px-3 py-0.5 italic text-stone-700">{text}</span>;
@@ -71,8 +81,9 @@ function Cell({ cell, compact = false }: { cell: CompareCell; compact?: boolean 
 }
 
 /**
- * Two or three places side by side. Rows always come in the same order, the
- * best value per row is a sea pill, and unknowns stay explicitly Unknown.
+ * Two or three places side by side, each a tall fence board. Rows always come
+ * in the same order, the best value per row says "Best", and unknowns stay
+ * explicitly Unknown.
  */
 export function CompareView({
   places,
@@ -131,7 +142,7 @@ export function CompareView({
           {places.map((p) => {
             const name = streetHeadline(p.address, p.title);
             return (
-              <div key={p.id} className="overflow-hidden rounded-t-[30px] bg-shell-deep">
+              <div key={p.id} className="overflow-hidden rounded-t-[160px] bg-shell-light">
                 <StreetPhoto
                   listingId={p.id}
                   lat={p.lat}
@@ -140,7 +151,7 @@ export function CompareView({
                   size="compare"
                   enabled={photos}
                   hint
-                  className="h-40 w-full"
+                  className="h-44 w-full"
                 />
                 <div className="px-5 pb-4 pt-4">
                   <h2 className="font-display text-xl leading-tight text-tar">{name}</h2>
@@ -165,13 +176,15 @@ export function CompareView({
             const last = ri === rows.length - 1;
             return (
               <div key={row.key} className="contents">
-                <div className="label flex items-center border-t border-divider py-4 text-stone-700">{row.label}</div>
+                {/* Soft bands instead of ruled lines: every other row is tinted across the board. */}
+                <div className={cn("label flex items-center rounded-l-full py-3.5 pl-4 text-stone-700", ri % 2 === 0 && "bg-shell-mid")}>{row.label}</div>
                 {row.cells.map((cell, ci) => (
                   <div
                     key={ci}
                     className={cn(
-                      "flex items-center border-t border-divider bg-shell-deep px-5 py-4 text-[15px]",
-                      last && "rounded-b-[28px]"
+                      "flex items-center px-5 py-3.5 text-[15px]",
+                      ri % 2 === 0 ? "bg-shell-mid" : "bg-shell-light",
+                      last && "rounded-b-[26px] pb-5"
                     )}
                   >
                     <Cell cell={cell} />
@@ -197,7 +210,7 @@ export function CompareView({
                     size="row"
                     enabled={photos}
                     attribution="tiny"
-                    className="h-[92px] w-full rounded-[22px]"
+                    className="h-[104px] w-full rounded-b-[14px] rounded-t-[52px]"
                   />
                 </div>
               );
@@ -214,9 +227,9 @@ export function CompareView({
               </p>
             ))}
           </div>
-          <dl className="divide-y divide-divider">
-            {rows.map((row) => (
-              <div key={row.key} className="py-3">
+          <dl>
+            {rows.map((row, ri) => (
+              <div key={row.key} className={cn("-mx-2 rounded-[18px] px-2 py-3", ri % 2 === 0 && "bg-shell-mid")}>
                 <dt className="label text-stone-700">{row.label}</dt>
                 <dd className="mt-1.5 grid gap-2 text-[13px]" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
                   {row.cells.map((cell, ci) => (
