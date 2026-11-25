@@ -1,0 +1,125 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.f{font-family:Caprasimo,Georgia,serif;font-weight:400}
+.lab{font-size:13px;font-weight:700;color:#474238}
+.field{height:44px;border-radius:22px;border:1.5px solid #c0b6a5;background:#fff9f5;display:flex;align-items:center;padding:0 16px;font-size:15px;box-sizing:border-box}
+.chip{height:36px;padding:0 14px;border-radius:18px;border:1.5px solid #c0b6a5;background:#fff9f5;font-size:14px;display:inline-flex;align-items:center}
+.chip.on{background:#0b4163;border-color:#0b4163;color:#fdf2ea;font-weight:700}
+.sec{display:flex;flex-direction:column;gap:12px}
+.mini{font-size:13px;font-weight:700;color:#1c5b82;border:0;background:none;padding:0;font-family:inherit;cursor:pointer}
+</style>
+</head><body>
+
+<div style="width: 1280px; height: 900px; box-sizing: border-box; background: #6e5b4f; font-family: Figtree, system-ui, sans-serif; color: #201e1d; display: flex; align-items: center; justify-content: center">
+  <div role="dialog" aria-label="Board settings" style="width: 720px; height: 780px; background: #fdf2ea; border-radius: 34px; display: flex; flex-direction: column; overflow: hidden">
+
+    <div style="position: relative; background: #ffc6a5; padding: 22px 28px 0; overflow: hidden">
+      <span aria-hidden="true" style="position: absolute; right: 120px; bottom: -34px; width: 92px; height: 92px; border-radius: 46px; background: #ffe1d0"></span>
+      <div style="position: relative; display: flex; align-items: flex-start; gap: 12px">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; padding-bottom: 16px">
+          <label for="s-name" class="lab" style="color: #643312">Board name</label>
+          <input id="s-name" class="f" value="Our place by the bluffs" style="border: 0; border-bottom: 2px dashed rgba(32,30,29,.35); background: transparent; font-size: 30px; padding: 0 0 4px; outline: none; color: #201e1d">
+        </div>
+        <button type="button" aria-label="Close" style="width: 40px; height: 40px; border-radius: 20px; border: 0; background: #fff9f5; font-size: 20px">×</button>
+      </div>
+      <div aria-hidden="true" style="margin: 0 -28px; height: 5px; background: #f6a06b"></div>
+      <div aria-hidden="true" style="margin: 0 -28px; height: 5px; background: #d67f48"></div>
+      <div aria-hidden="true" style="margin: 0 -28px; height: 6px; background: #458ebb"></div>
+    </div>
+    <div aria-hidden="true" style="height: 16px; background: radial-gradient(circle at 50% 0, #458ebb 12px, transparent 13px) -2px 0 / 26px 16px repeat-x"></div>
+
+    <div style="flex: 1; min-height: 0; padding: 10px 28px 0; display: flex; flex-direction: column; gap: 24px">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <div class="sec">
+          <span class="lab">Lease year</span>
+          <div style="display: flex; gap: 8px"><span class="chip">2026–27</span><span class="chip on">2027–28</span><span class="chip">2028–29</span></div>
+        </div>
+        <div class="sec">
+          <label class="lab" for="s-budget">Budget per person</label>
+          <span style="display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; background: #fff9f5; border: 1.5px solid #201e1d; border-radius: 10px 20px 20px 10px; padding: 0 16px 0 10px; height: 40px">
+            <span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #201e1d"></span><span class="f" style="font-size: 18px">$</span>
+            <input id="s-budget" class="f" value="1,400" style="width: 64px; border: 0; background: transparent; font-size: 18px; outline: none">
+            <span style="font-size: 13px; color: #474238">/ month</span>
+          </span>
+        </div>
+      </div>
+
+      <section aria-labelledby="crew" class="sec">
+        <div style="display: flex; align-items: baseline; gap: 10px">
+          <h2 id="crew" class="f" style="margin: 0; font-size: 22px">The crew</h2>
+          <span style="font-size: 14px; color: #645c50">4 roommates</span>
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 18px; padding: 26px 0 0 14px">
+          
+            <button type="button" aria-pressed="false" style="display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; position: relative">
+              <span aria-hidden="true" style="position: absolute; top: -26px; width: 84px; height: 84px; border-radius: 42px; background: #ffe1d0"></span>
+              <span class="f" style="position: relative; width: 56px; height: 104px; border-radius: 28px 28px 10px 10px; background: #f6a06b; color: #201e1d; display: flex; justify-content: center; padding-top: 12px; box-sizing: border-box; font-size: 20px; box-shadow: none">M</span>
+              <span style="font-size: 14px; font-weight: 700">Maya (you)</span>
+              <span style="font-size: 12px; color: #645c50; height: 14px">Owner</span>
+            </button>
+          
+            <button type="button" aria-pressed="true" style="display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; position: relative">
+              
+              <span class="f" style="position: relative; width: 56px; height: 96px; border-radius: 28px 28px 10px 10px; background: #458ebb; color: #fdf2ea; display: flex; justify-content: center; padding-top: 12px; box-sizing: border-box; font-size: 20px; box-shadow: 0 0 0 3px #fdf2ea, 0 0 0 5px #201e1d">J</span>
+              <span style="font-size: 14px; font-weight: 700">Jordan</span>
+              <span style="font-size: 12px; color: #645c50; height: 14px"></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" style="display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; position: relative">
+              
+              <span class="f" style="position: relative; width: 56px; height: 100px; border-radius: 28px 28px 10px 10px; background: #8fa073; color: #201e1d; display: flex; justify-content: center; padding-top: 12px; box-sizing: border-box; font-size: 20px; box-shadow: none">S</span>
+              <span style="font-size: 14px; font-weight: 700">Sam</span>
+              <span style="font-size: 12px; color: #645c50; height: 14px"></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" style="display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; position: relative">
+              
+              <span class="f" style="position: relative; width: 56px; height: 92px; border-radius: 28px 28px 10px 10px; background: #97cceb; color: #201e1d; display: flex; justify-content: center; padding-top: 12px; box-sizing: border-box; font-size: 20px; box-shadow: none">P</span>
+              <span style="font-size: 14px; font-weight: 700">Priya</span>
+              <span style="font-size: 12px; color: #645c50; height: 14px"></span>
+            </button>
+          
+          <button type="button" style="display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer">
+            <span style="width: 56px; height: 92px; border-radius: 28px 28px 10px 10px; border: 2px dashed #b2622d; color: #b2622d; display: flex; align-items: center; justify-content: center; font-size: 26px; box-sizing: border-box">+</span>
+            <span style="font-size: 14px; font-weight: 700; color: #b2622d">Invite</span>
+            <span style="height: 14px"></span>
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; background: #fff9f5; border-radius: 20px; padding: 12px 16px">
+          <span style="width: 14px; height: 22px; border-radius: 7px 7px 3px 3px; background: #458ebb"></span>
+          <span style="flex: 1; font-size: 15px"><b>Jordan</b></span>
+          <button type="button" class="mini">Hand the board to Jordan</button>
+          <button type="button" class="mini" style="color: #9c3d1f">Remove</button>
+        </div>
+      </section>
+
+      <section aria-labelledby="links" class="sec">
+        <h2 id="links" class="f" style="margin: 0; font-size: 20px">Invite links</h2>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid #201e1d; border-radius: 10px 20px 20px 10px; padding: 7px 14px 7px 10px; font-size: 14px; background: #fff9f5"><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #201e1d"></span>Maya’s link · open 6 more days</span>
+          <button type="button" class="mini">Copy</button>
+          <button type="button" class="mini" style="color: #9c3d1f">Turn off</button>
+        </div>
+      </section>
+
+      <section aria-labelledby="send" style="display: flex; align-items: center; gap: 14px; background: #e5f5fd; border-radius: 20px; padding: 14px 16px">
+        <svg width="30" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b4163" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 4c4.4 0 8 2.2 8 5s-3.6 5-8 5-8-2.2-8-5 3.6-5 8-5z"/><path d="M8 13c-1.5 2-1.5 4 .5 5s2 3 .5 4" fill="none"/></svg>
+        <h2 id="send" class="f" style="margin: 0; font-size: 18px; flex: 1; color: #0b4163">Send to Corral</h2>
+        <button type="button" class="mini">Set it up</button>
+      </section>
+    </div>
+
+    <div style="margin-top: 16px">
+      <div aria-hidden="true" style="height: 14px; background: radial-gradient(circle at 50% 100%, #e7ddd2 12px, transparent 13px) -2px 0 / 26px 14px repeat-x"></div>
+      <div style="background: #e7ddd2; padding: 12px 28px 20px; display: flex; align-items: center; gap: 22px">
+        <span class="f" style="font-size: 17px; color: #474238; flex: 1">Low tide</span>
+        <button type="button" class="mini" style="color: #474238">Leave the board</button>
+        <button type="button" class="mini" style="color: #9c3d1f">Delete the board</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
