@@ -159,6 +159,14 @@ describe("explanations", () => {
     expect(r.ranked[0]!.facts.bike).toBe("about 4 min bike to campus");
   });
 
+  it("a minus names only the bad part of parking and laundry, never a good one", () => {
+    const r = rankPlaces([place({ rentCents: 320000, parking: "street", laundry: "on_site", ...bikeAway(4) })], base, people);
+    const minus = r.ranked[0]!.reasons.find((x) => x.factor === "amenities");
+    expect(minus).toEqual({ factor: "amenities", sign: "-", text: "street parking only" });
+    // The breakdown still shows both facts.
+    expect(r.ranked[0]!.facts.amenities).toBe("laundry on site, street parking only");
+  });
+
   it("a price minus says how little room is left", () => {
     const r = rankPlaces([place({ rentCents: 540000 })], base, people);
     expect(headline(r.ranked[0]!).find((x) => x.sign === "-")?.text).toBe("$1,350/person, only $50 under your max");

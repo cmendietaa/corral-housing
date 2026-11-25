@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Plus, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
@@ -22,7 +22,7 @@ import {
   type Requirement
 } from "@/lib/rank";
 import { RopeInToggle } from "@/components/brand/controls";
-import { EmptyLot, FitStars } from "@/components/brand/motifs";
+import { EmptyLot, FENCE_COLORS, FitStars } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
@@ -123,9 +123,26 @@ export function RankView({ footNote, listings, board, photos, checked, checkDisa
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[26px] leading-tight text-tar max-lg:sr-only">Best fit for you</h2>
             {openCount > 0 ? (
-              <p className="mt-1 text-sm text-stone-800">
-                {ranking.ranked.length} of {openCount} open {openCount === 1 ? "place fits" : "places fit"} your must-haves
-                {ranking.ranked.length < openCount ? "; the rest are below." : "."}
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-800">
+                {/* One board per open place; the ones that fit stand in color. */}
+                <span aria-hidden="true" className="flex items-end gap-[3px]">
+                  {Array.from({ length: Math.min(openCount, 12) }, (_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "block w-2 rounded-t-full rounded-b-[2px]",
+                        i < ranking.ranked.length ? FENCE_COLORS[i % FENCE_COLORS.length] : "ring-[1.5px] ring-inset ring-stone-400"
+                      )}
+                      style={{ height: [18, 22, 16, 20, 17, 21][i % 6] }}
+                    />
+                  ))}
+                </span>
+                <span>
+                  <span className="font-display text-base text-tar">
+                    {ranking.ranked.length} of {openCount}
+                  </span>{" "}
+                  open {openCount === 1 ? "place fits" : "places fit"} your must-haves
+                </span>
               </p>
             ) : null}
           </div>
@@ -199,20 +216,28 @@ function summary(p: Priorities): string {
 }
 
 function Notes({ ranking, openCount }: { ranking: ReturnType<typeof rankPlaces>; openCount: number }) {
-  const notes: string[] = [];
-  if (openCount < 2) notes.push("Add a few places to rank them.");
+  const notes: { tag?: string; text: string }[] = [];
+  if (openCount < 2) notes.push({ text: "Add a few places to rank them." });
   else if (!ranking.ranked.length && ranking.tightest)
-    notes.push(`No place meets all your requirements. The ${REQUIREMENT_LABELS[ranking.tightest]} rules out the most; loosen it?`);
-  if (ranking.allDontCare) notes.push("Everything is set to Don't care, so places are ranked by price.");
-  if (ranking.noPins) notes.push("None of these places has a pin, so bike time can't count yet. Drop pins on the map.");
+    notes.push({ tag: "Too strict", text: `No place meets all your requirements. The ${REQUIREMENT_LABELS[ranking.tightest]} rules out the most; loosen it?` });
+  if (ranking.allDontCare) notes.push({ text: "Everything is set to Don't care, so places are ranked by price." });
+  if (ranking.noPins) notes.push({ tag: "No pins", text: "Bike time can't count until places have pins on the map." });
   if (ranking.closeCall && ranking.ranked.length >= 2)
-    notes.push(`Close call: #1 changes depending on how much ${FACTOR_LABELS[ranking.closeCall].toLowerCase()} matters.`);
+    notes.push({ tag: "Close call", text: `#1 changes with how much ${FACTOR_LABELS[ranking.closeCall].toLowerCase()} matters.` });
   if (!notes.length) return null;
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {notes.map((n) => (
-        <li key={n} className="text-sm text-stone-800">
-          {n}
+        <li key={n.text} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-stone-800">
+          {n.tag ? (
+            // A rope tag: knot dot on the left, rounded on the right.
+            <span className="inline-flex items-center gap-1.5 rounded-l-[8px] rounded-r-[14px] bg-sunset-200 py-1 pl-2 pr-3 text-xs font-bold text-sunset-800">
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-shell-light" />
+              {n.tag}
+              <span className="sr-only">:</span>
+            </span>
+          ) : null}
+          <span>{n.text}</span>
         </li>
       ))}
     </ul>
@@ -271,17 +296,26 @@ function RankCard({
           </div>
           <FitStars stars={r.score / 20} text={score} className="mt-2" />
           {line.length ? (
-            <p className="mt-1.5 space-y-0.5 text-[13px] leading-snug text-stone-800">
+            <ul className="mt-2 flex flex-wrap gap-1.5 text-[13px] leading-snug">
               {line.map((x) => (
-                <span key={x.factor} className="block">
-                  <span className={x.sign === "+" ? "text-sea-900" : "text-danger"} aria-hidden="true">
-                    {x.sign === "+" ? "+ " : "− "}
+                <li
+                  key={x.factor}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-3",
+                    x.sign === "+" ? "bg-glass-200 text-glass-900" : "bg-sunset-200/80 text-sunset-900"
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn("flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-shell-light", x.sign === "+" ? "bg-glass-600" : "bg-sunset-600")}
+                  >
+                    {x.sign === "+" ? <Plus className="h-3 w-3" strokeWidth={3.5} /> : <Minus className="h-3 w-3" strokeWidth={3.5} />}
                   </span>
                   <span className="sr-only">{x.sign === "+" ? "Plus: " : "Minus: "}</span>
                   {x.text}
-                </span>
+                </li>
               ))}
-            </p>
+            </ul>
           ) : null}
           {r.missing.length ? (
             <p className="mt-1.5 flex flex-wrap gap-1.5">

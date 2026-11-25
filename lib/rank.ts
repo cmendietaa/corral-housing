@@ -210,7 +210,13 @@ export function normalizeWeights(levels: Record<Factor, Level>): { weights: Reco
 
 export type Reason = { factor: Factor; sign: "+" | "-"; text: string };
 
-function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: number | null, minus = false): string | null {
+/**
+ * A factor in words. As a reason, `side` keeps only the parts that point that
+ * way: parking and laundry are one factor, so a place with on-site laundry and
+ * street parking only lists the parking as a minus, and the laundry as a plus.
+ */
+function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: number | null, side: "fact" | "+" | "-" = "fact"): string | null {
+  const minus = side === "-";
   switch (f) {
     case "price": {
       const pp = rentPerPerson(p.rentCents, people);
@@ -229,9 +235,11 @@ function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: num
     case "bathrooms":
       return p.baths === null || !people ? null : `${plural(p.baths, "bath")} for ${plural(people, "person").replace("persons", "people")}`;
     case "amenities": {
+      // An item counts as good from 0.5 up (on-site laundry, a driveway) and bad below (street parking, none).
+      const keep = (score: number) => side === "fact" || (side === "+" ? score >= 0.5 : score < 0.5);
       const parts = [
-        p.laundry === null ? null : { in_unit: "in-unit laundry", on_site: "laundry on site", none: "no laundry" }[p.laundry],
-        p.parking === null ? null : { garage: "garage", driveway: "off-street parking", street: "street parking only", none: "no parking" }[p.parking]
+        p.laundry === null || !keep(LAUNDRY_SCORE[p.laundry]) ? null : { in_unit: "in-unit laundry", on_site: "laundry on site", none: "no laundry" }[p.laundry],
+        p.parking === null || !keep(PARKING_SCORE[p.parking]) ? null : { garage: "garage", driveway: "off-street parking", street: "street parking only", none: "no parking" }[p.parking]
       ].filter(Boolean);
       return parts.length ? parts.join(", ") : null;
     }
@@ -405,11 +413,11 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
     const neg = pulls.filter((x) => x.pull < 0).sort((a, b) => a.pull - b.pull).slice(0, 1);
     const reasons: Reason[] = [];
     for (const { f } of pos) {
-      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents);
+      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "+");
       if (text) reasons.push({ factor: f, sign: "+", text });
     }
     for (const { f } of neg) {
-      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, true);
+      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "-");
       if (text) reasons.push({ factor: f, sign: "-", text });
     }
 
