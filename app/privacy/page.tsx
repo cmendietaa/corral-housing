@@ -51,12 +51,12 @@ export default function PrivacyPage() {
           Accounts and boards are stored with Supabase. Tour photos you add are stored privately there too and only members of
           that board can see them; before upload, your browser shrinks each photo and removes its hidden details, including
           the location the camera recorded. On the demo, photos stay in your browser and are never uploaded. The site is hosted on Vercel. Maps use OpenFreeMap and OpenStreetMap
-          data; if street photos are turned on, they come from Google Street View using a place&apos;s map location. To place a pin, the address you enter is looked up with the US Census Geocoder or OpenStreetMap; nothing else about the place is sent. If you use Autofill, the listing text or screenshots you give it are sent to OpenAI to read the details, with OpenAI&apos;s response storage turned off; your browser shrinks screenshots and removes their hidden details first, and Corral never saves them.
+          data; if street photos are turned on, they come from Google Street View using a place&apos;s map location. To place a pin, the address you enter is looked up with the US Census Geocoder or OpenStreetMap; nothing else about the place is sent. If you use Autofill, the listing text or screenshots you give it are sent to OpenAI to read the details, with OpenAI&apos;s response storage turned off; your browser shrinks screenshots and removes their hidden details first, and Corral never saves them. If you use Fill from link, Corral&apos;s server opens that one page to read it (the site sees a visit from Corral, not from you), and its text is read the same way; the page isn&apos;t saved, only the details you choose to keep. If you use Send to Corral, your browser sends Corral the text of the listing you&apos;re looking at, the same as pasting it; Corral reads it once for the details and doesn&apos;t save it. If you choose to keep photos from a listing, Corral downloads just those and saves them with your board&apos;s photos, visible only to its members.
         </p>
 
         <h2>Deleting your data</h2>
         <p>
-          You can remove places from a board at any time. To delete your account and everything tied to it, open a request at{" "}
+          You can remove places from a board at any time, leave a board, or, as its owner, delete a board in its settings. To delete your account and everything tied to it, open a request at{" "}
           <a href={CONTACT} className="text-sea-700 underline underline-offset-4">
             the project&apos;s GitHub issues
           </a>{" "}
