@@ -16,7 +16,9 @@ export default defineConfig({
   use: { baseURL, trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } } },
-    { name: "iphone", use: { ...devices["iPhone 13"], browserName: "chromium" } }
+    { name: "iphone", use: { ...devices["iPhone 13"], browserName: "chromium" } },
+    // Safari's engine (WebKit), at desktop size: catches layout that only breaks in Safari.
+    { name: "safari", use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 900 } } }
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

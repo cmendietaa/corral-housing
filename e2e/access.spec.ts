@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 /**
  * Signed-out access to private routes. Signed-in collaboration and outsider
