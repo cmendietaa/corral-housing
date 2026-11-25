@@ -44,7 +44,8 @@ export function createDemoPhotos(newId: () => string, now: () => Date) {
 
   /**
    * Every photo. Showing photos tolerates a failed read (the board still opens);
-   * deleting passes `strict`, so a failed read isn't taken for "nothing to delete".
+   * deleting and the photo cap pass `strict`, so a failed read isn't taken for
+   * "no photos".
    */
   async function all(strict = false): Promise<Rec[]> {
     const db = await dbPromise;
@@ -90,7 +91,7 @@ export function createDemoPhotos(newId: () => string, now: () => Date) {
       return (await all()).map(toPhoto);
     },
     async add(listingId: string, blob: Blob): Promise<Photo> {
-      const existing = (await all()).filter((r) => r.listingId === listingId).length;
+      const existing = (await all(true)).filter((r) => r.listingId === listingId).length;
       if (existing >= MAX_PHOTOS_PER_PLACE) throw new Error(`A place can have up to ${MAX_PHOTOS_PER_PLACE} photos.`);
       const rec: Rec = { id: newId(), listingId, bytes: await blob.arrayBuffer(), type: blob.type || "image/jpeg", createdAt: now().toISOString() };
       const db = await dbPromise;

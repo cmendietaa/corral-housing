@@ -59,4 +59,10 @@ describe("robotsAllows", () => {
     expect(robotsAllows(`User-agent: *\nDisallow: ${rule}`, `/${"a".repeat(5000)}`, UA)).toBe(true);
     expect(Date.now() - started).toBeLessThan(200);
   });
+
+  it("matches non-ASCII rules against encoded paths, and ranks rules by their normalized length", () => {
+    expect(robotsAllows("User-agent: *\nDisallow: /café", "/caf%C3%A9", UA)).toBe(false);
+    expect(robotsAllows("User-agent: *\nDisallow: /caf%c3%a9", "/café", UA)).toBe(false);
+    expect(robotsAllows("User-agent: *\nAllow: /%61\nDisallow: /ab", "/ab", UA)).toBe(false);
+  });
 });

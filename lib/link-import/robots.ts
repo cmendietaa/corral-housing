@@ -34,11 +34,19 @@ function groupsFor(text: string): Map<string, Rule[]> {
 }
 
 /**
- * RFC 9309 compares paths after decoding percent-encoded unreserved characters
- * (so /%70rivate is /private), but keeps reserved ones encoded (%2F isn't /).
+ * RFC 9309 compares paths in one form: non-ASCII characters percent-encoded
+ * (so /café is /caf%C3%A9), percent-encoded unreserved characters decoded (so
+ * /%70rivate is /private), and reserved ones kept encoded (%2F isn't /).
  */
 function normalize(path: string): string {
-  return path.replace(/%([0-9a-fA-F]{2})/g, (m, hex: string) => {
+  const encoded = path.replace(/[^\x00-\x7F]/gu, (ch) => {
+    try {
+      return encodeURIComponent(ch);
+    } catch {
+      return ch; // a lone surrogate can't be encoded; leave it
+    }
+  });
+  return encoded.replace(/%([0-9a-fA-F]{2})/g, (m, hex: string) => {
     const ch = String.fromCharCode(parseInt(hex, 16));
     return /[A-Za-z0-9\-._~]/.test(ch) ? ch : m.toUpperCase();
   });
@@ -83,10 +91,12 @@ export function robotsAllows(robotsTxt: string, path: string, agent: string): bo
   // Our own group by its exact name (names are stored lower-case), else `*`.
   const rules = groups.get(token) ?? groups.get("*") ?? [];
   const target = normalize(path);
-  let best: Rule | null = null;
+  // The most specific rule wins, measured in the same normalized form it was matched in.
+  let best: { allow: boolean; length: number } | null = null;
   for (const rule of rules) {
-    if (!matches(normalize(rule.pattern), target)) continue;
-    if (!best || rule.pattern.length > best.pattern.length || (rule.pattern.length === best.pattern.length && rule.allow)) best = rule;
+    const pattern = normalize(rule.pattern);
+    if (!matches(pattern, target)) continue;
+    if (!best || pattern.length > best.length || (pattern.length === best.length && rule.allow)) best = { allow: rule.allow, length: pattern.length };
   }
   return best ? best.allow : true;
 }
