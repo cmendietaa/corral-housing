@@ -118,3 +118,89 @@ export function SettingSun({ className, label = "Reading…" }: { className?: st
     </span>
   );
 }
+
+/**
+ * No photo yet: a pale sky with the sun sitting on a fence. Fills whatever
+ * frame it's in (a fence-board thumbnail, a card's photo, a compare column).
+ */
+export function EmptyLot({ className, size = "md" }: { className?: string; size?: "sm" | "md" }) {
+  const heights = size === "sm" ? [10, 13, 9, 12, 11] : [26, 32, 24, 30, 27, 33, 25, 31, 28];
+  return (
+    <span aria-hidden="true" className={cn("relative block h-full w-full overflow-hidden bg-sunset-200", className)}>
+      <span
+        className={cn(
+          "absolute left-1/2 -translate-x-1/2 rounded-full bg-sunset-100",
+          size === "sm" ? "bottom-[8px] h-[44%] max-h-7 w-auto aspect-square" : "bottom-[14px] h-[48%] max-h-16 w-auto aspect-square"
+        )}
+      />
+      <span className={cn("absolute inset-x-0 bottom-0 flex items-end justify-center", size === "sm" ? "gap-[2px] px-[2px]" : "gap-[5px] px-2")}>
+        {heights.map((h, i) => (
+          <span
+            key={i}
+            className={cn("block rounded-t-full", size === "sm" ? "flex-1" : "w-[14px]", FENCE_COLORS[i % FENCE_COLORS.length])}
+            style={{ height: h }}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+/** The word for a fit score out of 10. */
+export function fitWord(score: number): string {
+  if (score >= 8) return "Great fit";
+  if (score >= 6) return "Good fit";
+  if (score >= 4) return "Okay fit";
+  return "Long shot";
+}
+
+/**
+ * A rank score out of 10 as five fence boards, read like a five-star rating:
+ * each board is two points, filled from the bottom (full, half or empty).
+ * One color on purpose, so it reads as a meter rather than decoration.
+ */
+export function FitFence({ score, className }: { score: number; className?: string }) {
+  const shown = score.toFixed(1);
+  return (
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <span role="img" aria-label={`Fit ${shown} out of 10`} className="flex items-end gap-[3px]">
+        {Array.from({ length: 5 }, (_, i) => {
+          const part = Math.max(0, Math.min(1, score / 2 - i));
+          const fill = part >= 0.75 ? 100 : part >= 0.25 ? 50 : 0;
+          return (
+            <span
+              key={i}
+              className="block h-[22px] w-3 rounded-t-full rounded-b-[2px] ring-[1.5px] ring-inset ring-sea-700"
+              style={{ background: `linear-gradient(to top, var(--color-sea-700) ${fill}%, transparent ${fill}%)` }}
+            />
+          );
+        })}
+      </span>
+      <span aria-hidden="true" className="font-display text-lg leading-none text-tar">
+        {shown}
+      </span>
+      <span aria-hidden="true" className="text-sm font-bold text-stone-800">
+        · {fitWord(score)}
+      </span>
+    </span>
+  );
+}
+
+/** Loading a board: fence boards go up one after another (still under reduced motion). */
+export function GateLoading({ label = "Opening the gate…", className }: { label?: string; className?: string }) {
+  const heights = [44, 54, 38, 50, 42];
+  return (
+    <div role="status" className={cn("flex flex-col items-center gap-4", className)}>
+      <span aria-hidden="true" className="flex h-14 items-end gap-2">
+        {heights.map((h, i) => (
+          <span
+            key={i}
+            className={cn("corral-board block w-3.5 origin-bottom rounded-t-full rounded-b-[2px]", FENCE_COLORS[i])}
+            style={{ height: h, animationDelay: `${i * 0.12}s` }}
+          />
+        ))}
+      </span>
+      <span className="font-display text-lg text-tar">{label}</span>
+    </div>
+  );
+}
