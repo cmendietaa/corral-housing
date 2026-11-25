@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ImagePlus, Link2, Loader2, Sparkles, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { LassoIcon, EmptyLot, PinIcon, SunMark } from "@/components/brand/motifs";
 import { streetHeadline } from "@/lib/address";
+import { commuteToCampus } from "@/lib/commute";
 import { MAX_SCREENSHOT_BYTES, MAX_SCREENSHOTS } from "@/lib/extract/image";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
 import {
@@ -21,6 +22,8 @@ import type { ParsedListing } from "@/lib/parse-listing";
 import { shrinkScreenshot } from "@/lib/photo-shrink";
 import { MAX_PHOTOS_PER_PLACE } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
+import { Choices, FieldError, Stepper, Tile } from "./fields";
+import { StreetPhoto } from "./street-photo";
 import { fillEmpty, parsedToDraft, toDraft, validateDraft, type Draft, type DraftErrors } from "./place-draft";
 
 type Errors = DraftErrors;
@@ -37,6 +40,8 @@ type Props = {
   sampleScreenshot?: string;
   /** Whether this board stores photos (shows the Photos section when adding). */
   canAddPhotos?: boolean;
+  /** Whether Street View is configured; without it the place shows the empty lot. */
+  streetPhotos?: boolean;
 };
 
 /** A photo picked while adding a place, previewed from memory until it uploads. */
@@ -45,7 +50,7 @@ type Pic = { id: string; file: File; url: string };
 /** A screenshot waiting to be read: shrunk in the browser, kept only in memory. */
 type Shot = { id: string; blob: Blob; url: string };
 
-export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot, canAddPhotos = false }: Props) {
+export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot, canAddPhotos = false, streetPhotos = false }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const id = useId();
   const base = listing ?? emptyListingInput();
@@ -299,287 +304,314 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
       set(key)(e.target.value)
   });
 
+  const step1 = (key: "beds" | "baths", delta: number) => {
+    const current = Number(draft[key]) || 0;
+    set(key)(String(Math.min(20, Math.max(0, current + delta))));
+  };
+  const commute = listing ? commuteToCampus(listing.lat, listing.lng) : null;
+  const headline = listing ? streetHeadline(listing.address, listing.title) : null;
+  const canRead = /^https?:\/\/\S+\.\S+/i.test(draft.url.trim());
+
   return (
     <dialog
       ref={dialogRef}
       onClose={onClose}
       aria-labelledby={`${id}-heading`}
       className={cn(
-        "overflow-hidden bg-surface p-0 text-ink shadow-lift backdrop:bg-ink/40",
+        "overflow-hidden bg-shell p-0 text-tar shadow-lift backdrop:bg-tar/40",
         // Phones: a bottom sheet. Larger screens: a centered panel.
-        "max-sm:mb-0 max-sm:mt-auto max-sm:max-h-[92dvh] max-sm:w-full max-sm:max-w-none max-sm:rounded-t-xl",
-        "sm:m-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(42rem,calc(100vw-3rem))] sm:rounded-xl"
+        "max-sm:mb-0 max-sm:mt-auto max-sm:max-h-[92dvh] max-sm:w-full max-sm:max-w-none max-sm:rounded-t-[30px]",
+        "sm:m-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(48rem,calc(100vw-3rem))] sm:rounded-[34px]"
       )}
     >
       <form onSubmit={handleSubmit} noValidate className="flex max-h-[inherit] flex-col">
-        <div className="shrink-0 px-5 pt-5 sm:px-7 sm:pt-6">
-          <div className="flex items-start justify-between gap-4">
-            <h2 id={`${id}-heading`} className="font-display text-2xl font-extrabold leading-tight">
-              {listing ? `Edit ${streetHeadline(listing.address, listing.title)}` : "Add a place"}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="-mr-2 -mt-1 rounded-full p-2 text-muted hover:bg-sand hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-          <p className="mt-3 text-sm text-muted">
-            Only a name is required. Leave anything you don&apos;t know blank and it shows as
-            unknown.
-          </p>
+        <div className="flex shrink-0 items-center gap-4 px-5 pb-3 pt-5 sm:px-7 sm:pt-6">
+          <h2 id={`${id}-heading`} className="min-w-0 flex-1 font-display text-[24px] leading-tight sm:text-[27px]">
+            {headline ? `Edit ${headline}` : "Add a place"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-shell-deep text-tar hover:bg-shell-mid focus-visible:outline-2 focus-visible:outline-focus"
+          >
+            <X className="h-5 w-5" strokeWidth={2.75} aria-hidden="true" />
+          </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 pb-6 pt-5 sm:px-7">
-          <div
-            className={cn("rounded-[22px] bg-sea-100 p-4", dragging && "outline-2 outline-offset-2 outline-sea-700 outline-dashed")}
-            onDragOver={(e) => {
-              if (!e.dataTransfer.types.includes("Files")) return;
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
-            }}
-            onDrop={(e) => {
-              if (!e.dataTransfer.files.length) return;
-              e.preventDefault();
-              setDragging(false);
-              setPasteOpen(true);
-              void addScreenshots([...e.dataTransfer.files]);
-            }}
-          >
-            <button
-              type="button"
-              aria-expanded={pasteOpen}
-              onClick={() => setPasteOpen((o) => !o)}
-              className="flex w-full items-center gap-2 text-left"
-            >
-              <Sparkles className="h-4 w-4 text-sea-700" strokeWidth={2.75} aria-hidden="true" />
-              <span className="font-display text-base text-tar">Autofill from the listing</span>
-              <span className="ml-auto text-xs font-semibold text-sea-700">{pasteOpen ? "Hide" : "Show"}</span>
-            </button>
-            {pasteOpen ? (
-              <div className="mt-3 space-y-2.5">
-                <label htmlFor={`${id}-paste`} className="block text-sm text-stone-800">
-                  Paste the listing&apos;s text or add screenshots of it (a post, a chat, a listing page). Corral fills in what
-                  it can; you check it before saving. Screenshots aren&apos;t saved. Have a link? Use Fill from link below.
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pb-5 sm:px-7">
+          {/* The place itself: photo, name, where it is. */}
+          <div className="flex gap-4 rounded-[26px] bg-shell-light p-3">
+            <div className="h-[132px] w-[104px] shrink-0 overflow-hidden rounded-t-[52px] rounded-b-[16px] max-sm:h-[112px] max-sm:w-[86px]">
+              {listing && listing.lat !== null && listing.lng !== null ? (
+                <StreetPhoto listingId={listing.id} lat={listing.lat} lng={listing.lng} label={headline ?? ""} size="card" enabled={streetPhotos} attribution="tiny" className="h-full w-full" />
+              ) : (
+                <EmptyLot />
+              )}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-2.5">
+              <div>
+                <label htmlFor={`${id}-title`} className="flex items-center gap-2 text-xs font-bold text-stone-700">
+                  Name
+                  {filled.has("title") ? <SunMark className="h-4 w-4" label="Rounded up from the listing" /> : null}
                 </label>
-                <textarea
-                  id={`${id}-paste`}
-                  value={pasteText}
-                  onChange={(e) => setPasteText(e.target.value)}
-                  onPaste={(e) => {
-                    const images = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
-                    if (images.length === 0) return;
-                    // An image on its own shouldn't paste its file name as text.
-                    if (!e.clipboardData.getData("text/plain")) e.preventDefault();
-                    void addScreenshots(images);
-                  }}
-                  rows={4}
-                  maxLength={8000}
-                  placeholder={"4BR/2BA duplex near Pardall, $5,400/mo\nAvailable Sept 1, 12-month lease. W/D in unit."}
-                  className="w-full rounded-[18px] border border-divider bg-shell-light px-4 py-3 text-sm placeholder:text-stone-600"
-                />
-                <ul aria-label="Screenshots" className="flex flex-wrap items-center gap-2.5">
-                  {shots.map((s, i) => (
-                    <li key={s.id} className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setViewing(i)}
-                        aria-label={`View screenshot ${i + 1}`}
-                        className="block h-16 w-12 overflow-hidden rounded-xl border border-divider bg-shell-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sea-700"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.url} alt="" className="h-full w-full object-cover object-top" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeShot(s.id)}
-                        aria-label={`Remove screenshot ${i + 1}`}
-                        className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-tar text-shell shadow-sm"
-                      >
-                        <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
-                      </button>
-                    </li>
-                  ))}
-                  {Array.from({ length: preparing }, (_, i) => (
-                    <li key={`prep-${i}`} role="status" className="flex h-16 w-12 items-center justify-center rounded-xl bg-shell-mid">
-                      <Loader2 className="h-4 w-4 animate-spin text-stone-700" aria-hidden="true" />
-                      <span className="sr-only">Preparing a screenshot</span>
-                    </li>
-                  ))}
-                  {shots.length + preparing < MAX_SCREENSHOTS ? (
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="flex h-11 items-center gap-1.5 rounded-full border-[1.5px] border-dashed border-sea-700 px-3.5 text-sm font-semibold text-sea-900 hover:bg-sea-200/50"
-                      >
-                        <ImagePlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                        {shots.length ? "Add another" : "Add screenshot"}
-                      </button>
-                    </li>
-                  ) : null}
-                  {sampleScreenshot && shots.length + preparing === 0 ? (
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => void loadSample()}
-                        className="px-1 text-sm font-semibold text-sea-700 underline underline-offset-4"
-                      >
-                        Try a sample screenshot
-                      </button>
-                    </li>
-                  ) : null}
-                </ul>
-                <p className="text-xs text-stone-700 max-sm:hidden">You can also paste or drop a screenshot here.</p>
                 <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  aria-label="Add screenshots of the listing"
-                  onChange={(e) => {
-                    const files = [...(e.target.files ?? [])];
-                    e.target.value = "";
-                    if (files.length) void addScreenshots(files);
-                  }}
+                  {...field("title")}
+                  maxLength={120}
+                  required
+                  placeholder="Upstairs 4-bed with a balcony"
+                  className="mt-1 w-full border-0 border-b-2 border-sea-500 bg-transparent pb-1 font-display text-[22px] leading-tight text-tar outline-none placeholder:text-stone-500 focus-visible:border-sunset-500"
                 />
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="sea"
-                    size="sm"
-                    disabled={autofill.busy || preparing > 0 || (pasteText.trim().length < 10 && shots.length === 0)}
-                    onClick={() => void runAutofill()}
-                  >
-                    {autofill.busy ? "Reading…" : "Autofill"}
-                  </Button>
-                  <span aria-live="polite" className={cn("text-sm", autofill.error ? "font-semibold text-danger" : "text-sea-900")}>
-                    {autofill.message}
-                  </span>
-                </div>
+                <FieldError id={`${id}-title-error`} text={errors.title} />
               </div>
-            ) : null}
+              <div>
+                <label htmlFor={`${id}-address`} className="flex items-center gap-2 text-xs font-bold text-stone-700">
+                  Address
+                  {filled.has("address") ? <SunMark className="h-4 w-4" label="Rounded up from the listing" /> : null}
+                </label>
+                <div className="mt-1 flex items-center gap-2">
+                  <PinIcon className="h-4 w-4 shrink-0 text-sea-700" />
+                  <input
+                    {...field("address")}
+                    maxLength={200}
+                    placeholder="6512 Sabado Tarde Rd"
+                    className="min-w-0 flex-1 border-0 border-b border-divider bg-transparent py-1 text-[15px] outline-none focus-visible:border-sunset-500"
+                  />
+                </div>
+                <FieldError id={`${id}-address-error`} text={errors.address} />
+                {commute ? (
+                  <p className="mt-1.5 text-xs">
+                    <span className="rounded-full bg-glass-200 px-2.5 py-0.5 font-bold text-glass-800">Pinned · {commute.bikeMin} min bike to campus</span>
+                  </p>
+                ) : null}
+              </div>
+            </div>
           </div>
 
-          <Section title="The place">
-            <Field label="Listing link" htmlFor={`${id}-url`} filled={filled.has("url")} error={errors.url} errorId={`${id}-url-error`} hint="if there is one" wide>
-              <div className="flex gap-2">
-                <Input {...field("url")} type="url" inputMode="url" autoFocus placeholder="https://" className="min-w-0 flex-1" />
-                {listing ? null : (
-                  <Button
-                    type="button"
-                    variant="sea"
-                    size="md"
-                    className="shrink-0 max-sm:px-4"
-                    disabled={linkRead.busy || !/^https?:\/\/\S+\.\S+/i.test(draft.url.trim())}
-                    onClick={() => void importLink()}
-                  >
-                    <Link2 className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
-                    {linkRead.busy ? "Reading…" : "Fill from link"}
-                  </Button>
-                )}
+          {/* The facts, as the same tiles as adding a place. */}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            <Tile className="col-span-2 sm:col-span-1" found={filled.has("rent")} roped={false} labelFor={`${id}-rent`} label="Rent for the whole place">
+              <div className="flex items-baseline gap-1">
+                <span className="font-display text-lg text-stone-700">$</span>
+                <input
+                  {...field("rent")}
+                  inputMode="decimal"
+                  placeholder="Add rent"
+                  className="w-full min-w-0 border-0 bg-transparent font-display text-[22px] tabular-nums outline-none placeholder:text-stone-500"
+                />
+                <span className="text-sm text-stone-700">/mo</span>
               </div>
+              <FieldError id={`${id}-rent-error`} text={errors.rent} />
+            </Tile>
+            <Tile found={filled.has("beds")} roped={false} labelFor={`${id}-beds`} label="Bedrooms">
+              <Stepper inputProps={{ ...field("beds"), inputMode: "numeric" }} zeroLabel="Studio" onValue={set("beds")} less="One fewer bedroom" more="One more bedroom" onStep={(d) => step1("beds", d)} />
+              <FieldError id={`${id}-beds-error`} text={errors.beds} />
+            </Tile>
+            <Tile found={filled.has("baths")} roped={false} labelFor={`${id}-baths`} label="Bathrooms">
+              <Stepper inputProps={{ ...field("baths"), inputMode: "decimal" }} less="Half a bathroom fewer" more="Half a bathroom more" onStep={(d) => step1("baths", d / 2)} />
+              <FieldError id={`${id}-baths-error`} text={errors.baths} />
+            </Tile>
+            <Tile className="col-span-2 sm:col-span-1" found={filled.has("leaseStart") || filled.has("leaseEnd")} roped={false} label="Lease">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
+                <label className="text-xs text-stone-700">
+                  Starts
+                  <input {...field("leaseStart")} type="date" className="mt-0.5 flex h-10 w-full items-center rounded-full border border-divider bg-shell-light px-3 py-0 text-sm leading-10 text-tar" />
+                </label>
+                <label className="text-xs text-stone-700">
+                  Ends
+                  <input {...field("leaseEnd")} type="date" className="mt-0.5 flex h-10 w-full items-center rounded-full border border-divider bg-shell-light px-3 py-0 text-sm leading-10 text-tar" />
+                </label>
+              </div>
+              <FieldError id={`${id}-leaseEnd-error`} text={errors.leaseEnd ?? errors.leaseStart} />
+            </Tile>
+            <Tile className="col-span-2 sm:col-span-1" found={filled.has("laundry")} roped={false} label="Laundry">
+              <Choices name={`${id}-laundry`} label="Laundry" value={draft.laundry} options={LAUNDRY_OPTIONS.map((o) => [o, LAUNDRY_LABELS[o]])} onChange={set("laundry")} />
+            </Tile>
+            <Tile className="col-span-2 sm:col-span-1" found={filled.has("parking")} roped={false} label="Parking">
+              <Choices name={`${id}-parking`} label="Parking" value={draft.parking} options={PARKING_OPTIONS.map((o) => [o, PARKING_LABELS[o]])} onChange={set("parking")} />
+            </Tile>
+          </div>
+
+          {/* The link, a way to read it again, and the group's notes. */}
+          <div className="space-y-3 rounded-[22px] bg-shell-light p-3.5">
+            <div>
+              <label htmlFor={`${id}-url`} className="text-xs font-bold text-stone-700">
+                Listing link
+              </label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <input
+                  {...field("url")}
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://"
+                  className="h-11 min-w-0 flex-1 rounded-full border border-divider bg-shell px-4 text-sm text-tar placeholder:text-stone-600"
+                />
+                <button
+                  type="button"
+                  disabled={linkRead.busy || !canRead}
+                  onClick={() => void importLink()}
+                  className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border-[1.5px] border-tar bg-shell-light px-4 text-sm font-bold text-tar transition hover:bg-shell-mid disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <LassoIcon className="h-4 w-4" strokeWidth={2.4} />
+                  {linkRead.busy ? "Reading…" : "Round it up again"}
+                </button>
+              </div>
+              <FieldError id={`${id}-url-error`} text={errors.url} />
               <p
                 aria-live="polite"
                 className={cn(
                   "text-sm empty:hidden",
-                  linkRead.message && "mt-2 rounded-[16px] px-3.5 py-2.5",
-                  linkRead.tone === "error" ? "bg-sunset-100 font-semibold text-danger" : linkRead.tone === "fallback" ? "bg-sunset-100 text-tar" : "bg-sea-100 text-sea-900"
+                  linkRead.message && "mt-2",
+                  linkRead.tone === "error" ? "font-semibold text-danger" : "text-stone-800"
                 )}
               >
                 {linkRead.message}
               </p>
-            </Field>
-            <Field
-              label="Name"
-              htmlFor={`${id}-title`}
-              filled={filled.has("title")}
-              error={errors.title}
-              errorId={`${id}-title-error`}
-              hint="A nickname the group will recognize"
-              required
-              wide
+            </div>
+
+            <div
+              className={cn(dragging && "rounded-[18px] outline-2 outline-offset-4 outline-sea-700 outline-dashed")}
+              onDragOver={(e) => {
+                if (!e.dataTransfer.types.includes("Files")) return;
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+              }}
+              onDrop={(e) => {
+                if (!e.dataTransfer.files.length) return;
+                e.preventDefault();
+                setDragging(false);
+                setPasteOpen(true);
+                void addScreenshots([...e.dataTransfer.files]);
+              }}
             >
-              <Input {...field("title")} maxLength={120} placeholder="Upstairs 4-bed with a balcony" required />
-            </Field>
-            <Field label="Address" htmlFor={`${id}-address`} filled={filled.has("address")} error={errors.address} errorId={`${id}-address-error`} wide>
-              <Input {...field("address")} maxLength={200} placeholder="6512 Sabado Tarde Rd" />
-            </Field>
-          </Section>
+              <button
+                type="button"
+                aria-expanded={pasteOpen}
+                onClick={() => setPasteOpen((o) => !o)}
+                className="text-sm font-bold text-sea-700 underline decoration-2 underline-offset-4"
+              >
+                {pasteOpen ? "Hide the paste box" : "Paste text or a screenshot"}
+              </button>
+              {pasteOpen ? (
+                <div className="mt-2.5 space-y-2.5">
+                  <label htmlFor={`${id}-paste`} className="sr-only">
+                    The listing&apos;s text
+                  </label>
+                  <textarea
+                    id={`${id}-paste`}
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                    onPaste={(e) => {
+                      const images = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+                      if (images.length === 0) return;
+                      // An image on its own shouldn't paste its file name as text.
+                      if (!e.clipboardData.getData("text/plain")) e.preventDefault();
+                      void addScreenshots(images);
+                    }}
+                    rows={4}
+                    maxLength={8000}
+                    placeholder={"Paste the listing's text, or a screenshot.\n4BR/2BA duplex near Pardall, $5,400/mo…"}
+                    className="w-full rounded-[18px] border border-divider bg-shell px-4 py-3 text-sm placeholder:text-stone-600"
+                  />
+                  <ul aria-label="Screenshots" className="flex flex-wrap items-center gap-2.5">
+                    {shots.map((s, i) => (
+                      <li key={s.id} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setViewing(i)}
+                          aria-label={`View screenshot ${i + 1}`}
+                          className="block h-16 w-12 overflow-hidden rounded-xl border border-divider bg-shell-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sea-700"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={s.url} alt="" className="h-full w-full object-cover object-top" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeShot(s.id)}
+                          aria-label={`Remove screenshot ${i + 1}`}
+                          className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-tar text-shell shadow-sm"
+                        >
+                          <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                        </button>
+                      </li>
+                    ))}
+                    {Array.from({ length: preparing }, (_, i) => (
+                      <li key={`prep-${i}`} role="status" className="flex h-16 w-12 items-center justify-center rounded-xl bg-shell-mid">
+                        <Loader2 className="h-4 w-4 animate-spin text-stone-700" aria-hidden="true" />
+                        <span className="sr-only">Preparing a screenshot</span>
+                      </li>
+                    ))}
+                    {shots.length + preparing < MAX_SCREENSHOTS ? (
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                          className="flex h-11 items-center gap-1.5 rounded-full border-[1.5px] border-dashed border-sea-700 px-3.5 text-sm font-semibold text-sea-900 hover:bg-sea-200/50"
+                        >
+                          <ImagePlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                          {shots.length ? "Add another" : "Add screenshot"}
+                        </button>
+                      </li>
+                    ) : null}
+                    {sampleScreenshot && shots.length + preparing === 0 ? (
+                      <li>
+                        <button type="button" onClick={() => void loadSample()} className="px-1 text-sm font-semibold text-sea-700 underline underline-offset-4">
+                          Try a sample screenshot
+                        </button>
+                      </li>
+                    ) : null}
+                  </ul>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    aria-label="Add screenshots of the listing"
+                    onChange={(e) => {
+                      const files = [...(e.target.files ?? [])];
+                      e.target.value = "";
+                      if (files.length) void addScreenshots(files);
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="sea"
+                      size="sm"
+                      disabled={autofill.busy || preparing > 0 || (pasteText.trim().length < 10 && shots.length === 0)}
+                      onClick={() => void runAutofill()}
+                    >
+                      {autofill.busy ? "Reading…" : "Fill in from this"}
+                    </Button>
+                    <span aria-live="polite" className={cn("text-sm", autofill.error ? "font-semibold text-danger" : "text-sea-900")}>
+                      {autofill.message}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
-          <Section title="Rent and size">
-            <Field
-              label="Rent for the whole place"
-              htmlFor={`${id}-rent`}
-              filled={filled.has("rent")}
-              error={errors.rent}
-              errorId={`${id}-rent-error`}
-              wide
-            >
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-                <Input {...field("rent")} inputMode="decimal" placeholder="5400" className="pl-6 pr-12 tabular-nums" />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">/mo</span>
-              </div>
-            </Field>
-            <Field label="Beds" htmlFor={`${id}-beds`} filled={filled.has("beds")} error={errors.beds} errorId={`${id}-beds-error`}>
-              <Input {...field("beds")} inputMode="numeric" placeholder="4" />
-            </Field>
-            <Field label="Baths" htmlFor={`${id}-baths`} filled={filled.has("baths")} error={errors.baths} errorId={`${id}-baths-error`}>
-              <Input {...field("baths")} inputMode="decimal" placeholder="2" />
-            </Field>
-          </Section>
-
-          <Section title="Lease">
-            <Field label="Starts" htmlFor={`${id}-leaseStart`} filled={filled.has("leaseStart")} error={errors.leaseStart} errorId={`${id}-leaseStart-error`}>
-              <Input {...field("leaseStart")} type="date" />
-            </Field>
-            <Field label="Ends" htmlFor={`${id}-leaseEnd`} filled={filled.has("leaseEnd")} error={errors.leaseEnd} errorId={`${id}-leaseEnd-error`}>
-              <Input {...field("leaseEnd")} type="date" />
-            </Field>
-          </Section>
-
-          <Section title="Extras">
-            <Field label="Parking" htmlFor={`${id}-parking`} filled={filled.has("parking")}>
-              <Select {...field("parking")}>
-                <option value="">Don&apos;t know yet</option>
-                {PARKING_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {PARKING_LABELS[p]}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Laundry" htmlFor={`${id}-laundry`} filled={filled.has("laundry")}>
-              <Select {...field("laundry")}>
-                <option value="">Don&apos;t know yet</option>
-                {LAUNDRY_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {LAUNDRY_LABELS[p]}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Notes" htmlFor={`${id}-notes`} filled={filled.has("notes")} wide>
+            <div>
+              <label htmlFor={`${id}-notes`} className="text-xs font-bold text-stone-700">
+                Notes
+              </label>
               <textarea
                 {...field("notes")}
                 rows={3}
                 maxLength={2000}
-                placeholder="Anything the group should know: vibe, noise, landlord, deposit…"
-                className="w-full rounded-sm border border-line bg-surface px-3 py-2 text-sm placeholder:text-muted/70 hover:border-ocean/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                placeholder="Anything the group should know: noise, landlord, deposit…"
+                className="mt-1 w-full rounded-[18px] border border-divider bg-shell px-4 py-3 text-sm placeholder:text-stone-600"
               />
-            </Field>
-          </Section>
+            </div>
+          </div>
 
           {!listing && canAddPhotos ? (
             <fieldset
-              className={cn("min-w-0 rounded-[22px]", picDragging && "outline-2 outline-offset-4 outline-sea-700 outline-dashed")}
+              className={cn("min-w-0 rounded-[22px] bg-shell-light p-3.5", picDragging && "outline-2 outline-offset-4 outline-sea-700 outline-dashed")}
               onDragOver={(e) => {
                 if (!e.dataTransfer.types.includes("Files")) return;
                 e.preventDefault();
@@ -595,16 +627,12 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
                 addPics([...e.dataTransfer.files]);
               }}
             >
-              <legend className="font-display mb-3 w-full border-b border-line pb-1.5 text-base font-bold text-ink">Photos</legend>
-              <p className="mb-3 text-sm text-muted">
-                Photos from your tour, or ones you saved from the listing. Everyone on the board sees them. The first one
-                leads; you can change that later.
-              </p>
-              <ul aria-label="Photos to add" className="flex flex-wrap items-center gap-2.5">
+              <legend className="float-left mb-2 w-full text-xs font-bold text-stone-700">Photos</legend>
+              <ul aria-label="Photos to add" className="clear-both flex flex-wrap items-center gap-2.5">
                 {pics.map((p, i) => (
                   <li key={p.id} className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={`Photo ${i + 1} to add`} className="h-16 w-16 rounded-2xl border border-divider object-cover" />
+                    <img src={p.url} alt={`Photo ${i + 1} to add`} className="h-16 w-12 rounded-t-[24px] rounded-b-[9px] object-cover" />
                     <button
                       type="button"
                       onClick={() => removePic(p.id)}
@@ -625,11 +653,6 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
                       <ImagePlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
                       {pics.length ? "Add more" : "Add photos"}
                     </button>
-                  </li>
-                ) : null}
-                {pics.length ? (
-                  <li className="text-xs text-stone-700">
-                    {pics.length} of {MAX_PHOTOS_PER_PLACE}
                   </li>
                 ) : null}
               </ul>
@@ -655,30 +678,33 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
           ) : null}
 
           {formError ? (
-            <p role="alert" className="rounded-sm bg-coral-soft px-3 py-2 text-sm text-danger">
+            <p role="alert" className="text-sm font-semibold text-danger">
               {formError}
             </p>
           ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-sand/60 px-5 py-3 sm:px-7">
-          <Button type="submit" disabled={saving}>
-            {listing ? "Save changes" : "Add place"}
-          </Button>
+        <div className="flex shrink-0 items-center gap-2 bg-shell-deep px-5 py-3.5 sm:gap-3 sm:px-7">
+          {listing && onDelete ? (
+            <button
+              type="button"
+              onClick={() => void handleDelete()}
+              disabled={saving}
+              aria-label="Remove from board"
+              className="inline-flex items-center gap-2 text-sm font-bold text-danger disabled:opacity-50"
+            >
+              <span aria-hidden="true" className="block h-5 w-2 origin-bottom rotate-[16deg] rounded-t-full rounded-b-[2px] bg-stone-400" />
+              <span className="sm:hidden">Remove</span>
+              <span className="max-sm:hidden">Remove from board</span>
+            </button>
+          ) : null}
+          <span className="flex-1" />
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          {listing && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="ml-auto text-danger hover:text-danger"
-              onClick={() => void handleDelete()}
-              disabled={saving}
-            >
-              Remove from board
-            </Button>
-          ) : null}
+          <Button type="submit" disabled={saving}>
+            {listing ? "Save changes" : "Add place"}
+          </Button>
         </div>
       </form>
       {viewing !== null && shots[viewing] ? (
@@ -726,71 +752,5 @@ export function ScreenshotViewer({ url, index, count, onClose }: { url: string; 
         </div>
       </div>
     </dialog>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <fieldset className="min-w-0">
-      <legend className="font-display mb-3 w-full border-b border-line pb-1.5 text-base font-bold text-ink">
-        {title}
-      </legend>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </fieldset>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  error,
-  errorId,
-  hint,
-  required,
-  wide,
-  filled,
-  children
-}: {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  errorId?: string;
-  hint?: string;
-  required?: boolean;
-  wide?: boolean;
-  /** Set by Autofill; shows a tag and tints the input until the person edits it. */
-  filled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        "min-w-0",
-        wide && "sm:col-span-2",
-        filled && "[&_input]:!border-sea-500 [&_input]:!bg-sea-100 [&_select]:!border-sea-500 [&_select]:!bg-sea-100"
-      )}
-    >
-      <label htmlFor={htmlFor} className="mb-1 flex flex-wrap items-baseline gap-x-1.5 text-sm font-semibold text-ink">
-        {label}
-        {required ? <span className="text-xs font-medium text-ocean">required</span> : null}
-        {filled ? <span className="text-xs font-semibold text-sea-700">autofilled</span> : null}
-        {hint ? <span className="text-xs font-normal text-muted">{hint}</span> : null}
-      </label>
-      {children}
-      {error ? (
-        <p id={errorId} className="mt-1 text-xs font-medium text-danger">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className="h-11 w-full rounded-sm border border-line bg-surface px-2 text-sm hover:border-ocean/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-    />
   );
 }
