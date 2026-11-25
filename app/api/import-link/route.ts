@@ -3,7 +3,7 @@ import { z } from "zod";
 import { extractFacts } from "@/lib/link-import/extract";
 import { checkUrl, fetchPage, FetchRefused } from "@/lib/link-import/fetch-page";
 import { readPage } from "@/lib/link-import/read-page";
-import { robotsSay } from "@/lib/link-import/robots-check";
+import { robotsAllowRedirect, robotsSay } from "@/lib/link-import/robots-check";
 import { skippedSite } from "@/lib/link-import/sites";
 
 /**
@@ -73,9 +73,10 @@ export async function POST(request: NextRequest) {
 
   let page;
   try {
-    page = await fetchPage(url);
+    page = await fetchPage(url, { beforeRedirect: robotsAllowRedirect });
   } catch (e) {
     if (e instanceof FetchRefused && e.reason === "skipped") return fallback("skipped", `${e.message} ${PASTE_INSTEAD}`);
+    if (e instanceof FetchRefused && e.reason === "robots") return fallback("blocked", `${e.message} ${PASTE_INSTEAD}`);
     if (e instanceof FetchRefused && e.reason === "private") return error(e.message, 400);
     return error(`${e instanceof Error ? e.message : "Couldn't open that page."} ${PASTE_INSTEAD}`, 502);
   }

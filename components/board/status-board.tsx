@@ -19,7 +19,7 @@ type Props = {
   listings: Listing[];
   board: Board;
   photos: boolean;
-  onPatch: (id: string, patch: ListingPatch) => Promise<void>;
+  onPatch: (id: string, patch: ListingPatch) => Promise<boolean | void>;
   /** Open a place (desktop: back to the map with it selected; phones: the place sheet). */
   onOpen: (id: string) => void;
 };
@@ -155,7 +155,7 @@ function StatusCard({
   listing: Listing;
   board: Board;
   photos: boolean;
-  onPatch: (patch: ListingPatch) => Promise<void>;
+  onPatch: (patch: ListingPatch) => Promise<boolean | void>;
   onOpen: () => void;
 }) {
   const headline = streetHeadline(listing.address, listing.title);
@@ -211,7 +211,7 @@ function StarOverlay({
 }: {
   listing: Listing;
   headline: string;
-  onPatch: (patch: ListingPatch) => Promise<void>;
+  onPatch: (patch: ListingPatch) => Promise<boolean | void>;
 }) {
   return (
     <StarButton

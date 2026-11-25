@@ -61,8 +61,9 @@ export function TourPhotoStrip({
   const inputRef = useRef<HTMLInputElement>(null);
   // The open photo, by key: the list can change while it's open (Street View failing, a roommate's upload).
   const [viewingKey, setViewingKey] = useState<string | null>(null);
-  // Street View has no imagery everywhere; drop its tile when the image fails.
-  const [streetFailed, setStreetFailed] = useState(false);
+  // Street View has no imagery everywhere; drop the tile for a spot whose image fails
+  // (by address, so moving the pin tries the new spot).
+  const [failedStreetSrc, setFailedStreetSrc] = useState<string | null>(null);
   if (!ctx) return null;
 
   const photos = ctx.photosFor(listing.id);
@@ -73,7 +74,7 @@ export function TourPhotoStrip({
 
   const streetSrc = streetEnabled ? streetViewSrc(listing.lat, listing.lng, "sheet") : null;
   const streetThumb = streetEnabled ? streetViewSrc(listing.lat, listing.lng, "row") : null;
-  const streetAvailable = streetSrc !== null && !streetFailed;
+  const streetAvailable = streetSrc !== null && streetSrc !== failedStreetSrc;
   const items: Item[] = [
     ...(streetAvailable && listing.streetView ? [{ kind: "street" as const, url: streetSrc }] : []),
     ...photos.map((photo) => ({ kind: "photo" as const, photo }))
@@ -126,7 +127,7 @@ export function TourPhotoStrip({
                   alt=""
                   className={cn("h-full w-full object-cover", item.kind === "street" && "photo-tone")}
                   loading="lazy"
-                  onError={item.kind === "street" ? () => setStreetFailed(true) : undefined}
+                  onError={item.kind === "street" ? () => setFailedStreetSrc(streetSrc) : undefined}
                 />
                 {item.kind === "street" ? (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-tar/70 py-px text-center text-[8px] font-bold uppercase tracking-wide text-shell">

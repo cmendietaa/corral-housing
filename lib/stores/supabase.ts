@@ -33,11 +33,22 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
     return id;
   }
 
-  /** Remove every photo file on the board (rows go with the board; files don't). */
-  async function removeBoardPhotoFiles() {
-    const { data } = await supabase.from("listing_photos").select("path").eq("board_id", boardId);
+  /**
+   * Remove every photo file on the board (rows go with the board; files don't).
+   * It runs before the board is deleted, since only members can remove the
+   * files, so it first makes sure this person is the owner who can delete it.
+   * Any failure stops the deletion, so trying again picks up where it left off.
+   */
+  async function removeBoardPhotoFiles(me: string) {
+    const owner = await supabase.from("board_members").select("role").eq("board_id", boardId).eq("user_id", me).maybeSingle();
+    if (owner.error) fail("Couldn't delete the board. Try again.");
+    if (owner.data?.role !== "owner") fail("Only the board's owner can delete it.");
+    const { data, error } = await supabase.from("listing_photos").select("path").eq("board_id", boardId);
+    if (error) fail("Couldn't delete the board's photos. Try again.");
     const paths = (data ?? []).map((p: { path: string }) => p.path);
-    if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+    if (!paths.length) return;
+    const removed = await supabase.storage.from(BUCKET).remove(paths);
+    if (removed.error) fail("Couldn't delete the board's photos. Try again.");
   }
 
   const settings: BoardSettings = {
@@ -98,7 +109,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
 
     async makeOwner(userId) {
       const { error } = await supabase.rpc("transfer_board_ownership", { p_board_id: boardId, p_user_id: userId });
-      if (error) fail(error.code === "42501" || error.code === "P0002" ? error.message : "Couldn't hand the board over. Try again.");
+      if (error) fail(["42501", "P0002", "40001"].includes(error.code) ? error.message : "Couldn't hand the board over. Try again.");
     },
 
     async leave() {
@@ -114,7 +125,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
     },
 
     async deleteBoard() {
-      await removeBoardPhotoFiles();
+      await removeBoardPhotoFiles(await myId());
       const { data, error } = await supabase.from("boards").delete().eq("id", boardId).select("id");
       if (error) fail("Couldn't delete the board. Try again.");
       if (!data?.length) fail("Only the board's owner can delete it.");

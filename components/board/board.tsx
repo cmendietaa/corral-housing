@@ -168,9 +168,11 @@ export function Board({
       if (before) replace({ ...before, ...changes });
       try {
         replace(await store.updateListing(id, changes));
+        return true;
       } catch (e) {
         if (before) replace(before);
         setNotice(e instanceof Error ? e.message : "Couldn't save that change.");
+        return false;
       }
     },
     [snap, store, replace]

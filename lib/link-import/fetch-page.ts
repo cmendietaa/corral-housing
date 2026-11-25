@@ -2,6 +2,7 @@ import { lookup as dnsLookup, type LookupAddress } from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import { isIP } from "node:net";
+import { pipeline } from "node:stream";
 import zlib from "node:zlib";
 import { skippedSite, USER_AGENT } from "./sites";
 
@@ -11,14 +12,14 @@ import { skippedSite, USER_AGENT } from "./sites";
  * - never a private, loopback or link-local address: checked when the socket
  *   connects (not just before), so DNS tricks can't point it inside a network;
  * - redirects followed by hand (up to 3), each one checked again, including
- *   against the skip list;
- * - a short timeout and a size cap.
+ *   against the skip list (and robots.txt, when the caller asks);
+ * - a time limit on the whole request, not just quiet sockets, and a size cap.
  */
 
 export class FetchRefused extends Error {
   constructor(
     message: string,
-    readonly reason: "invalid" | "private" | "skipped" | "too_large" | "timeout" | "network" | "redirects",
+    readonly reason: "invalid" | "private" | "skipped" | "robots" | "too_large" | "timeout" | "network" | "redirects",
     readonly site?: string
   ) {
     super(message);
@@ -106,6 +107,17 @@ function guardedLookup(
 
 function getOnce(url: URL, opts: { timeoutMs: number; maxBytes: number; accept: string }): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      fn();
+    };
+    const fail = (err: FetchRefused) => {
+      finish(() => reject(err));
+      req.destroy();
+    };
     const client = url.protocol === "https:" ? https : http;
     const req = client.request(
       url,
@@ -122,36 +134,40 @@ function getOnce(url: URL, opts: { timeoutMs: number; maxBytes: number; accept: 
       },
       (res) => {
         const status = res.statusCode ?? 0;
-        // Redirects carry no body we need.
+        // A redirect's body isn't needed: drop it rather than drain it.
         if (status >= 300 && status < 400) {
-          res.resume();
-          return resolve({ status, headers: res.headers, body: Buffer.alloc(0) });
+          finish(() => resolve({ status, headers: res.headers, body: Buffer.alloc(0) }));
+          res.destroy();
+          return;
         }
         const encoding = String(res.headers["content-encoding"] ?? "").toLowerCase();
-        const stream =
-          encoding === "gzip" ? res.pipe(zlib.createGunzip()) : encoding === "deflate" ? res.pipe(zlib.createInflate()) : encoding === "br" ? res.pipe(zlib.createBrotliDecompress()) : res;
+        const decoder =
+          encoding === "gzip" ? zlib.createGunzip() : encoding === "deflate" ? zlib.createInflate() : encoding === "br" ? zlib.createBrotliDecompress() : null;
         const chunks: Buffer[] = [];
         let size = 0;
-        stream.on("data", (chunk: Buffer) => {
-          size += chunk.length;
-          if (size > opts.maxBytes) {
-            req.destroy();
-            reject(new FetchRefused("That page is too large to read.", "too_large"));
-            return;
+        const collect = async function* (source: AsyncIterable<Buffer>) {
+          for await (const chunk of source) {
+            size += chunk.length;
+            if (size > opts.maxBytes) throw new FetchRefused("That page is too large to read.", "too_large");
+            chunks.push(chunk);
           }
-          chunks.push(chunk);
-        });
-        stream.on("end", () => resolve({ status, headers: res.headers, body: Buffer.concat(chunks) }));
-        stream.on("error", () => reject(new FetchRefused("Couldn't read that page.", "network")));
+        };
+        // pipeline passes a failure in any stream (a dropped connection, bad
+        // compression, the size cap) to the end and closes them all.
+        const done = (err: NodeJS.ErrnoException | null) => {
+          if (!err) return finish(() => resolve({ status, headers: res.headers, body: Buffer.concat(chunks) }));
+          fail(err instanceof FetchRefused ? err : new FetchRefused("Couldn't read that page.", "network"));
+        };
+        if (decoder) pipeline(res, decoder, collect, done);
+        else pipeline(res, collect, done);
       }
     );
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new FetchRefused("That site took too long to answer.", "timeout"));
-    });
+    // The socket timeout only notices silence; this caps the whole request.
+    const deadline = setTimeout(() => fail(new FetchRefused("That site took too long to answer.", "timeout")), opts.timeoutMs);
+    req.on("timeout", () => fail(new FetchRefused("That site took too long to answer.", "timeout")));
     req.on("error", (err: NodeJS.ErrnoException) => {
-      if (err instanceof FetchRefused) return reject(err);
-      reject(
+      if (err instanceof FetchRefused) return fail(err);
+      fail(
         err.code === "EPRIVATE"
           ? new FetchRefused("Only links to public websites can be read.", "private")
           : new FetchRefused("Couldn't reach that site.", "network")
@@ -164,7 +180,7 @@ function getOnce(url: URL, opts: { timeoutMs: number; maxBytes: number; accept: 
 /** GET a page, following up to 3 redirects, each checked like the first link. */
 export async function fetchPage(
   start: URL,
-  opts: { timeoutMs?: number; maxBytes?: number; accept?: string } = {}
+  opts: { timeoutMs?: number; maxBytes?: number; accept?: string; beforeRedirect?: (to: URL) => Promise<void> } = {}
 ): Promise<Page> {
   const options = { timeoutMs: opts.timeoutMs ?? 8000, maxBytes: opts.maxBytes ?? 2_000_000, accept: opts.accept ?? "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5" };
   let url = start;
@@ -172,6 +188,8 @@ export async function fetchPage(
     const res = await getOnce(url, options);
     if (res.status >= 300 && res.status < 400 && res.headers.location) {
       url = checkUrl(new URL(res.headers.location, url).toString());
+      // e.g. robots.txt for the new address, checked before it's fetched.
+      await opts.beforeRedirect?.(url);
       continue;
     }
     return {

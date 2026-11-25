@@ -22,7 +22,7 @@ type Props = {
   onToggleCheck: () => void;
   /** Select on desktop, open the place sheet on phones (the board decides). */
   onActivate: () => void;
-  onPatch: (patch: ListingPatch) => Promise<void>;
+  onPatch: (patch: ListingPatch) => Promise<boolean | void>;
   photos: boolean;
 };
 

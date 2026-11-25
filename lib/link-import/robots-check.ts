@@ -15,3 +15,12 @@ export async function robotsSay(url: URL): Promise<"allow" | "disallow" | "priva
     return "unreachable";
   }
 }
+
+/** For fetchPage's redirects: refuse a new address unless its robots.txt allows it. */
+export async function robotsAllowRedirect(to: URL): Promise<void> {
+  const say = await robotsSay(to);
+  if (say === "allow") return;
+  if (say === "private") throw new FetchRefused("Only links to public websites can be read.", "private");
+  if (say === "skipped") throw new FetchRefused("That link leads to a site that doesn't allow apps to read its listings.", "skipped");
+  throw new FetchRefused(`${to.hostname.replace(/^www\./, "")} asks apps not to read this page.`, "robots");
+}

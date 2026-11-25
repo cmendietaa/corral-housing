@@ -38,4 +38,25 @@ describe("robotsAllows", () => {
     const txt = "User-agent: SomeBot\nUser-agent: *\nDisallow: /";
     expect(robotsAllows(txt, "/anything", UA)).toBe(false);
   });
+
+  it("picks Corral's group by its exact name, not one that's part of it", () => {
+    const txt = "User-agent: Preview\nAllow: /\n\nUser-agent: corrallinkpreview\nDisallow: /";
+    expect(robotsAllows(txt, "/listing/1", UA)).toBe(false);
+    expect(robotsAllows("User-agent: Preview\nDisallow: /", "/listing/1", UA)).toBe(true);
+  });
+
+  it("treats percent-encoded letters as the letters, but not an encoded slash", () => {
+    const txt = "User-agent: *\nDisallow: /private\nDisallow: /a/b";
+    expect(robotsAllows(txt, "/%70rivate", UA)).toBe(false);
+    expect(robotsAllows(txt, "/a%2Fb", UA)).toBe(true);
+  });
+
+  it("anchors a trailing $ and keeps many wildcards fast", () => {
+    expect(robotsAllows("User-agent: *\nDisallow: /*.pdf$", "/files/lease.pdf", UA)).toBe(false);
+    expect(robotsAllows("User-agent: *\nDisallow: /*.pdf$", "/files/lease.pdf?dl=1", UA)).toBe(true);
+    const rule = `/${"*a".repeat(32)}b`;
+    const started = Date.now();
+    expect(robotsAllows(`User-agent: *\nDisallow: ${rule}`, `/${"a".repeat(5000)}`, UA)).toBe(true);
+    expect(Date.now() - started).toBeLessThan(200);
+  });
 });

@@ -37,6 +37,22 @@ export async function extractFacts(
     beds: f.beds ?? fields.beds,
     baths: f.baths ?? fields.baths
   };
-  const checked = parsedListingSchema.safeParse(merged);
-  return { fields: checked.success ? checked.data : fields, source, ...(note ? { note } : {}) };
+  return { fields: checkMerged(merged, fields), source, ...(note ? { note } : {}) };
+}
+
+/**
+ * Keep every merged fact that passes the listing's checks. A bad value from the
+ * page's structured data (say, 99 bedrooms) falls back to the reader's own
+ * value for that field instead of throwing out the whole merge.
+ */
+function checkMerged(merged: Record<string, unknown>, fields: ParsedListing): ParsedListing {
+  const first = parsedListingSchema.safeParse(merged);
+  if (first.success) return first.data;
+  const repaired: Record<string, unknown> = { ...merged };
+  for (const issue of first.error.issues) {
+    const key = issue.path[0];
+    if (typeof key === "string") repaired[key] = (fields as Record<string, unknown>)[key];
+  }
+  const second = parsedListingSchema.safeParse(repaired);
+  return second.success ? second.data : fields;
 }

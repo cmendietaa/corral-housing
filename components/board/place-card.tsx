@@ -19,7 +19,8 @@ type Shared = {
   listing: Listing;
   board: Board;
   photos: boolean;
-  onPatch: (patch: ListingPatch) => Promise<void>;
+  /** Resolves false when the change couldn't be saved (the board says why). */
+  onPatch: (patch: ListingPatch) => Promise<boolean | void>;
   onEdit: () => void;
 };
 
@@ -49,7 +50,7 @@ export function PlaceNotes({
 }: {
   notes: string | null;
   label: string;
-  onSave: (notes: string | null) => Promise<void>;
+  onSave: (notes: string | null) => Promise<boolean | void>;
   className?: string;
 }) {
   const id = useId();
@@ -66,7 +67,8 @@ export function PlaceNotes({
     const next = draft.trim() === "" ? null : draft.trim();
     setSaving(true);
     try {
-      if (next !== notes) await onSave(next);
+      // If it didn't save, stay open with the draft so they can try again.
+      if (next !== notes && (await onSave(next)) === false) return;
       setEditing(false);
     } finally {
       setSaving(false);

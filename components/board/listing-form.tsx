@@ -50,6 +50,11 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
   const id = useId();
   const base = listing ?? emptyListingInput();
   const [draft, setDraft] = useState<Draft>(() => toDraft(base));
+  // The latest draft, for reads that finish after the person kept typing.
+  const latestDraft = useRef(draft);
+  useEffect(() => {
+    latestDraft.current = draft;
+  });
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -210,7 +215,8 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
 
   /** Fill only the fields that are still empty; returns which ones changed. */
   function fillFrom(f: ParsedListing): Set<keyof Draft> {
-    const { next, changed } = fillEmpty(draft, parsedToDraft(f));
+    const { next, changed } = fillEmpty(latestDraft.current, parsedToDraft(f));
+    latestDraft.current = next;
     setDraft(next);
     setFilled((prev) => new Set([...prev, ...changed]));
     return changed;

@@ -14,18 +14,32 @@ import { z } from "zod";
 
 export const MAX_SENT_TEXT = 40_000;
 
+/** An address `new URL` can read, on http or https. */
+function isWebAddress(u: string): boolean {
+  try {
+    return /^https?:$/.test(new URL(u).protocol);
+  } catch {
+    return false;
+  }
+}
+
 export const sentPageSchema = z.object({
   v: z.literal(1).optional(),
   url: z
     .string()
     .trim()
     .max(2000)
-    .regex(/^https?:\/\/\S+$/i),
+    .regex(/^https?:\/\/\S+$/i)
+    .refine(isWebAddress, "Not a web address"),
   title: z.string().max(500).default(""),
   text: z.string().max(MAX_SENT_TEXT),
   ld: z.array(z.string().max(20_000)).max(5).default([]),
   /** Photo addresses on the page (large images, the share image), for the person to pick from. */
-  images: z.array(z.string().max(2000)).max(12).default([])
+  images: z
+    .array(z.string().max(2000))
+    .max(12)
+    .default([])
+    .transform((list) => list.filter(isWebAddress))
 });
 
 export type SentPage = z.infer<typeof sentPageSchema>;

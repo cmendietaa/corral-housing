@@ -41,7 +41,7 @@ test("the iPhone Shortcut's link opens the listing on the board you pick", async
 
 test("the desktop bookmark sends a rent the site only shows after its scripts run", async ({ page, context }) => {
   test.skip((page.viewportSize()?.width ?? 1280) < 1024, "The bookmark is for computers; phones use the Shortcut.");
-  let received: { text?: string; url?: string; images?: string[] } | null = null;
+  let received = null as { text?: string; url?: string; images?: string[] } | null;
   await context.route("**/api/import-page", async (r) => {
     received = r.request().postDataJSON();
     await r.fulfill({ json: { fields: FIELDS, source: "parser", site: "listing.example" } });

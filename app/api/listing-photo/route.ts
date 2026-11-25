@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkUrl, fetchPage, FetchRefused } from "@/lib/link-import/fetch-page";
-import { robotsSay } from "@/lib/link-import/robots-check";
+import { robotsAllowRedirect, robotsSay } from "@/lib/link-import/robots-check";
 
 /**
  * GET /api/listing-photo?url=…  ->  the image, or { error }
@@ -43,10 +43,11 @@ export async function GET(request: NextRequest) {
   if ((await robotsSay(url)) !== "allow") return fail("That site asks apps not to fetch this photo.", 403);
 
   try {
-    const res = await fetchPage(url, { timeoutMs: 10_000, maxBytes: 10_000_000, accept: "image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8" });
+    const res = await fetchPage(url, { timeoutMs: 10_000, maxBytes: 10_000_000, accept: "image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8", beforeRedirect: robotsAllowRedirect });
     if (res.status !== 200 || !IMAGE.test(res.contentType)) return fail("That isn't a photo Corral can keep.", 415);
     return new NextResponse(new Uint8Array(res.bytes), { headers: { "Content-Type": res.contentType.split(";")[0]!, "Cache-Control": "private, no-store" } });
   } catch (e) {
+    if (e instanceof FetchRefused && e.reason === "robots") return fail("That site asks apps not to fetch this photo.", 403);
     return fail(e instanceof FetchRefused ? e.message : "Couldn't fetch that photo.", 502);
   }
 }

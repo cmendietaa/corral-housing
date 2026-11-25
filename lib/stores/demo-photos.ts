@@ -42,13 +42,18 @@ export function createDemoPhotos(newId: () => string, now: () => Date) {
   const dbPromise = openDb();
   const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(DEMO_PHOTO_CHANNEL);
 
-  async function all(): Promise<Rec[]> {
+  /**
+   * Every photo. Showing photos tolerates a failed read (the board still opens);
+   * deleting passes `strict`, so a failed read isn't taken for "nothing to delete".
+   */
+  async function all(strict = false): Promise<Rec[]> {
     const db = await dbPromise;
     let stored: Rec[] = [];
     if (db) {
       try {
         stored = await tx<Rec[]>(db, "readonly", (s) => s.getAll() as IDBRequest<Rec[]>);
-      } catch {
+      } catch (e) {
+        if (strict) throw e;
         stored = [];
       }
     }
@@ -69,8 +74,9 @@ export function createDemoPhotos(newId: () => string, now: () => Date) {
   async function remove(ids: string[]) {
     const db = await dbPromise;
     for (const id of ids) {
-      if (db) await tx(db, "readwrite", (s) => s.delete(id)).catch(() => {});
-      memory.delete(id);
+      // A photo kept in memory was never stored; a stored one must really be deleted.
+      if (memory.has(id)) memory.delete(id);
+      else if (db) await tx(db, "readwrite", (s) => s.delete(id));
       const url = urls.get(id);
       if (url) URL.revokeObjectURL(url);
       urls.delete(id);
@@ -105,10 +111,10 @@ export function createDemoPhotos(newId: () => string, now: () => Date) {
       await remove([id]);
     },
     async deleteForListing(listingId: string) {
-      await remove((await all()).filter((r) => r.listingId === listingId).map((r) => r.id));
+      await remove((await all(true)).filter((r) => r.listingId === listingId).map((r) => r.id));
     },
     async clear() {
-      await remove((await all()).map((r) => r.id));
+      await remove((await all(true)).map((r) => r.id));
     }
   };
 }

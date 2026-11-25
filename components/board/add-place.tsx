@@ -344,12 +344,21 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
     }
     setSaving(true);
     try {
-      const fromListing = await fetchPicked(picked);
+      const got = await fetchPicked(picked);
+      if (got.length < picked.length) {
+        // Don't save without photos they chose: unpick the ones that failed and say so.
+        const kept = new Set(got.map((g) => g.src));
+        const lost = picked.length - got.length;
+        setPicked((list) => list.filter((src) => kept.has(src)));
+        setFormError(`Couldn't keep ${lost === 1 ? "one of the listing photos" : `${lost} of the listing photos`}, so ${lost === 1 ? "it's" : "they're"} unpicked. Press Into the corral again.`);
+        return;
+      }
+      const fromListing = got.map((g) => g.file);
       const created = await onSubmit(pinned ? { ...input, lat: pinned.lat, lng: pinned.lng } : input, [...fromListing, ...pics.map((p) => p.file)]);
       // A moment before the board: the place drops into the corral. Its street photo uses the
       // board's pin, which is there even when the address lookup here hadn't finished.
       const pin = created && created.lat !== null && created.lng !== null ? { lat: created.lat, lng: created.lng } : pinned;
-      setAdded({ name: streetHeadline(input.address, input.title), photo: (fromListing.length ? picked[0] : null) ?? pics[0]?.url ?? null, pin });
+      setAdded({ name: streetHeadline(input.address, input.title), photo: fromListing[0] ? URL.createObjectURL(fromListing[0]) : (pics[0]?.url ?? null), pin });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Couldn't add this place. Try again.");
     } finally {
@@ -996,20 +1005,21 @@ function IntoTheCorral({
 }
 
 /** Download the listing photos the person picked, in the order they picked them. Ones that fail are skipped. */
-async function fetchPicked(urls: string[]): Promise<File[]> {
+/** Download the picked listing photos through Corral's server; failed ones are left out. */
+async function fetchPicked(urls: string[]): Promise<{ src: string; file: File }[]> {
   const files = await Promise.all(
     urls.map(async (src, i) => {
       try {
         const res = await fetch(`/api/listing-photo?url=${encodeURIComponent(src)}`);
         if (!res.ok) return null;
         const blob = await res.blob();
-        return new File([blob], `listing-photo-${i + 1}`, { type: blob.type || "image/jpeg" });
+        return { src, file: new File([blob], `listing-photo-${i + 1}`, { type: blob.type || "image/jpeg" }) };
       } catch {
         return null;
       }
     })
   );
-  return files.filter((f): f is File => f !== null);
+  return files.filter((f): f is { src: string; file: File } => f !== null);
 }
 
 /**

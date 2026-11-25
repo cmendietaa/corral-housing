@@ -214,8 +214,10 @@ export function focusListingText(title: string, text: string, max = MAX_PASTE_CH
     size += l.length + 1;
     return true;
   };
-  for (const i of [...keep].sort((a, b) => a - b)) if (!take(i)) break;
-  for (let i = 0; i < lines.length; i++) if (out[i] === undefined && !take(i)) break;
+  // A line too long for what's left is skipped, not the end: shorter fact
+  // lines after it can still fit.
+  for (const i of [...keep].sort((a, b) => a - b)) take(i);
+  for (let i = 0; i < lines.length; i++) if (out[i] === undefined) take(i);
   return [title, ...out.filter((l) => l !== undefined)].filter(Boolean).join("\n").slice(0, max);
 }
 

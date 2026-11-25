@@ -254,6 +254,7 @@
   animation: corral-enter 0.45s ease-out both;
 }
 @media (prefers-reduced-motion: reduce) {
+  .corral-sunset { animation: none; top: 2px; }
   .corral-sunset-big { animation: none; top: 30px; }
   .corral-board { animation: none; transform: none; }
   .corral-board-in { animation: none; transform: none; }

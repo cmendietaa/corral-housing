@@ -19,7 +19,7 @@ export function ownerDue(listing: Pick<Listing, "nextActionAssignee" | "nextActi
 type Props = {
   listing: Listing;
   members: Member[];
-  onSave: (patch: ListingPatch) => Promise<void> | void;
+  onSave: (patch: ListingPatch) => Promise<boolean | void> | void;
   /** `inline`: "NEXT" beside the task, with "MAYA · FRI" under it (selected-place card). `crew`: owner's board beside the task (Status cards, phone sheet). */
   variant?: "inline" | "crew";
   className?: string;
@@ -105,7 +105,7 @@ function NextActionEditor({
 }: {
   listing: Listing;
   members: Member[];
-  onSave: (patch: ListingPatch) => Promise<void>;
+  onSave: (patch: ListingPatch) => Promise<boolean | void>;
   onCancel: () => void;
 }) {
   const id = useId();
