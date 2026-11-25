@@ -69,7 +69,7 @@ test("unknown rent never shows as within budget in the comparison", async ({ pag
     }
   } else {
     await page.getByRole("checkbox", { name: "Compare Sabado Tarde, 6512" }).click();
-    await expect(page.getByText("1 checked · pick one more").filter({ visible: true })).toBeVisible();
+    await expect(page.getByText("1 picked · pick one more").filter({ visible: true })).toBeVisible();
     await page.getByRole("checkbox", { name: "Compare Trigo Rd, 6545" }).click();
   }
   await page.getByRole("button", { name: "Compare", exact: true }).filter({ visible: true }).click();

@@ -26,7 +26,7 @@ type Props = {
   photos: boolean;
 };
 
-/** The star toggle, in sunset-600 when on and stone-600 when off (both clear 3:1 on Shell). */
+/** The shortlist star: filled sunset with a sunset-600 edge when on, a stone-600 outline when off (both clear 3:1 on Shell). */
 export function StarButton({
   starred,
   label,
@@ -48,8 +48,8 @@ export function StarButton({
     >
       <Star
         className={cn("h-4 w-4", starred ? "text-sunset-600" : "text-stone-600")}
-        strokeWidth={2.75}
-        fill={starred ? "currentColor" : "none"}
+        strokeWidth={2.25}
+        fill={starred ? "var(--color-sunset-500)" : "none"}
         aria-hidden="true"
       />
     </button>

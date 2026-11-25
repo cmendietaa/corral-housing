@@ -6,7 +6,8 @@ import { formatRent } from "@/lib/compare";
 import { formatBeds } from "@/lib/format";
 import { STATUS_LABELS, starredFirst, type Board, type Listing, type ListingPatch, type ListingStatus } from "@/lib/listing";
 import { cn } from "@/lib/utils";
-import { FenceFallback, StreetPhoto } from "./street-photo";
+import { EmptyLot } from "@/components/brand/motifs";
+import { StreetPhoto } from "./street-photo";
 import { NextAction } from "./next-action";
 import { StarButton } from "./listing-row";
 import { StatusMenu } from "./status";
@@ -165,8 +166,8 @@ function StatusCard({
   return (
     <article className="overflow-hidden rounded-[26px] bg-shell shadow-sm">
       {listing.lat === null ? (
-        <div className="relative h-[110px] w-full bg-shell-deep">
-          <FenceFallback text="No pin yet" />
+        <div className="relative h-[110px] w-full">
+          <EmptyLot />
           <StarOverlay listing={listing} headline={headline} onPatch={onPatch} />
         </div>
       ) : (

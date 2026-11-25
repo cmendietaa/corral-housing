@@ -21,10 +21,12 @@ import {
   type RankedPlace,
   type Requirement
 } from "@/lib/rank";
+import { RopeInToggle } from "@/components/brand/controls";
+import { EmptyLot } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
-import { StreetPhoto, FenceFallback } from "./street-photo";
+import { StreetPhoto } from "./street-photo";
 
 const storageKey = (boardId: string) => `corral:rank:${boardId}`;
 
@@ -246,8 +248,8 @@ function RankCard({
       <div className="flex items-start gap-3 sm:gap-4">
         <div className="relative h-[92px] w-[120px] shrink-0 sm:h-[124px] sm:w-[176px]">
           {r.place.lat === null ? (
-            <div className="h-full w-full overflow-hidden rounded-[20px] bg-shell-deep">
-              <FenceFallback />
+            <div className="h-full w-full overflow-hidden rounded-[20px]">
+              <EmptyLot />
             </div>
           ) : (
             <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full rounded-[20px]" />
@@ -307,16 +309,7 @@ function RankCard({
               Why?
               <ChevronDown className={cn("h-3.5 w-3.5 transition", why && "rotate-180")} strokeWidth={3} aria-hidden="true" />
             </button>
-            <label className={cn("inline-flex h-9 items-center gap-2 text-[13px] text-stone-800", checkDisabled ? "opacity-50" : "cursor-pointer")}>
-              <input type="checkbox" className="peer sr-only" checked={checked} disabled={checkDisabled} onChange={onToggleCheck} aria-label={`Compare ${name}`} />
-              <span
-                aria-hidden="true"
-                className="flex h-5 w-5 items-center justify-center rounded-md border-[1.5px] border-stone-600 peer-checked:border-sea-800 peer-checked:bg-sea-800 peer-focus-visible:ring-2 peer-focus-visible:ring-focus"
-              >
-                {checked ? <Check className="h-3.5 w-3.5 text-shell" strokeWidth={3.5} /> : null}
-              </span>
-              Compare
-            </label>
+            <RopeInToggle on={checked} disabled={checkDisabled} label={name} onToggle={onToggleCheck} className="h-9" />
           </div>
         </div>
       </div>
@@ -390,7 +383,7 @@ function HeldSection({
             <li key={h.place.id} className="flex items-center gap-3 rounded-[20px] bg-shell p-2 pr-3">
               <div className={cn("h-14 w-20 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
                 {h.place.lat === null ? (
-                  <FenceFallback />
+                  <EmptyLot size="sm" />
                 ) : (
                   <StreetPhoto listingId={h.place.id} lat={h.place.lat} lng={h.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full" />
                 )}

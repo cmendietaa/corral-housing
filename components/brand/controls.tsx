@@ -8,7 +8,7 @@ import { LassoIcon } from "./motifs";
  * label, a button that says what it does); the motif is the shape, not a riddle.
  */
 
-/** Compare: rope a place in (up to three). A toggle whose accessible name is "Compare <place>". */
+/** Compare: rope a place in (up to three). A checkbox named "Compare <place>", labelled "Rope in" / "Roped in" on screen. */
 export function RopeInToggle({
   on,
   disabled,
@@ -26,7 +26,8 @@ export function RopeInToggle({
   return (
     <button
       type="button"
-      aria-pressed={on}
+      role="checkbox"
+      aria-checked={on}
       aria-label={`Compare ${label}`}
       disabled={disabled}
       onClick={onToggle}

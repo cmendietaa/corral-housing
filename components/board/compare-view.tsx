@@ -29,7 +29,19 @@ export function CompareTray({
       role="status"
       className={cn("flex items-center gap-3 rounded-full bg-sea-800 py-2 pl-5 pr-2 text-sea-100 shadow-lg", className)}
     >
-      <span className="text-[15px]">{count === 1 ? "1 checked · pick one more" : `${count} places checked`}</span>
+      {/* One board per place picked, a dashed one for each open spot (up to 3). */}
+      <span aria-hidden="true" className="flex items-end gap-1">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className={cn(
+              "block h-[22px] w-2.5 rounded-t-full rounded-b-[2px]",
+              i < count ? (i % 2 ? "bg-sea-300" : "bg-sunset-400") : "border-[1.5px] border-dashed border-sea-300"
+            )}
+          />
+        ))}
+      </span>
+      <span className="text-[15px]">{count === 1 ? "1 picked · pick one more" : `${count} to compare`}</span>
       {count >= 2 ? (
         <Button size="md" onClick={onCompare}>
           Compare
