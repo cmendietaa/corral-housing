@@ -16,7 +16,7 @@ test("rename the demo board and change its budget; it stays after a reload", asy
   await expect(dialog).toBeVisible();
 
   // Roommates are shown, without remove buttons on the demo.
-  await expect(dialog.getByRole("heading", { name: "Roommates · 4" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: /The crew · 4/ })).toBeVisible();
   await expect(dialog.getByText("Jordan")).toBeVisible();
   await expect(dialog.getByRole("button", { name: /^Remove/ })).toHaveCount(0);
 

@@ -6,6 +6,7 @@ import {
   FACTORS,
   defaultPriorities,
   formatScore,
+  formatStars,
   headline,
   rankPlaces,
   type Level,
@@ -116,6 +117,12 @@ describe("scoring", () => {
     expect(formatScore({ score: 86.2, missing: [] })).toBe("8.6");
   });
 
+  it("formats the score out of 5 for the stars", () => {
+    expect(formatStars({ score: 86.2, missing: [] })).toBe("4.3");
+    expect(formatStars({ score: 63, missing: [] })).toBe("3.2");
+    expect(formatStars({ score: 75, missing: ["amenities"] })).toBe("~3.8");
+  });
+
   it("all Don't care falls back to price", () => {
     const zero = withWeights({ price: 0, bike: 0, bedrooms: 0, bathrooms: 0, amenities: 0 });
     const r = rankPlaces([place({ rentCents: 500000 }), place({ rentCents: 400000 })], zero, people);
@@ -150,6 +157,14 @@ describe("explanations", () => {
     expect(line[0]).toEqual({ factor: "price", sign: "+", text: "$800/person, $600 under your max" });
     expect(line[1]).toEqual({ factor: "amenities", sign: "-", text: "no laundry, street parking only" });
     expect(r.ranked[0]!.facts.bike).toBe("about 4 min bike to campus");
+  });
+
+  it("a minus names only the bad part of parking and laundry, never a good one", () => {
+    const r = rankPlaces([place({ rentCents: 320000, parking: "street", laundry: "on_site", ...bikeAway(4) })], base, people);
+    const minus = r.ranked[0]!.reasons.find((x) => x.factor === "amenities");
+    expect(minus).toEqual({ factor: "amenities", sign: "-", text: "street parking only" });
+    // The breakdown still shows both facts.
+    expect(r.ranked[0]!.facts.amenities).toBe("laundry on site, street parking only");
   });
 
   it("a price minus says how little room is left", () => {

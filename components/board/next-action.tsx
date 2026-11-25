@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { formatDueShort } from "@/lib/format";
 import type { Listing, ListingPatch, Member } from "@/lib/listing";
 import { cn } from "@/lib/utils";
+import { CREW } from "./status-style";
 
 /** "Maya · Fri" (rendered in caps by the .label style), or null when nothing is assigned or due. */
 export function ownerDue(listing: Pick<Listing, "nextActionAssignee" | "nextActionDue">, members: Member[]) {
@@ -113,6 +114,10 @@ function NextActionEditor({
   const [assignee, setAssignee] = useState(listing.nextActionAssignee ?? "");
   const [due, setDue] = useState(listing.nextActionDue ?? "");
   const [saving, setSaving] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const dayChips = upcomingDays();
+  // A saved date that isn't one of the chips shows as "Pick a date".
+  const dueChoice = picking ? "pick" : dayChips.some((c) => c.value === due) ? due : due ? "pick" : "";
 
   async function submit(patch: ListingPatch) {
     setSaving(true);
@@ -150,32 +155,62 @@ function NextActionEditor({
         placeholder="e.g. Ask whether parking is included"
         onChange={(e) => setText(e.target.value)}
       />
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label htmlFor={`${id}-who`} className="label text-stone-700">
-            Who
-          </label>
-          <select
-            id={`${id}-who`}
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-            className="mt-1 h-11 w-full rounded-full border border-divider bg-shell-light px-3 text-sm"
-          >
-            <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor={`${id}-due`} className="label text-stone-700">
-            By
-          </label>
-          <Input id={`${id}-due`} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="mt-1 px-3" />
-        </div>
+      {/* Who: tap a roommate's board (the chosen one stands taller). */}
+      <div role="radiogroup" aria-label="Who" className="flex flex-wrap items-end gap-2.5 pt-1">
+        {[{ id: "", name: "Unassigned" }, ...members].map((m, i) => {
+          const on = assignee === m.id;
+          const crew = m.id ? CREW[(i - 1) % CREW.length]! : null;
+          return (
+            <label key={m.id || "none"} className="flex cursor-pointer flex-col items-center gap-1 has-[:focus-visible]:[&>span:first-of-type]:ring-2 has-[:focus-visible]:[&>span:first-of-type]:ring-focus">
+              <input type="radio" name={`${id}-who`} value={m.id} checked={on} onChange={() => setAssignee(m.id)} className="sr-only" />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex w-8 justify-center rounded-t-full rounded-b-[6px] pt-1.5 font-display text-[13px] transition-[height]",
+                  crew ? cn(crew.bg, crew.fg) : "border-2 border-dashed border-stone-500 text-stone-700",
+                  on ? "h-14 ring-2 ring-tar ring-offset-2 ring-offset-shell-mid" : "h-10"
+                )}
+              >
+                {crew ? m.name[0] : ""}
+              </span>
+              <span className={cn("max-w-[64px] truncate text-[11px]", on ? "font-bold text-tar" : "text-stone-800")}>{m.name}</span>
+            </label>
+          );
+        })}
       </div>
+
+      {/* By: the usual days as chips; "Pick a date" for anything else. */}
+      <div role="radiogroup" aria-label="By" className="flex flex-wrap gap-1.5">
+        {dayChips.map((c) => (
+          <label
+            key={c.label}
+            className={cn(
+              "inline-flex h-9 cursor-pointer items-center rounded-full px-3 text-[13px] transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus",
+              dueChoice === c.value ? "bg-sea-800 font-semibold text-shell" : "border border-divider bg-shell-light text-tar hover:bg-shell"
+            )}
+          >
+            <input
+              type="radio"
+              name={`${id}-by`}
+              checked={dueChoice === c.value}
+              onChange={() => {
+                setPicking(c.value === "pick");
+                if (c.value !== "pick") setDue(c.value);
+              }}
+              className="sr-only"
+            />
+            {c.label}
+          </label>
+        ))}
+      </div>
+      {dueChoice === "pick" ? (
+        <div>
+          <label htmlFor={`${id}-due`} className="sr-only">
+            Due date
+          </label>
+          <Input id={`${id}-due`} type="date" value={due} onChange={(e) => setDue(e.target.value)} className="px-3" />
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button type="submit" size="sm" disabled={saving}>
           Save next step
@@ -198,4 +233,23 @@ function NextActionEditor({
       </div>
     </form>
   );
+}
+
+/** "No date", Today, Tomorrow, the next two weekdays by name, and "Pick a date". Values are local yyyy-mm-dd. */
+function upcomingDays(): { label: string; value: string }[] {
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const day = (offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d;
+  };
+  const weekday = (d: Date) => new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(d);
+  return [
+    { label: "No date", value: "" },
+    { label: "Today", value: iso(day(0)) },
+    { label: "Tomorrow", value: iso(day(1)) },
+    { label: weekday(day(2)), value: iso(day(2)) },
+    { label: weekday(day(3)), value: iso(day(3)) },
+    { label: "Pick a date", value: "pick" }
+  ];
 }

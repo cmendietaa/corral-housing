@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatPhotoDate, streetViewSrc, type PhotoSize } from "@/lib/streetview";
+import { EmptyLot } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { useCover } from "./tour-photos";
 
@@ -89,17 +90,15 @@ export function StreetPhoto({
           {state === "loaded" ? tour ? <TourCredit kind={attribution} /> : <Credit kind={attribution} taken={takenLabel} /> : null}
         </>
       ) : (
-        <FenceFallback
-          text={
-            hint
-              ? cover.kind === "none"
-                ? "No photos yet"
-                : noPin
-                  ? "Drop a pin to see the street"
-                  : "No street photo here"
-              : undefined
-          }
-        />
+        <>
+          {/* No photo: the empty lot. Only an actionable hint is spelled out. */}
+          <EmptyLot size={size === "row" ? "sm" : "md"} />
+          {hint && noPin && cover.kind !== "none" ? (
+            <span className="absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full bg-shell-light px-2.5 py-1 text-xs font-semibold text-stone-800">
+              Drop a pin to see the street
+            </span>
+          ) : null}
+        </>
       )}
       {children}
     </div>

@@ -17,7 +17,7 @@ export const SERVICE_AREA = { south: 34.38, north: 34.47, west: -119.95, east: -
 export const PHOTO_SIZES = {
   // Twice the frame size: Google draws its logo at a fixed pixel size, so a
   // larger image keeps it small in the thumbnail.
-  row: "264x384",
+  row: "384x288",
   card: "640x446",
   compare: "640x320",
   kanban: "560x220",

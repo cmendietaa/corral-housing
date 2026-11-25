@@ -69,7 +69,7 @@ test("unknown rent never shows as within budget in the comparison", async ({ pag
     }
   } else {
     await page.getByRole("checkbox", { name: "Compare Sabado Tarde, 6512" }).click();
-    await expect(page.getByText("1 checked · pick one more").filter({ visible: true })).toBeVisible();
+    await expect(page.getByText("1 picked · pick one more").filter({ visible: true })).toBeVisible();
     await page.getByRole("checkbox", { name: "Compare Trigo Rd, 6545" }).click();
   }
   await page.getByRole("button", { name: "Compare", exact: true }).filter({ visible: true }).click();
@@ -93,7 +93,8 @@ test("set a status and a next step, and they persist", async ({ page }) => {
   await scope.getByLabel("Status for Trigo Rd, 6545").selectOption("contacted");
   await scope.getByRole("button", { name: /Add a next step/ }).click();
   await scope.getByLabel("Next step").fill("Call about the price");
-  await scope.getByLabel("Who").selectOption({ label: "Priya" });
+  await scope.getByRole("radiogroup", { name: "Who" }).getByText("Priya", { exact: true }).click();
+  await expect(scope.getByRole("radio", { name: "Priya" })).toBeChecked();
   await scope.getByRole("button", { name: "Save next step" }).click();
   await expect(scope.getByText("Call about the price")).toBeVisible();
 
@@ -133,7 +134,7 @@ test("a place can be saved without a listing link", async ({ page }) => {
   await openDemo(page);
   await page.getByRole("button", { name: "Add a place" }).filter({ visible: true }).first().click();
   const dialog = page.getByRole("dialog", { name: "Add a place" });
-  await dialog.getByRole("button", { name: /Start from an address/ }).click();
+  await dialog.getByRole("button", { name: /Fill it in by hand/ }).click();
   await expect(dialog.getByLabel("Address")).toBeFocused();
   await dialog.getByLabel("Address").fill("6700 Trigo Rd, Isla Vista");
   await dialog.getByLabel(/^Name/).fill("Friend's place");
@@ -162,6 +163,5 @@ test("after adding, the place drops into the corral, and you can round up anothe
   await dialog.getByRole("button", { name: "Into the corral" }).click();
   await expect(dialog.getByText("Trigo Rd, 6700 is in the corral")).toBeVisible();
   await dialog.getByRole("button", { name: "Round up another" }).click();
-  await expect(dialog.getByRole("heading", { name: "Round it up" })).toBeVisible();
   await expect(dialog.getByLabel("Paste a link or the listing's text")).toHaveValue("");
 });

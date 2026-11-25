@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { formatBeds } from "@/lib/format";
 import { STATUS_LABELS, starredFirst, type Board, type Listing, type ListingPatch, type ListingStatus } from "@/lib/listing";
 import { cn } from "@/lib/utils";
-import { FenceFallback, StreetPhoto } from "./street-photo";
+import { RopeTagButton } from "@/components/brand/controls";
+import { EmptyLot } from "@/components/brand/motifs";
+import { StreetPhoto } from "./street-photo";
 import { NextAction } from "./next-action";
 import { StarButton } from "./listing-row";
 import { StatusMenu } from "./status";
@@ -14,6 +16,29 @@ import { STATUS_STYLES } from "./status-style";
 
 const COLUMNS: ListingStatus[] = ["considering", "contacted", "tour_scheduled", "applied"];
 const WASHED: ListingStatus[] = ["passed", "unavailable"];
+
+/** The usual next stage, for the one-tap "Move to …" button. Applied has none. */
+const NEXT: Partial<Record<ListingStatus, ListingStatus>> = {
+  considering: "contacted",
+  contacted: "tour_scheduled",
+  tour_scheduled: "applied"
+};
+
+/** Each stage is a tall fence board washed in its own color. */
+const WASH: Record<string, string> = {
+  considering: "bg-stone-300/40",
+  contacted: "bg-sunset-200/60",
+  tour_scheduled: "bg-glass-200/60",
+  applied: "bg-glass-300/45"
+};
+
+const SHORT: Record<string, string> = {
+  considering: "Considering",
+  contacted: "Contacted",
+  tour_scheduled: "Tour",
+  applied: "Applied",
+  washed: "Washed out"
+};
 
 type Props = {
   listings: Listing[];
@@ -25,45 +50,71 @@ type Props = {
 };
 
 /**
- * The Status tab: where each place stands. Cards move between columns with
- * the "Move" menu. Passed and Unavailable fold into the narrow "Washed out"
- * shelf (display copy only; the statuses keep their PRD names).
+ * The Status tab: where each place stands, as a row of tall fence boards. A
+ * card moves to the next stage with one tap ("Move to Tour scheduled"), or
+ * anywhere with the "Other" menu. Passed and Unavailable wash out to the shore
+ * on the right (display copy only; the statuses keep their PRD names).
  */
 export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props) {
   const columnRefs = useRef(new Map<ListingStatus, HTMLElement>());
+  const [shown, setShown] = useState<ListingStatus | "washed">("considering");
   const byStatus = (s: ListingStatus) => starredFirst(listings.filter((l) => l.status === s));
+  const washed = WASHED.flatMap(byStatus);
 
   return (
     <div className="pb-24 lg:pb-10">
-      {/* Phones: status chips with counts that jump to a column */}
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
+      {/* Phones: the stages as a little fence; tap one to jump to it. */}
+      <nav aria-label="Stages" className="flex h-[92px] items-end gap-2 lg:hidden">
         {[...COLUMNS, "washed" as const].map((s) => {
-          const count = s === "washed" ? WASHED.flatMap(byStatus).length : byStatus(s).length;
+          const count = s === "washed" ? washed.length : byStatus(s).length;
+          const current = shown === s;
           return (
             <button
               key={s}
               type="button"
-              onClick={() =>
-                columnRefs.current
-                  .get(s === "washed" ? "passed" : s)
-                  ?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-              }
-              className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-shell-deep px-4 text-[13px] font-semibold text-tar"
+              aria-current={current ? "true" : undefined}
+              aria-label={`${s === "washed" ? "Washed out" : STATUS_LABELS[s]}, ${count} ${count === 1 ? "place" : "places"}`}
+              onClick={() => {
+                setShown(s);
+                columnRefs.current.get(s === "washed" ? "passed" : s)?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+              }}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-0.5 rounded-t-[28px] rounded-b-[10px] pt-2.5 transition-[height]",
+                s === "washed" ? "bg-sea-100 text-sea-800" : STATUS_STYLES[s].chip,
+                current ? "h-[88px] ring-2 ring-tar ring-offset-2 ring-offset-shell" : "h-[68px]"
+              )}
             >
-              <span
-                aria-hidden="true"
-                className={cn("h-2.5 w-2.5 rounded-full", s === "washed" ? "bg-st-closed-dot" : STATUS_STYLES[s].dot)}
-              />
-              {s === "washed" ? "Washed out" : STATUS_LABELS[s]} · {count}
+              <span aria-hidden="true" className="font-display text-lg leading-none">
+                {count}
+              </span>
+              <span aria-hidden="true" className="px-0.5 text-center text-[10px] font-bold leading-tight">
+                {SHORT[s]}
+              </span>
             </button>
           );
         })}
-      </div>
+      </nav>
 
       <div
+        // Phones: swiping between columns moves the highlight in the stage row too.
+        onScroll={(e) => {
+          const box = e.currentTarget.getBoundingClientRect();
+          let best: ListingStatus | "washed" = shown;
+          let bestGap = Infinity;
+          for (const st of [...COLUMNS, "washed" as const]) {
+            const el = columnRefs.current.get(st === "washed" ? "passed" : st);
+            if (!el) continue;
+            const gap = Math.abs(el.getBoundingClientRect().left - box.left - 16);
+            if (gap < bestGap) {
+              bestGap = gap;
+              best = st;
+            }
+          }
+          if (best !== shown) setShown(best);
+        }}
         className={cn(
-          "no-scrollbar mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 max-lg:-mx-4 max-lg:px-4 lg:mt-0 lg:grid lg:snap-none lg:overflow-visible",
-          "lg:grid-cols-[repeat(4,minmax(0,1fr))_150px]"
+          "no-scrollbar mt-4 flex snap-x snap-mandatory gap-3.5 overflow-x-auto pb-2 max-lg:-mx-4 max-lg:px-4 lg:mt-0 lg:grid lg:snap-none lg:overflow-visible",
+          "lg:grid-cols-[repeat(4,minmax(0,1fr))_190px]"
         )}
       >
         {COLUMNS.map((s) => {
@@ -75,73 +126,83 @@ export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props)
                 if (el) columnRefs.current.set(s, el);
               }}
               aria-labelledby={`col-${s}`}
-              className="w-[300px] shrink-0 snap-start rounded-[32px] bg-shell-deep p-4 lg:min-h-[520px] lg:w-auto"
+              className={cn("w-[300px] shrink-0 snap-start rounded-t-[120px] rounded-b-[24px] px-3 pb-3 pt-7 lg:min-h-[560px] lg:w-auto", WASH[s])}
             >
-              <h2 id={`col-${s}`} className="mb-3 flex items-center gap-2.5 px-1.5">
-                <span aria-hidden="true" className={cn("h-3 w-3 rounded-full", STATUS_STYLES[s].dot)} />
-                <span className="label flex-1 text-tar">{STATUS_LABELS[s]}</span>
-                <span className="font-display text-lg text-tar" aria-label={`${cards.length} places`}>
-                  {cards.length}
-                </span>
-              </h2>
+              <div className="mb-3 flex flex-col items-center gap-1">
+                <MiniFence count={cards.length} className={STATUS_STYLES[s].dot} />
+                <h2 id={`col-${s}`} className="font-display text-[21px] leading-tight text-tar">
+                  {STATUS_LABELS[s]}
+                </h2>
+                <p className="text-[13px] text-stone-700">
+                  {cards.length} {cards.length === 1 ? "place" : "places"}
+                </p>
+              </div>
               <ul className="space-y-3">
-                {cards.length === 0 ? (
-                  <li className="flex h-28 items-center justify-center rounded-[26px] border-[1.5px] border-dashed border-stone-500 text-sm text-stone-700">
-                    Nothing here yet
+                {cards.map((l) => (
+                  <li key={l.id}>
+                    <StatusCard listing={l} board={board} photos={photos} onPatch={(p) => onPatch(l.id, p)} onOpen={() => onOpen(l.id)} />
                   </li>
-                ) : (
-                  cards.map((l) => (
-                    <li key={l.id}>
-                      <StatusCard listing={l} board={board} photos={photos} onPatch={(p) => onPatch(l.id, p)} onOpen={() => onOpen(l.id)} />
-                    </li>
-                  ))
-                )}
+                ))}
               </ul>
             </section>
           );
         })}
 
+        {/* Washed out: the shore, where places that didn't work out lean like old boards. */}
         <section
           ref={(el) => {
             if (el) columnRefs.current.set("passed", el);
           }}
           aria-labelledby="col-washed"
-          className="w-[220px] shrink-0 snap-start rounded-[32px] bg-shell-mid p-4 lg:min-h-[520px] lg:w-auto"
+          className="flex w-[220px] shrink-0 snap-start flex-col lg:w-auto lg:self-end"
         >
-          <h2 id="col-washed" className="label mb-3 px-1 text-stone-700">
-            Washed out
-          </h2>
-          {WASHED.map((s) => {
-            const cards = byStatus(s);
-            return (
-              <div key={s} className="mb-4">
-                <p className="mb-2 px-1 text-[13px] font-semibold text-stone-700">
-                  {STATUS_LABELS[s]} · {cards.length}
-                </p>
-                <ul className="space-y-2">
-                  {cards.map((l) => (
-                    <li key={l.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpen(l.id)}
-                        className="w-full rounded-[20px] bg-shell p-3 text-left opacity-70 transition hover:opacity-100"
-                      >
-                        <span className="block font-display text-[15px] leading-tight text-tar">
-                          {streetHeadline(l.address, l.title)}
-                        </span>
-                        <span className="mt-1 block text-xs text-stone-700">
-                          {l.rentCents === null ? "Rent unknown" : formatRent(l.rentCents)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+          <span
+            aria-hidden="true"
+            className="block h-4"
+            style={{ background: "radial-gradient(circle at 50% 100%, var(--color-sea-100) 13px, transparent 14px) -2px 0 / 28px 16px repeat-x" }}
+          />
+          <div className="flex-1 space-y-3.5 rounded-b-[24px] bg-sea-100 px-4 pb-5 pt-2">
+            <h2 id="col-washed" className="font-display text-[19px] text-sea-800">
+              Washed out
+            </h2>
+            {washed.length === 0 ? <p className="text-[13px] text-sea-800/80">Nothing here.</p> : null}
+            <ul className="space-y-3">
+              {washed.map((l, i) => (
+                <li key={l.id}>
+                  <button type="button" onClick={() => onOpen(l.id)} className="flex w-full items-end gap-2.5 rounded-[14px] text-left">
+                    <span
+                      aria-hidden="true"
+                      className="block h-10 w-3 shrink-0 origin-bottom rounded-t-full rounded-b-[2px] bg-stone-400"
+                      style={{ transform: `rotate(${i % 2 ? -10 : 14}deg)` }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-display text-[15px] leading-tight text-tar">{streetHeadline(l.address, l.title)}</span>
+                      <span className="mt-0.5 block text-xs text-stone-800">
+                        {STATUS_LABELS[l.status]}
+                        {l.rentCents !== null ? ` · ${formatRent(l.rentCents)}` : ""}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       </div>
     </div>
+  );
+}
+
+/** One board per place: the column's count as a tiny fence. */
+function MiniFence({ count, className }: { count: number; className: string }) {
+  const heights = [18, 22, 15, 20, 17];
+  if (count === 0) return <span aria-hidden="true" className="block h-[22px] w-[7px] rounded-t-full rounded-b-[1px] border border-dashed border-stone-500" />;
+  return (
+    <span aria-hidden="true" className="flex h-[22px] items-end gap-[3px]">
+      {Array.from({ length: Math.min(count, 8) }, (_, i) => (
+        <span key={i} className={cn("block w-[7px] rounded-t-full rounded-b-[1px]", className)} style={{ height: heights[i % heights.length] }} />
+      ))}
+    </span>
   );
 }
 
@@ -162,63 +223,51 @@ function StatusCard({
   const meta = [listing.title !== headline ? listing.title : null, listing.beds !== null ? formatBeds(listing.beds) : null, listing.baths !== null ? `${listing.baths} ba` : null]
     .filter(Boolean)
     .join(" · ");
+  const next = NEXT[listing.status];
   return (
-    <article className="overflow-hidden rounded-[26px] bg-shell shadow-sm">
-      {listing.lat === null ? (
-        <div className="relative h-[110px] w-full bg-shell-deep">
-          <FenceFallback text="No pin yet" />
-          <StarOverlay listing={listing} headline={headline} onPatch={onPatch} />
-        </div>
-      ) : (
-        <StreetPhoto
-          listingId={listing.id}
-          lat={listing.lat}
-          lng={listing.lng}
+    <article className="overflow-hidden rounded-[22px] bg-shell-light shadow-sm">
+      {/* A big photo, with the star on it. */}
+      <div className="relative h-[130px] w-full">
+        {listing.lat === null ? (
+          <EmptyLot />
+        ) : (
+          <StreetPhoto listingId={listing.id} lat={listing.lat} lng={listing.lng} label={headline} size="kanban" enabled={photos} className="h-full w-full" />
+        )}
+        <StarButton
+          starred={listing.starred}
           label={headline}
-          size="kanban"
-          enabled={photos}
-          className="h-[110px] w-full"
-        >
-          <StarOverlay listing={listing} headline={headline} onPatch={onPatch} />
-        </StreetPhoto>
-      )}
-      <div className="space-y-2.5 p-4">
-        <div className="flex items-baseline justify-between gap-2">
-          <button type="button" onClick={onOpen} className="min-w-0 text-left font-display text-base leading-tight text-tar">
-            {headline}
-          </button>
-          <span className={cn("shrink-0 font-display text-base", listing.rentCents === null ? "text-stone-700" : "text-tar")}>
-            {listing.rentCents === null ? "Unknown" : formatRent(listing.rentCents)}
-          </span>
+          onToggle={() => void onPatch({ starred: !listing.starred })}
+          className="absolute left-2.5 top-2.5 h-[30px] w-[30px] bg-shell shadow-sm hover:bg-shell-mid"
+        />
+      </div>
+      <div className="space-y-2.5 p-3.5">
+        <div>
+          <div className="flex items-baseline justify-between gap-2">
+            <button type="button" onClick={onOpen} className="min-w-0 text-left font-display text-base leading-tight text-tar">
+              {headline}
+            </button>
+            <span className={cn("shrink-0 font-display text-base", listing.rentCents === null ? "text-stone-700" : "text-tar")}>
+              {listing.rentCents === null ? "Rent?" : formatRent(listing.rentCents)}
+            </span>
+          </div>
+          {meta ? <p className="mt-0.5 text-[13px] leading-snug text-stone-700">{meta}</p> : null}
         </div>
-        {meta ? <p className="text-[13px] text-stone-700">{meta}</p> : null}
-        {listing.nextAction ? <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" /> : null}
+      {listing.nextAction ? <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" /> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {next ? (
+          <RopeTagButton onClick={() => void onPatch({ status: next })} className={cn(STATUS_STYLES[next].chip, "hover:brightness-95")}>
+            Move to {STATUS_LABELS[next]}
+          </RopeTagButton>
+        ) : null}
         <StatusMenu
           value={listing.status}
           variant="move"
+          moveText={next ? "Other" : "Move"}
           label={`Move ${headline} to another status`}
           onChange={(status) => void onPatch({ status })}
         />
       </div>
+      </div>
     </article>
-  );
-}
-
-function StarOverlay({
-  listing,
-  headline,
-  onPatch
-}: {
-  listing: Listing;
-  headline: string;
-  onPatch: (patch: ListingPatch) => Promise<boolean | void>;
-}) {
-  return (
-    <StarButton
-      starred={listing.starred}
-      label={headline}
-      onToggle={() => void onPatch({ starred: !listing.starred })}
-      className="absolute left-3 top-3 h-[30px] w-[30px] bg-shell shadow-sm hover:bg-shell-mid"
-    />
   );
 }

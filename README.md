@@ -43,15 +43,22 @@ Corral should be recognizable from any cropped screenshot. The palette (sunset, 
 
 | Motif | Looks like | Use it for |
 |---|---|---|
-| Fence boards | Tall round-topped boards in the five fence colors | Counts ("rounded up 7"), progress, loading, dividers, the roommate pills, and small place photos (half-circle top, softly rounded bottom) |
+| Fence boards | Tall round-topped boards in the five fence colors | Counts ("rounded up 7"), progress, loading, dividers, the roommate pills |
 | The setting sun | A pale sun half under the horizon | "Corral found this" marks (never a sparkle), empty states, loading (the sun sinks) |
 | The stripe | Sunset into sea, four bands | Band edges, active tabs, the top edge of a card |
 | The wave edge | Scallops, 28px apart | Where sand meets sea: dark strips, toasts, the bottom of the band |
 | The lasso | A rope loop with a knot | "Round it up": drop zones are rope loops, missing facts are roped off (dashed) |
 | Rent tags | Hanging price tags | Map pins and prices |
+| The lasso toggle | The rope loop with "Rope in" / "Roped in" | Picking places to compare (always with its label) |
+| The empty lot | Pale sky, the sun sitting on a fence | Any place without a photo |
+| Fit stars | Five sunset stars with the score out of 5 beside them ("4.3 · Great fit") | A place's rank score; stars are familiar, so this one stays a star |
+| Rope-tag buttons | The rent-tag shape with a knot | One-tap moves ("Move to Tour scheduled") |
+| The open gate | Two posts, gate boards swung open | Signing in, loading a board ("Opening the gate…") |
 
 **Rules**
 
+- Place photos are plain rounded rectangles everywhere (like the Status cards): photos read best without a shaped frame.
+- Motifs for decoration, counts and scenes; familiar symbols for controls. A button whose meaning isn't obvious gets a familiar symbol (a star for the shortlist) or a word ("Best", "Rope in"). One symbol, one meaning: the little sun only ever means "Corral found this in the listing".
 - No generic stand-ins: no sparkles for AI, no pale info boxes with an icon, no stock dashed buttons, no stock icons where a motif or a small Corral scene says more. Lucide is fine for plain controls (close, back, plus, minus).
 - Little small print. A heading doesn't need a sentence under it. Keep a helper line only when it tells people something they'd otherwise miss (a per-person split, a pin's bike time, why a site can't be read); explain a pattern once, not on every field.
 - Moments, not cuts. Loading is a scene (the sun sets as the fence goes up), and it lands before moving on (the count, then the next screen rises in). Respect reduced motion.

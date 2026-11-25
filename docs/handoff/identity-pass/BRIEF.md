@@ -21,6 +21,7 @@
 - The demo (`/demo`) uses localStorage only and must never touch the database.
 - Use the Tailwind tokens in `app/globals.css` (`shell`, `sunset-*`, `sea-*`, `glass-*`, `stone-*`, `st-*`), not raw hex. The hex-to-token table is below.
 - **Little small print.** No helper sentence under every heading or label. No sparkles for AI. No pale info boxes with an icon. No ruled lines between sections. Lucide icons are fine only for plain controls (close, back, plus, minus, chevrons).
+- **Motifs for decoration, counts and scenes; familiar symbols for controls.** A control whose meaning isn't obvious gets a familiar symbol or a word. One symbol means one thing everywhere.
 - Respect `prefers-reduced-motion`. Any new animation gets a reduced-motion override in `app/globals.css`, like the existing `corral-*` ones.
 - Accessibility stays at least as good as now: real buttons and radios, visible focus rings (`ring-focus`), accessible names, and contrast that passes AA.
 - **Keep accessible names stable where tests use them**, or update the tests in the same commit:
@@ -57,7 +58,7 @@ Status colors already exist as `st-<status>`, `st-<status>-bg` and `st-<status>-
 
 ## What exists already (reuse it)
 
-- `components/brand/motifs.tsx`: `FENCE_COLORS`, `FenceRow`, `SunMark`, `LassoIcon`, `KnotIcon`, `FenceIcon`, `HorizonSunIcon`, `PinIcon`, `PencilIcon`, `SettingSun`.
+- `components/brand/motifs.tsx`: `FENCE_COLORS`, `FenceRow`, `SunMark`, `LassoIcon`, `FenceIcon`, `HorizonSunIcon`, `PinIcon`, `PencilIcon`, `SettingSun`.
 - `components/brand/band.tsx`: `Band`, `BandSun`, `CrewBoards`, `CrewPill`, `BandToggle`, `FenceFooter`, `FinePrint`.
 - `components/board/add-place.tsx` has private helpers that the edit form needs too: `Tile`, `Stepper` (with `zeroLabel="Studio"`), `Choices`, `FenceCount`, `FieldError`.
 - `components/board/street-photo.tsx`: `StreetPhoto`, `FenceFallback`.
@@ -71,23 +72,23 @@ Status colors already exist as `st-<status>`, `st-<status>-bg` and `st-<status>-
 Create these, each small and documented. Put icons in `components/brand/motifs.tsx` and the rest in a new `components/board/fields.tsx`.
 
 - **Move the add-flow helpers.** Move `Tile`, `Stepper`, `Choices` and `FieldError` from `add-place.tsx` into `components/board/fields.tsx` and export them. The add flow imports them from there; it must look and behave exactly the same.
-- **`HorseshoeIcon`** (the favorite). A U-shaped horseshoe, open end up: path `M6 4v7a6 6 0 0 0 12 0V4`, stroke ~3, round caps. Favorite: `sunset-600`, thicker. Not favorite: `stone-400`, thinner. See `designs/pieces.png`.
+- **Shortlist star.** Keep the star (a horseshoe was tried and dropped: nobody guesses what it means). On: filled `sunset-500` with a `sunset-600` outline. Off: `stone-600` outline. See `designs/pieces.png`.
 - **`RopeInToggle`** (compare). Uses `LassoIcon`. Off: dashed stroke in `stone-600`, label "Rope in". On: solid `sea-700` with a light `sea` fill, label "Roped in". It's a toggle button (`aria-pressed`) whose accessible name stays `Compare <place>`.
 - **`RopeTagButton`.** The rent-tag shape (`rounded-l-[10px] rounded-r-[20px]`, with a small knot dot on the left) used as a button. Colors come from props.
   - Don't write `999px` on one side and a small radius on the other: browsers scale every corner down and the tag turns into a box. Use about half the height on the round side.
 - **`EmptyLot`** (no photo). A pale sunset sky (`sunset-200`), a sun (`sunset-100`) sitting on a row of fence boards in `FENCE_COLORS`. It fills whatever fence-board frame it's in. It replaces `FenceFallback` and the "No street photo here" text wherever a place has no photo (list thumbnails, place card, status cards, compare columns, rank cards). Purely decorative: `aria-hidden`.
-- **`FitFence`** (rank score). 10 small fence boards, slightly varied heights. Round the score to whole boards and color the filled ones in `FENCE_COLORS` order; the rest are `shell-deep`. Next to it, one word:
+- **`FitFence`** (rank score). Five equal fence boards, read like a five-star rating: each board is 2 points, filled from the bottom in `sea-700` (full, half, or empty, rounded to the nearest half), with a `sea-700` outline. One color only: mixed colors read as decoration. Next to it, the number in `font-display` and one word ("6.3 · Good fit"):
   - 8 and up: "Great fit"
   - 6 and up: "Good fit"
   - 4 and up: "Okay fit"
   - otherwise: "Long shot"
 
-  Keep the number available: give the element `aria-label="Fit 6.3 out of 10"`, and show the number in the "See the math" breakdown.
+  Give the meter `aria-label="Fit 6.3 out of 10"`.
 - **`GateLoading`.** Five fence boards rising one after another, with "Opening the gate…" under them. It replaces the gray pulsing skeleton in `board.tsx` (`aria-busy` stays). Reduced motion: show the boards standing, no animation.
 
 ### 2. Favorite and compare everywhere
 
-- Swap the star for the horseshoe in `listing-row.tsx` (`StarButton`), `status-board.tsx` (`StarOverlay`) and `place-card.tsx`. Keep the same props, the same `aria-pressed` and the same shortlist labels.
+- Restyle the star (see step 1) in `listing-row.tsx` (`StarButton`), `status-board.tsx` (`StarOverlay`) and `place-card.tsx`. Keep the same props, the same `aria-pressed` and the same shortlist labels.
 - Swap the compare circle and checkbox for `RopeInToggle` in `listing-row.tsx` and `rank-view.tsx`.
 - `CompareTray` (`compare-view.tsx`): show the count as fence boards (one solid board per roped place, a dashed one for each open slot up to 3), plus "N roped in". The button reads "Side by side" and opens the same Compare view as now.
 
@@ -103,7 +104,7 @@ Replace the no-photo states with `EmptyLot` (see step 1). Remove the dashed-buil
 - The column header is centered: a mini fence with one board per place (`FenceCount`-style), the stage name in `font-display`, and "N places" under it. Drop the dot-and-uppercase label.
 - Cards are compact:
   - A fence-board thumbnail on the left (photo or `EmptyLot`).
-  - Name, horseshoe, a meta line, and rent in `font-display`.
+  - Name, star, a meta line, and rent in `font-display`.
   - The next step as one line: the roommate's little board in their color, the text, and the day.
 - Replace the "Move ▾" select with a `RopeTagButton` that moves the place to the next stage: "Move to Contacted" / "Move to Tour scheduled" / "Move to Applied". Each button is tinted with the next stage's colors.
   - Applied has no next stage, so its button reads "Move…".
@@ -119,13 +120,13 @@ Replace the no-photo states with `EmptyLot` (see step 1). Remove the dashed-buil
   - Title "What matters to you". No sentence under it.
   - Must-haves become tags: set ones solid-outlined, unset ones dashed. The max-rent tag holds the inline dollar input.
   - Weights become `LevelControl` restyled as fence boards: a leaning gray board for "Don't care", then three boards that get taller (sunset-400/500/600 when on, outlined when off), with `LEVEL_LABELS[value]` beside them. Keep the radio-group semantics.
-- **Close call:** replace the green box with one line under the heading, with `KnotIcon` in front.
+- **Close call:** replace the green box with one plain line under the heading (no icon: the knot read as a little person).
 - **Rank cards:**
   - A big fence-board photo on the left.
   - The rank number on a small fence-board badge: #1 `sunset-500`, #2 `sunset-400`, #3 `sunset-300`.
   - Name and rent per person in `font-display`.
   - `FitFence` instead of the score and bar.
-  - Reasons as lines, each with a tiny mark: a good reason gets a mini `SunMark`, a bad one a small gray "under the wave" dot. Replace the "+"/"−" signs.
+  - Reasons stay as lines with a plain "+" (`sea-700`) or "−" (`sunset-600`) in front. Don't use `SunMark` here: it means "Corral found this in the listing".
   - "Why?" becomes "See the math", opening the existing breakdown.
   - `RopeInToggle` for compare.
 - **Places that can't be ranked ("Might fit, missing info"):** a dashed `sunset-600` rope outline, with the missing fact as a dashed tag ("Rent not listed") and an "Add it" link that opens edit.
@@ -138,7 +139,7 @@ Replace the no-photo states with `EmptyLot` (see step 1). Remove the dashed-buil
 - Header band: "← Back to the board" on the left, "Side by side" centered in `font-display`, and the budget as a rent tag on the right. Use the existing band, stripe and wave.
 - Each place is a column shaped like a tall fence board (`rounded-t-[160px]`), with the street photo (or `EmptyLot`) filling the arch, then the name and the nickname with a "Listing ↗" link.
 - Rows have no ruled lines: alternate soft bands (`shell-mid` / transparent) running across the labels and every column.
-- The best value in a row gets a `sunset-200` pill with a small `SunMark` in front, plus visually hidden text "(best)", instead of the blue pill.
+- The best value in a row gets a `sunset-200` pill with a small "· Best" in `sunset-700` after the value, instead of the blue pill. No `SunMark` (it means "Corral found this").
 - Keep the existing rules for "best" and for unknown values. Columns end after their last row; they don't stretch to the bottom.
 
 ### 7. Edit a place
@@ -199,8 +200,8 @@ The edit dialog uses the add flow's check-screen layout:
 ## Done means
 
 - [ ] Every screen above matches its design closely at 1280 wide. The phone layouts work at 375 wide with no sideways scrolling.
-- [ ] No sparkle icons, pale info boxes, stars, plain checkboxes, dashed building icons or ruled section lines remain on these screens.
+- [ ] No sparkle icons, pale info boxes, plain checkboxes, dashed building icons or ruled section lines remain on these screens.
 - [ ] Lint, typecheck, unit tests, build and e2e (`desktop`, `iphone`, `safari`) all pass. Tests changed only where a label or structure really changed.
 - [ ] Reduced motion checked: no movement with `prefers-reduced-motion: reduce`.
 - [ ] One PR, one commit per step. The PR description has before/after screenshots for each screen, taken in Safari's engine (`npx playwright test --project=safari`, or a Playwright WebKit script).
-- [ ] README → "Design identity" has rows for the new motifs (horseshoe = favorite, lasso = compare, empty lot = no photo, fit fence = rank score, rope-tag button = move along).
+- [ ] README → "Design identity" has rows for the new motifs (lasso = compare, empty lot = no photo, fit fence = rank score, rope-tag button = move along).

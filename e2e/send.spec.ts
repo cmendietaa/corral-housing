@@ -61,7 +61,9 @@ test("the desktop bookmark sends a rent the site only shows after its scripts ru
   // Get the real bookmark from Board settings.
   await page.goto("/demo");
   await page.getByRole("button", { name: "Board settings" }).filter({ visible: true }).first().click();
-  const link = page.getByRole("dialog", { name: "Board settings" }).getByRole("link", { name: "Send to Corral" });
+  const settings = page.getByRole("dialog", { name: "Board settings" });
+  await settings.getByRole("button", { name: "Set it up" }).click();
+  const link = settings.getByRole("link", { name: "Send to Corral" });
   await expect(link).toHaveAttribute("href", /^javascript:/);
   const code = decodeURIComponent((await link.getAttribute("href"))!.slice("javascript:".length));
 

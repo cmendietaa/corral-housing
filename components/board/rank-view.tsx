@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Ban, Check, ChevronDown, Plus, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
@@ -11,7 +11,7 @@ import {
   FACTOR_LABELS,
   LEVEL_LABELS,
   defaultPriorities,
-  formatScore,
+  formatStars,
   headline,
   rankPlaces,
   type Factor,
@@ -21,10 +21,12 @@ import {
   type RankedPlace,
   type Requirement
 } from "@/lib/rank";
+import { RopeInToggle } from "@/components/brand/controls";
+import { EmptyLot, FENCE_COLORS, FitStars } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
-import { StreetPhoto, FenceFallback } from "./street-photo";
+import { StreetPhoto } from "./street-photo";
 
 const storageKey = (boardId: string) => `corral:rank:${boardId}`;
 
@@ -119,11 +121,28 @@ export function RankView({ footNote, listings, board, photos, checked, checkDisa
        <div className="max-w-[820px] space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="label text-stone-700">Best fit for you · {ranking.ranked.length}</h2>
+            <h2 className="font-display text-[26px] leading-tight text-tar max-lg:sr-only">Best fit for you</h2>
             {openCount > 0 ? (
-              <p className="mt-1 text-sm text-stone-800">
-                {ranking.ranked.length} of {openCount} open {openCount === 1 ? "place fits" : "places fit"} your must-haves
-                {ranking.ranked.length < openCount ? "; the rest are below." : "."}
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-800">
+                {/* One board per open place; the ones that fit stand in color. */}
+                <span aria-hidden="true" className="flex items-end gap-[3px]">
+                  {Array.from({ length: Math.min(openCount, 12) }, (_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "block w-2 rounded-t-full rounded-b-[2px]",
+                        i < ranking.ranked.length ? FENCE_COLORS[i % FENCE_COLORS.length] : "ring-[1.5px] ring-inset ring-stone-400"
+                      )}
+                      style={{ height: [18, 22, 16, 20, 17, 21][i % 6] }}
+                    />
+                  ))}
+                </span>
+                <span>
+                  <span className="font-display text-base text-tar">
+                    {ranking.ranked.length} of {openCount}
+                  </span>{" "}
+                  open {openCount === 1 ? "place fits" : "places fit"} your must-haves
+                </span>
               </p>
             ) : null}
           </div>
@@ -197,20 +216,28 @@ function summary(p: Priorities): string {
 }
 
 function Notes({ ranking, openCount }: { ranking: ReturnType<typeof rankPlaces>; openCount: number }) {
-  const notes: string[] = [];
-  if (openCount < 2) notes.push("Add a few places to rank them.");
+  const notes: { tag?: string; text: string }[] = [];
+  if (openCount < 2) notes.push({ text: "Add a few places to rank them." });
   else if (!ranking.ranked.length && ranking.tightest)
-    notes.push(`No place meets all your requirements. The ${REQUIREMENT_LABELS[ranking.tightest]} rules out the most; loosen it?`);
-  if (ranking.allDontCare) notes.push("Everything is set to Don't care, so places are ranked by price.");
-  if (ranking.noPins) notes.push("None of these places has a pin, so bike time can't count yet. Drop pins on the map.");
+    notes.push({ tag: "Too strict", text: `No place meets all your requirements. The ${REQUIREMENT_LABELS[ranking.tightest]} rules out the most; loosen it?` });
+  if (ranking.allDontCare) notes.push({ text: "Everything is set to Don't care, so places are ranked by price." });
+  if (ranking.noPins) notes.push({ tag: "No pins", text: "Bike time can't count until places have pins on the map." });
   if (ranking.closeCall && ranking.ranked.length >= 2)
-    notes.push(`Close call: #1 changes depending on how much ${FACTOR_LABELS[ranking.closeCall].toLowerCase()} matters.`);
+    notes.push({ tag: "Close call", text: `#1 changes with how much ${FACTOR_LABELS[ranking.closeCall].toLowerCase()} matters.` });
   if (!notes.length) return null;
   return (
     <ul className="space-y-2">
       {notes.map((n) => (
-        <li key={n} className="rounded-[18px] bg-glass-200 px-4 py-2.5 text-sm text-glass-900">
-          {n}
+        <li key={n.text} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-stone-800">
+          {n.tag ? (
+            // A rope tag: knot dot on the left, rounded on the right.
+            <span className="inline-flex items-center gap-1.5 rounded-l-[8px] rounded-r-[14px] bg-sunset-200 py-1 pl-2 pr-3 text-xs font-bold text-sunset-800">
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-shell-light" />
+              {n.tag}
+              <span className="sr-only">:</span>
+            </span>
+          ) : null}
+          <span>{n.text}</span>
         </li>
       ))}
     </ul>
@@ -239,53 +266,56 @@ function RankCard({
   const whyId = useId();
   const name = streetHeadline(r.place.address, r.place.title);
   const line = headline(r);
-  const score = formatScore(r);
+  const score = formatStars(r);
 
   return (
-    <article aria-label={`#${r.rank} ${name}, ${score} out of 10`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
+    <article aria-label={`#${r.rank} ${name}, ${score} out of 5`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="relative h-[92px] w-[120px] shrink-0 sm:h-[124px] sm:w-[176px]">
+        <div className="h-[92px] w-[120px] shrink-0 overflow-hidden rounded-[18px] sm:h-[124px] sm:w-[170px] sm:rounded-[20px]">
           {r.place.lat === null ? (
-            <div className="h-full w-full overflow-hidden rounded-[20px] bg-shell-deep">
-              <FenceFallback />
-            </div>
+            <EmptyLot />
           ) : (
-            <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full rounded-[20px]" />
+            <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full" />
           )}
-          <span
-            aria-hidden="true"
-            className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-shell px-2 font-display text-[15px] leading-none text-tar shadow-sm"
-          >
-            {r.rank}
-          </span>
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
-          <div className="flex items-start gap-2">
-            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-0.5 text-left font-display text-[17px] leading-tight text-tar hover:underline sm:text-[19px]">
+          <div className="flex items-start gap-2.5">
+            {/* The rank on a little fence board: the top three in sunset. */}
+            <span
+              aria-hidden="true"
+              className={cn(
+                "flex h-9 w-7 shrink-0 items-center justify-center rounded-t-full rounded-b-[5px] font-display text-[16px] leading-none text-tar",
+                r.rank === 1 ? "bg-sunset-500" : r.rank === 2 ? "bg-sunset-400" : r.rank === 3 ? "bg-sunset-300" : "bg-shell-deep"
+              )}
+            >
+              {r.rank}
+            </span>
+            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-1 text-left font-display text-[17px] leading-tight text-tar hover:underline sm:text-[19px]">
               {name}
             </button>
-            <div className="shrink-0 text-right">
-              <p>
-                <span className="font-display text-[22px] leading-none text-tar">{score}</span>
-                <span className="text-[13px] text-stone-700">/10</span>
-              </p>
-              <span aria-hidden="true" className="mt-1.5 block h-1.5 w-14 overflow-hidden rounded-full bg-shell-deep">
-                <span className="block h-full rounded-full bg-sea-700" style={{ width: `${r.score}%` }} />
-              </span>
-            </div>
           </div>
+          <FitStars stars={r.score / 20} text={score} className="mt-2" />
           {line.length ? (
-            <p className="mt-1.5 space-y-0.5 text-[13px] leading-snug text-stone-800">
+            <ul className="mt-2 flex flex-wrap gap-1.5 text-[13px] leading-snug">
               {line.map((x) => (
-                <span key={x.factor} className="block">
-                  <span className={x.sign === "+" ? "text-sea-900" : "text-danger"} aria-hidden="true">
-                    {x.sign === "+" ? "+ " : "− "}
+                <li
+                  key={x.factor}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-3",
+                    x.sign === "+" ? "bg-glass-200 text-glass-900" : "bg-sunset-200/80 text-sunset-900"
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn("flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-shell-light", x.sign === "+" ? "bg-glass-600" : "bg-sunset-600")}
+                  >
+                    {x.sign === "+" ? <Plus className="h-3 w-3" strokeWidth={3.5} /> : <Minus className="h-3 w-3" strokeWidth={3.5} />}
                   </span>
                   <span className="sr-only">{x.sign === "+" ? "Plus: " : "Minus: "}</span>
                   {x.text}
-                </span>
+                </li>
               ))}
-            </p>
+            </ul>
           ) : null}
           {r.missing.length ? (
             <p className="mt-1.5 flex flex-wrap gap-1.5">
@@ -304,19 +334,10 @@ function RankCard({
               onClick={() => setWhy((w) => !w)}
               className="inline-flex h-9 items-center gap-1 text-[13px] font-semibold text-sea-900"
             >
-              Why?
+              See the math
               <ChevronDown className={cn("h-3.5 w-3.5 transition", why && "rotate-180")} strokeWidth={3} aria-hidden="true" />
             </button>
-            <label className={cn("inline-flex h-9 items-center gap-2 text-[13px] text-stone-800", checkDisabled ? "opacity-50" : "cursor-pointer")}>
-              <input type="checkbox" className="peer sr-only" checked={checked} disabled={checkDisabled} onChange={onToggleCheck} aria-label={`Compare ${name}`} />
-              <span
-                aria-hidden="true"
-                className="flex h-5 w-5 items-center justify-center rounded-md border-[1.5px] border-stone-600 peer-checked:border-sea-800 peer-checked:bg-sea-800 peer-focus-visible:ring-2 peer-focus-visible:ring-focus"
-              >
-                {checked ? <Check className="h-3.5 w-3.5 text-shell" strokeWidth={3.5} /> : null}
-              </span>
-              Compare
-            </label>
+            <RopeInToggle on={checked} disabled={checkDisabled} label={name} onToggle={onToggleCheck} className="h-9" />
           </div>
         </div>
       </div>
@@ -381,8 +402,8 @@ function HeldSection({
   onOpen: (id: string) => void;
 }) {
   return (
-    <section className="rounded-[26px] bg-shell-mid p-2">
-      <h3 className="label px-2 py-2 text-stone-700">{title}</h3>
+    <section className={cn("rounded-[26px] p-2", dim ? "bg-shell-mid" : "border-2 border-dashed border-sunset-600/70")}>
+      <h3 className="px-2 py-2 font-display text-[16px] text-tar">{title}</h3>
       <ul className="space-y-1.5">
         {items.map((h) => {
           const name = streetHeadline(h.place.address, h.place.title);
@@ -390,7 +411,7 @@ function HeldSection({
             <li key={h.place.id} className="flex items-center gap-3 rounded-[20px] bg-shell p-2 pr-3">
               <div className={cn("h-14 w-20 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
                 {h.place.lat === null ? (
-                  <FenceFallback />
+                  <EmptyLot size="sm" />
                 ) : (
                   <StreetPhoto listingId={h.place.id} lat={h.place.lat} lng={h.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full" />
                 )}
@@ -440,15 +461,15 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 px-1">
         <div>
-          <h2 className="font-display text-xl text-tar">Your priorities</h2>
-          <p className="mt-0.5 text-[13px] text-stone-700">Just yours, saved on this device.</p>
+          <h2 className="font-display text-[22px] text-tar">What matters to you</h2>
+          <p className="mt-0.5 text-[13px] text-stone-700">Just yours, on this device.</p>
         </div>
         <button type="button" onClick={onReset} className="mt-1 text-[13px] font-semibold text-sea-900 underline underline-offset-4">
           Reset
         </button>
       </div>
 
-      <Group id={`${id}-must`} title="Must-haves" hint="Places that miss one are set aside.">
+      <Group id={`${id}-must`} title="Must-haves">
         <div className="space-y-4">
           <div>
             <label htmlFor={`${id}-max`} className="text-[13px] font-semibold text-tar">
@@ -517,7 +538,7 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
         </div>
       </Group>
 
-      <Group id={`${id}-weights`} title="What matters most" hint="More bars, more weight in the ranking.">
+      <Group id={`${id}-weights`} title="How much it counts">
         <div className="-my-1 divide-y divide-divider">
           {FACTORS.map((f) => (
             <LevelControl
@@ -534,13 +555,12 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
   );
 }
 
-function Group({ id, title, hint, children }: { id: string; title: string; hint: string; children: React.ReactNode }) {
+function Group({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id} className="rounded-[24px] bg-shell p-4">
-      <h3 id={id} className="font-display text-[16px] text-tar">
+      <h3 id={id} className="mb-3 font-display text-[16px] text-tar">
         {title}
       </h3>
-      <p className="mb-3.5 mt-0.5 text-xs text-stone-700">{hint}</p>
       {children}
     </section>
   );
@@ -565,8 +585,9 @@ function Chip({ label, title, checked, onChange }: { label: string; title?: stri
 }
 
 /**
- * How much one factor counts: "Don't care", then one to three bars, like a
- * signal meter. Real radio buttons underneath, so arrow keys move between levels.
+ * How much one factor counts: a leaning board for "Don't care", then three
+ * boards that stand taller. Real radio buttons underneath, so arrow keys move
+ * between levels.
  */
 function LevelControl({ label, short, value, onChange }: { label: string; short: string; value: Level; onChange: (v: Level) => void }) {
   const name = useId();
@@ -574,13 +595,13 @@ function LevelControl({ label, short, value, onChange }: { label: string; short:
     <div role="radiogroup" aria-label={label} className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold leading-tight text-tar">{short}</p>
-        <p className={cn("mt-0.5 text-xs", value === 0 ? "text-stone-600" : "font-semibold text-sea-900")}>{LEVEL_LABELS[value]}</p>
+        <p className={cn("mt-0.5 text-xs", value === 0 ? "text-stone-700" : "font-semibold text-sunset-700")}>{LEVEL_LABELS[value]}</p>
       </div>
       <div className="flex items-end">
         {LEVEL_LABELS.map((l, i) => {
           const on = i === 0 ? value === 0 : value >= i;
           return (
-            <span key={l} className={cn("relative flex h-10 items-end justify-center pb-2.5", i === 0 ? "mr-1 w-9" : "w-7")} title={l}>
+            <span key={l} className={cn("relative flex h-10 items-end justify-center pb-2", i === 0 ? "mr-1 w-8" : "w-6")} title={l}>
               <input
                 type="radio"
                 name={name}
@@ -590,18 +611,20 @@ function LevelControl({ label, short, value, onChange }: { label: string; short:
                 className="peer absolute inset-0 z-10 cursor-pointer appearance-none rounded-full opacity-0"
               />
               {i === 0 ? (
-                <Ban
+                <span
                   aria-hidden="true"
-                  className={cn("h-[18px] w-[18px] transition-colors", on ? "text-stone-800" : "text-stone-400 peer-hover:text-stone-600")}
-                  strokeWidth={2.5}
+                  className={cn(
+                    "block h-[18px] w-[10px] origin-bottom rotate-[16deg] rounded-t-full rounded-b-[2px] transition-colors",
+                    on ? "bg-stone-600" : "bg-stone-300 peer-hover:bg-stone-400"
+                  )}
                 />
               ) : (
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "block w-2 rounded-[3px] transition-colors",
-                    i === 1 ? "h-2" : i === 2 ? "h-3.5" : "h-5",
-                    on ? "bg-sea-700" : "bg-stone-300 peer-hover:bg-stone-400"
+                    "block w-[10px] rounded-t-full rounded-b-[2px] transition-colors",
+                    i === 1 ? "h-3.5" : i === 2 ? "h-5" : "h-[26px]",
+                    on ? (i === 1 ? "bg-sunset-400" : i === 2 ? "bg-sunset-500" : "bg-sunset-600") : "ring-[1.5px] ring-inset ring-stone-400 peer-hover:ring-stone-600"
                   )}
                 />
               )}

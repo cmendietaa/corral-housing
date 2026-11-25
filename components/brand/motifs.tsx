@@ -61,16 +61,6 @@ export function LassoIcon({ className, strokeWidth = 2.5 }: IconProps) {
   );
 }
 
-/** The knot on a rope loop (drop zones). */
-export function KnotIcon({ className, strokeWidth = 2.5 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
-      <circle cx="12" cy="9" r="3.5" />
-      <path d="M10 12c-1 3-3 5-5 7M14 12c1 3 3 5 5 7" />
-    </svg>
-  );
-}
-
 /** Two fence boards with a rail: "into the corral". */
 export function FenceIcon({ className, strokeWidth = 2.5 }: IconProps) {
   return (
@@ -115,6 +105,122 @@ export function SettingSun({ className, label = "Reading…" }: { className?: st
     <span role="status" aria-label={label} className={cn("relative inline-block h-7 w-9 shrink-0 overflow-hidden rounded-lg bg-sunset-300", className)}>
       <span className="corral-sunset absolute left-1/2 h-4 w-4 -translate-x-1/2 rounded-full bg-sunset-100" />
       <span className="corral-stripe absolute inset-x-0 bottom-0 h-2" />
+    </span>
+  );
+}
+
+/**
+ * No photo yet: a pale sky with the sun sitting on a fence. Fills whatever
+ * frame it's in (a fence-board thumbnail, a card's photo, a compare column).
+ */
+export function EmptyLot({ className, size = "md" }: { className?: string; size?: "sm" | "md" }) {
+  const heights = size === "sm" ? [10, 13, 9, 12, 11] : [26, 32, 24, 30, 27, 33, 25, 31, 28];
+  return (
+    <span aria-hidden="true" className={cn("relative block h-full w-full overflow-hidden bg-sunset-200", className)}>
+      <span
+        className={cn(
+          "absolute left-1/2 -translate-x-1/2 rounded-full bg-sunset-100",
+          size === "sm" ? "bottom-[8px] h-[44%] max-h-7 w-auto aspect-square" : "bottom-[14px] h-[48%] max-h-16 w-auto aspect-square"
+        )}
+      />
+      <span className={cn("absolute inset-x-0 bottom-0 flex items-end justify-center", size === "sm" ? "gap-[2px] px-[2px]" : "gap-[5px] px-2")}>
+        {heights.map((h, i) => (
+          <span
+            key={i}
+            className={cn("block rounded-t-full", size === "sm" ? "flex-1" : "w-[14px]", FENCE_COLORS[i % FENCE_COLORS.length])}
+            style={{ height: h }}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+/** The word for a fit out of 5. */
+export function fitWord(stars: number): string {
+  if (stars >= 4) return "Great fit";
+  if (stars >= 3) return "Good fit";
+  if (stars >= 2) return "Okay fit";
+  return "Long shot";
+}
+
+const STAR = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z";
+
+/**
+ * A rank as five stars, the number out of 5 beside them so the two match,
+ * and a word ("4.3 · Great fit"). Stars fill in halves.
+ */
+export function FitStars({ stars, text, className }: { stars: number; /** As shown, e.g. "~3.8" when a fact is unknown. */ text?: string; className?: string }) {
+  const shown = text ?? stars.toFixed(1);
+  return (
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <span role="img" aria-label={`Fit ${shown} out of 5`} className="flex items-center gap-0.5">
+        {Array.from({ length: 5 }, (_, i) => {
+          const part = Math.max(0, Math.min(1, stars - i));
+          const fill = part >= 0.75 ? 100 : part >= 0.25 ? 50 : 0;
+          return (
+            <span key={i} className="relative block h-[18px] w-[18px]">
+              <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full text-sunset-600" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+                <path d={STAR} />
+              </svg>
+              <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${fill}%` }}>
+                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] text-sunset-600" fill="var(--color-sunset-500)" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+                  <path d={STAR} />
+                </svg>
+              </span>
+            </span>
+          );
+        })}
+      </span>
+      <span aria-hidden="true" className="font-display text-lg leading-none text-tar">
+        {shown}
+      </span>
+      <span aria-hidden="true" className="text-sm font-bold text-stone-800">
+        · {fitWord(stars)}
+      </span>
+    </span>
+  );
+}
+
+/** Loading a board: fence boards go up one after another (still under reduced motion). */
+export function GateLoading({ label = "Opening the gate…", className }: { label?: string; className?: string }) {
+  const heights = [44, 54, 38, 50, 42];
+  return (
+    <div role="status" className={cn("flex flex-col items-center gap-4", className)}>
+      <span aria-hidden="true" className="flex h-14 items-end gap-2">
+        {heights.map((h, i) => (
+          <span
+            key={i}
+            className={cn("corral-board block w-3.5 origin-bottom rounded-t-full rounded-b-[2px]", FENCE_COLORS[i])}
+            style={{ height: h, animationDelay: `${i * 0.12}s` }}
+          />
+        ))}
+      </span>
+      <span className="font-display text-lg text-tar">{label}</span>
+    </div>
+  );
+}
+
+/** The open gate (sign in): two posts, the gate boards swung open, the sun behind. */
+export function OpenGate({ className }: { className?: string }) {
+  const left = ["bg-sea-700", "bg-sunset-500", "bg-glass-500"];
+  const right = ["bg-sea-300", "bg-sunset-400", "bg-sea-700"];
+  const heights = [96, 104, 98];
+  return (
+    <span aria-hidden="true" className={cn("relative block h-[150px] w-[300px]", className)}>
+      <span className="absolute bottom-0 left-1/2 h-[130px] w-[130px] -translate-x-1/2 rounded-full bg-sunset-200" />
+      <span className="absolute bottom-0 left-3 h-[140px] w-5 rounded-t-full rounded-b-[3px] bg-sunset-700" />
+      <span className="absolute bottom-0 right-3 h-[140px] w-5 rounded-t-full rounded-b-[3px] bg-sunset-700" />
+      <span className="absolute bottom-0 left-10 flex origin-bottom-left skew-y-[-8deg] items-end gap-1.5">
+        {left.map((c, i) => (
+          <span key={i} className={cn("block w-3.5 rounded-t-full rounded-b-[2px]", c)} style={{ height: heights[i] }} />
+        ))}
+      </span>
+      <span className="absolute bottom-0 right-10 flex origin-bottom-right skew-y-[8deg] items-end gap-1.5">
+        {right.map((c, i) => (
+          <span key={i} className={cn("block w-3.5 rounded-t-full rounded-b-[2px]", c)} style={{ height: heights[2 - i] }} />
+        ))}
+      </span>
     </span>
   );
 }
