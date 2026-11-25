@@ -4,7 +4,8 @@
 --   supabase db query --remote -f supabase/tests/rls_check.sql
 --
 -- Three fake users: Alice creates a board, Bob joins with an invite, and
--- Olive (an outsider) tries to read and write it by id.
+-- Olive (an outsider) tries to read and write it by id. Then Alice removes
+-- Bob, hands the board to him when he rejoins, and Bob deletes it.
 
 begin;
 
@@ -202,6 +203,110 @@ begin
   raise notice 'PASS: outsider is refused tour photos';
 end $$;
 
+-- Member management. Bob (member) can't remove the owner, take the board or rename it.
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-00000000000b","role":"authenticated"}';
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+  n int;
+begin
+  delete from public.board_members where board_id = v_board and user_id = '00000000-0000-4000-a000-00000000000a';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FAIL: a member removed the owner'; end if;
+  begin
+    perform public.transfer_board_ownership(v_board, '00000000-0000-4000-a000-00000000000b');
+    raise exception 'FAIL: a member took ownership';
+  exception when insufficient_privilege then null;
+  end;
+  update public.boards set name = 'Bob was here' where id = v_board;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FAIL: a member renamed the board'; end if;
+  -- Before he's removed, Bob takes a next step and makes an invite link.
+  update public.listings set next_action_assignee = '00000000-0000-4000-a000-00000000000b' where board_id = v_board;
+  with i as (insert into public.invites (board_id) values (v_board) returning token)
+  insert into t select 'bob_invite', token from i;
+  raise notice 'PASS: a member can''t remove the owner, take the board or rename it';
+end $$;
+
+-- Alice (owner) can't walk away from the board, but can remove Bob. His next
+-- step goes back to unassigned and his invite link stops working.
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-00000000000a","role":"authenticated"}';
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+  n int;
+begin
+  delete from public.board_members where board_id = v_board and user_id = '00000000-0000-4000-a000-00000000000a';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FAIL: the owner left without handing the board over'; end if;
+  delete from public.board_members where board_id = v_board and user_id = '00000000-0000-4000-a000-00000000000b';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FAIL: the owner could not remove a member'; end if;
+  if exists (select 1 from public.listings where board_id = v_board and next_action_assignee is not null) then
+    raise exception 'FAIL: a removed member kept their next step';
+  end if;
+  if not (select revoked from public.invites where token = (select v from t where k = 'bob_invite')) then
+    raise exception 'FAIL: a removed member''s invite link still works';
+  end if;
+  raise notice 'PASS: the owner removes members; their next steps and invite links are cleared';
+end $$;
+
+-- Removed, Bob sees nothing; with a fresh invite he can rejoin.
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-00000000000b","role":"authenticated"}';
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+begin
+  if (select count(*) from public.listings where board_id = v_board) <> 0 then
+    raise exception 'FAIL: a removed member can still read listings';
+  end if;
+  begin
+    perform public.redeem_invite((select v from t where k = 'bob_invite'), 'Bob');
+    raise exception 'FAIL: a removed member rejoined with his own old link';
+  exception when raise_exception then
+    if sqlerrm <> 'invite_revoked' then raise; end if;
+  end;
+  perform public.redeem_invite((select v from t where k = 'invite'), 'Bob');
+  raise notice 'PASS: a removed member loses access and needs a working invite to return';
+end $$;
+
+-- Alice hands the board to Bob, then leaves.
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-00000000000a","role":"authenticated"}';
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+  n int;
+begin
+  perform public.transfer_board_ownership(v_board, '00000000-0000-4000-a000-00000000000b');
+  if (select role from public.board_members where board_id = v_board and user_id = '00000000-0000-4000-a000-00000000000b') <> 'owner'
+    or (select count(*) from public.board_members where board_id = v_board and role = 'owner') <> 1 then
+    raise exception 'FAIL: ownership did not move to exactly one new owner';
+  end if;
+  delete from public.board_members where board_id = v_board and user_id = '00000000-0000-4000-a000-00000000000a';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FAIL: the former owner could not leave'; end if;
+  if (select count(*) from public.boards where id = v_board) <> 0 then
+    raise exception 'FAIL: someone who left can still see the board';
+  end if;
+  raise notice 'PASS: the owner hands the board over and can then leave';
+end $$;
+
+-- Bob, now the owner, renames the board and then deletes it.
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-00000000000b","role":"authenticated"}';
+do $$
+declare
+  v_board uuid := (select v from t where k = 'board');
+  n int;
+begin
+  update public.boards set name = 'Renamed by the new owner' where id = v_board;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FAIL: the new owner could not rename the board'; end if;
+  delete from public.boards where id = v_board;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FAIL: the owner could not delete the board'; end if;
+  raise notice 'PASS: the new owner manages and deletes the board';
+end $$;
+
 -- Signed-out (anon) visitors get nothing at all.
 reset role;
 set local role anon;
@@ -221,6 +326,11 @@ begin
   begin
     perform public.create_board('x', 'x');
     raise exception 'FAIL: anon can call create_board';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.transfer_board_ownership(gen_random_uuid(), gen_random_uuid());
+    raise exception 'FAIL: anon can call transfer_board_ownership';
   exception when insufficient_privilege then null;
   end;
   raise notice 'PASS: anon has no access';

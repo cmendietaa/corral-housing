@@ -1,7 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listingInputSchema, type Board, type ListingInput, type ListingPatch } from "@/lib/listing";
+import { boardDetailsSchema, displayNameSchema, listingInputSchema, type Board, type ListingInput, type ListingPatch } from "@/lib/listing";
 import { patchToRow, rowToListing, type ListingRow } from "@/lib/stores/db-map";
-import { MAX_PHOTOS_PER_PLACE, type BoardStore, type Photo } from "@/lib/stores/types";
+import {
+  MAX_PHOTOS_PER_PLACE,
+  NOT_ON_BOARD,
+  type BoardSettings,
+  type BoardStore,
+  type MemberRole,
+  type Photo
+} from "@/lib/stores/types";
 
 const BUCKET = "tour-photos";
 // Signed photo links last an hour; the board refreshes them before then.
@@ -19,8 +26,104 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
     throw new Error(message);
   }
 
+  async function myId(): Promise<string> {
+    const { data } = await supabase.auth.getSession();
+    const id = data.session?.user.id;
+    if (!id) fail("Your session ended. Sign in again.");
+    return id;
+  }
+
+  /** Remove every photo file on the board (rows go with the board; files don't). */
+  async function removeBoardPhotoFiles() {
+    const { data } = await supabase.from("listing_photos").select("path").eq("board_id", boardId);
+    const paths = (data ?? []).map((p: { path: string }) => p.path);
+    if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+  }
+
+  const settings: BoardSettings = {
+    async load() {
+      const [me, members, invites] = await Promise.all([
+        myId(),
+        supabase.from("board_members").select("user_id, display_name, role, joined_at").eq("board_id", boardId).order("joined_at"),
+        supabase
+          .from("invites")
+          .select("token, created_by, expires_at")
+          .eq("board_id", boardId)
+          .eq("revoked", false)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
+      ]);
+      if (members.error || invites.error) fail("Couldn't load the board's settings. Try again.");
+      const list = (members.data ?? []).map((m: { user_id: string; display_name: string; role: MemberRole }) => ({
+        id: m.user_id,
+        name: m.display_name,
+        role: m.role,
+        isMe: m.user_id === me
+      }));
+      if (!list.some((m) => m.isMe)) fail(NOT_ON_BOARD);
+      return {
+        members: list,
+        invites: (invites.data ?? []).map((i: { token: string; created_by: string | null; expires_at: string }) => ({
+          token: i.token,
+          createdBy: i.created_by,
+          expiresAt: i.expires_at
+        })),
+        canEditBoard: list.some((m) => m.isMe && m.role === "owner")
+      };
+    },
+
+    async updateBoard(details) {
+      const d = boardDetailsSchema.parse(details);
+      const { data, error } = await supabase
+        .from("boards")
+        .update({ name: d.name, lease_year: d.leaseYear, budget_per_person_cents: d.budgetPerPersonCents })
+        .eq("id", boardId)
+        .select("id");
+      if (error) fail("Couldn't save the board's details. Try again.");
+      if (!data?.length) fail("Only the board's owner can change these.");
+    },
+
+    async renameMe(name) {
+      const display = displayNameSchema.parse(name);
+      const me = await myId();
+      const { error } = await supabase.from("board_members").update({ display_name: display }).eq("board_id", boardId).eq("user_id", me);
+      if (error) fail("Couldn't save your name. Try again.");
+    },
+
+    async removeMember(userId) {
+      const { data, error } = await supabase.from("board_members").delete().eq("board_id", boardId).eq("user_id", userId).select("user_id");
+      if (error) fail("Couldn't remove them. Try again.");
+      if (!data?.length) fail("Only the owner can remove people, and the owner can't be removed.");
+    },
+
+    async makeOwner(userId) {
+      const { error } = await supabase.rpc("transfer_board_ownership", { p_board_id: boardId, p_user_id: userId });
+      if (error) fail(error.code === "42501" || error.code === "P0002" ? error.message : "Couldn't hand the board over. Try again.");
+    },
+
+    async leave() {
+      const me = await myId();
+      const { data, error } = await supabase.from("board_members").delete().eq("board_id", boardId).eq("user_id", me).select("user_id");
+      if (error) fail("Couldn't leave the board. Try again.");
+      if (!data?.length) fail("Make someone else the owner before you leave.");
+    },
+
+    async revokeInvite(token) {
+      const { error } = await supabase.from("invites").update({ revoked: true }).eq("board_id", boardId).eq("token", token);
+      if (error) fail("Couldn't turn off that link. Try again.");
+    },
+
+    async deleteBoard() {
+      await removeBoardPhotoFiles();
+      const { data, error } = await supabase.from("boards").delete().eq("id", boardId).select("id");
+      if (error) fail("Couldn't delete the board. Try again.");
+      if (!data?.length) fail("Only the board's owner can delete it.");
+    }
+  };
+
   return {
     kind: "private",
+    settings,
 
     async load() {
       const [board, members, listings] = await Promise.all([
@@ -29,7 +132,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
         supabase.from("listings").select("*").eq("board_id", boardId).order("created_at", { ascending: false })
       ]);
       if (board.error || members.error || listings.error) fail("Couldn't load this board. Check your connection and try again.");
-      if (!board.data) fail("This board doesn't exist, or you're not a member of it.");
+      if (!board.data) fail(NOT_ON_BOARD);
 
       const b: Board = {
         id: board.data.id,
@@ -43,9 +146,13 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
 
     async addListing(input: ListingInput) {
       const data = listingInputSchema.parse(input);
+      // A new place has no photos yet, so its photo choices are the column defaults.
+      const fields = patchToRow(data);
+      delete fields.cover_photo;
+      delete fields.street_view;
       const { data: row, error } = await supabase
         .from("listings")
-        .insert({ board_id: boardId, ...patchToRow(data) })
+        .insert({ board_id: boardId, ...fields })
         .select("*")
         .single();
       if (error || !row) fail(error?.message.includes("not on this board") ? error.message : "Couldn't add this place. Try again.");
@@ -78,6 +185,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
         .on("postgres_changes", { event: "*", schema: "public", table: "listings", filter: `board_id=eq.${boardId}` }, ping)
         .on("postgres_changes", { event: "*", schema: "public", table: "board_members", filter: `board_id=eq.${boardId}` }, ping)
         .on("postgres_changes", { event: "*", schema: "public", table: "listing_photos", filter: `board_id=eq.${boardId}` }, ping)
+        .on("postgres_changes", { event: "*", schema: "public", table: "boards", filter: `id=eq.${boardId}` }, ping)
         .subscribe();
       return () => {
         clearTimeout(timer);
