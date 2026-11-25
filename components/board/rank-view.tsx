@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Ban, Check, ChevronDown, Plus, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, Plus, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
@@ -22,7 +22,7 @@ import {
   type Requirement
 } from "@/lib/rank";
 import { RopeInToggle } from "@/components/brand/controls";
-import { EmptyLot } from "@/components/brand/motifs";
+import { EmptyLot, FitFence, KnotIcon } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,7 @@ export function RankView({ footNote, listings, board, photos, checked, checkDisa
        <div className="max-w-[820px] space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="label text-stone-700">Best fit for you · {ranking.ranked.length}</h2>
+            <h2 className="font-display text-[26px] leading-tight text-tar max-lg:sr-only">Best fit for you</h2>
             {openCount > 0 ? (
               <p className="mt-1 text-sm text-stone-800">
                 {ranking.ranked.length} of {openCount} open {openCount === 1 ? "place fits" : "places fit"} your must-haves
@@ -209,9 +209,10 @@ function Notes({ ranking, openCount }: { ranking: ReturnType<typeof rankPlaces>;
     notes.push(`Close call: #1 changes depending on how much ${FACTOR_LABELS[ranking.closeCall].toLowerCase()} matters.`);
   if (!notes.length) return null;
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-1.5">
       {notes.map((n) => (
-        <li key={n} className="rounded-[18px] bg-glass-200 px-4 py-2.5 text-sm text-glass-900">
+        <li key={n} className="flex items-start gap-2 text-sm text-stone-800">
+          <KnotIcon className="mt-0.5 h-4 w-4 shrink-0 text-sunset-600" />
           {n}
         </li>
       ))}
@@ -246,36 +247,30 @@ function RankCard({
   return (
     <article aria-label={`#${r.rank} ${name}, ${score} out of 10`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="relative h-[92px] w-[120px] shrink-0 sm:h-[124px] sm:w-[176px]">
+        <div className="h-[112px] w-[84px] shrink-0 overflow-hidden rounded-t-[42px] rounded-b-[14px] sm:h-[132px] sm:w-[100px] sm:rounded-t-[50px] sm:rounded-b-[16px]">
           {r.place.lat === null ? (
-            <div className="h-full w-full overflow-hidden rounded-[20px]">
-              <EmptyLot />
-            </div>
+            <EmptyLot />
           ) : (
-            <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full rounded-[20px]" />
+            <StreetPhoto listingId={r.place.id} lat={r.place.lat} lng={r.place.lng} label={name} size="card" enabled={photos} attribution="tiny" className="h-full w-full" />
           )}
-          <span
-            aria-hidden="true"
-            className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-shell px-2 font-display text-[15px] leading-none text-tar shadow-sm"
-          >
-            {r.rank}
-          </span>
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
-          <div className="flex items-start gap-2">
-            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-0.5 text-left font-display text-[17px] leading-tight text-tar hover:underline sm:text-[19px]">
+          <div className="flex items-start gap-2.5">
+            {/* The rank on a little fence board: the top three in sunset. */}
+            <span
+              aria-hidden="true"
+              className={cn(
+                "flex h-9 w-7 shrink-0 items-center justify-center rounded-t-full rounded-b-[5px] font-display text-[16px] leading-none text-tar",
+                r.rank === 1 ? "bg-sunset-500" : r.rank === 2 ? "bg-sunset-400" : r.rank === 3 ? "bg-sunset-300" : "bg-shell-deep"
+              )}
+            >
+              {r.rank}
+            </span>
+            <button type="button" onClick={onOpen} className="min-w-0 flex-1 pt-1 text-left font-display text-[17px] leading-tight text-tar hover:underline sm:text-[19px]">
               {name}
             </button>
-            <div className="shrink-0 text-right">
-              <p>
-                <span className="font-display text-[22px] leading-none text-tar">{score}</span>
-                <span className="text-[13px] text-stone-700">/10</span>
-              </p>
-              <span aria-hidden="true" className="mt-1.5 block h-1.5 w-14 overflow-hidden rounded-full bg-shell-deep">
-                <span className="block h-full rounded-full bg-sea-700" style={{ width: `${r.score}%` }} />
-              </span>
-            </div>
           </div>
+          <FitFence score={r.score / 10} text={score} className="mt-2" />
           {line.length ? (
             <p className="mt-1.5 space-y-0.5 text-[13px] leading-snug text-stone-800">
               {line.map((x) => (
@@ -306,7 +301,7 @@ function RankCard({
               onClick={() => setWhy((w) => !w)}
               className="inline-flex h-9 items-center gap-1 text-[13px] font-semibold text-sea-900"
             >
-              Why?
+              See the math
               <ChevronDown className={cn("h-3.5 w-3.5 transition", why && "rotate-180")} strokeWidth={3} aria-hidden="true" />
             </button>
             <RopeInToggle on={checked} disabled={checkDisabled} label={name} onToggle={onToggleCheck} className="h-9" />
@@ -374,14 +369,14 @@ function HeldSection({
   onOpen: (id: string) => void;
 }) {
   return (
-    <section className="rounded-[26px] bg-shell-mid p-2">
-      <h3 className="label px-2 py-2 text-stone-700">{title}</h3>
+    <section className={cn("rounded-[26px] p-2", dim ? "bg-shell-mid" : "border-2 border-dashed border-sunset-600/70")}>
+      <h3 className="px-2 py-2 font-display text-[16px] text-tar">{title}</h3>
       <ul className="space-y-1.5">
         {items.map((h) => {
           const name = streetHeadline(h.place.address, h.place.title);
           return (
             <li key={h.place.id} className="flex items-center gap-3 rounded-[20px] bg-shell p-2 pr-3">
-              <div className={cn("h-14 w-20 shrink-0 overflow-hidden rounded-[14px] bg-shell-deep", dim && "opacity-60 grayscale")}>
+              <div className={cn("h-[64px] w-12 shrink-0 overflow-hidden rounded-t-[24px] rounded-b-[9px] bg-shell-deep", dim && "opacity-60 grayscale")}>
                 {h.place.lat === null ? (
                   <EmptyLot size="sm" />
                 ) : (
@@ -433,15 +428,15 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 px-1">
         <div>
-          <h2 className="font-display text-xl text-tar">Your priorities</h2>
-          <p className="mt-0.5 text-[13px] text-stone-700">Just yours, saved on this device.</p>
+          <h2 className="font-display text-[22px] text-tar">What matters to you</h2>
+          <p className="mt-0.5 text-[13px] text-stone-700">Just yours, on this device.</p>
         </div>
         <button type="button" onClick={onReset} className="mt-1 text-[13px] font-semibold text-sea-900 underline underline-offset-4">
           Reset
         </button>
       </div>
 
-      <Group id={`${id}-must`} title="Must-haves" hint="Places that miss one are set aside.">
+      <Group id={`${id}-must`} title="Must-haves">
         <div className="space-y-4">
           <div>
             <label htmlFor={`${id}-max`} className="text-[13px] font-semibold text-tar">
@@ -510,7 +505,7 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
         </div>
       </Group>
 
-      <Group id={`${id}-weights`} title="What matters most" hint="More bars, more weight in the ranking.">
+      <Group id={`${id}-weights`} title="How much it counts">
         <div className="-my-1 divide-y divide-divider">
           {FACTORS.map((f) => (
             <LevelControl
@@ -527,13 +522,12 @@ function PrioritiesPanel({ priorities: p, onChange, onReset }: { priorities: Pri
   );
 }
 
-function Group({ id, title, hint, children }: { id: string; title: string; hint: string; children: React.ReactNode }) {
+function Group({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id} className="rounded-[24px] bg-shell p-4">
-      <h3 id={id} className="font-display text-[16px] text-tar">
+      <h3 id={id} className="mb-3 font-display text-[16px] text-tar">
         {title}
       </h3>
-      <p className="mb-3.5 mt-0.5 text-xs text-stone-700">{hint}</p>
       {children}
     </section>
   );
@@ -558,8 +552,9 @@ function Chip({ label, title, checked, onChange }: { label: string; title?: stri
 }
 
 /**
- * How much one factor counts: "Don't care", then one to three bars, like a
- * signal meter. Real radio buttons underneath, so arrow keys move between levels.
+ * How much one factor counts: a leaning board for "Don't care", then three
+ * boards that stand taller. Real radio buttons underneath, so arrow keys move
+ * between levels.
  */
 function LevelControl({ label, short, value, onChange }: { label: string; short: string; value: Level; onChange: (v: Level) => void }) {
   const name = useId();
@@ -567,13 +562,13 @@ function LevelControl({ label, short, value, onChange }: { label: string; short:
     <div role="radiogroup" aria-label={label} className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold leading-tight text-tar">{short}</p>
-        <p className={cn("mt-0.5 text-xs", value === 0 ? "text-stone-600" : "font-semibold text-sea-900")}>{LEVEL_LABELS[value]}</p>
+        <p className={cn("mt-0.5 text-xs", value === 0 ? "text-stone-700" : "font-semibold text-sunset-700")}>{LEVEL_LABELS[value]}</p>
       </div>
       <div className="flex items-end">
         {LEVEL_LABELS.map((l, i) => {
           const on = i === 0 ? value === 0 : value >= i;
           return (
-            <span key={l} className={cn("relative flex h-10 items-end justify-center pb-2.5", i === 0 ? "mr-1 w-9" : "w-7")} title={l}>
+            <span key={l} className={cn("relative flex h-10 items-end justify-center pb-2", i === 0 ? "mr-1 w-8" : "w-6")} title={l}>
               <input
                 type="radio"
                 name={name}
@@ -583,18 +578,20 @@ function LevelControl({ label, short, value, onChange }: { label: string; short:
                 className="peer absolute inset-0 z-10 cursor-pointer appearance-none rounded-full opacity-0"
               />
               {i === 0 ? (
-                <Ban
+                <span
                   aria-hidden="true"
-                  className={cn("h-[18px] w-[18px] transition-colors", on ? "text-stone-800" : "text-stone-400 peer-hover:text-stone-600")}
-                  strokeWidth={2.5}
+                  className={cn(
+                    "block h-[18px] w-[10px] origin-bottom rotate-[16deg] rounded-t-full rounded-b-[2px] transition-colors",
+                    on ? "bg-stone-600" : "bg-stone-300 peer-hover:bg-stone-400"
+                  )}
                 />
               ) : (
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "block w-2 rounded-[3px] transition-colors",
-                    i === 1 ? "h-2" : i === 2 ? "h-3.5" : "h-5",
-                    on ? "bg-sea-700" : "bg-stone-300 peer-hover:bg-stone-400"
+                    "block w-[10px] rounded-t-full rounded-b-[2px] transition-colors",
+                    i === 1 ? "h-3.5" : i === 2 ? "h-5" : "h-[26px]",
+                    on ? (i === 1 ? "bg-sunset-400" : i === 2 ? "bg-sunset-500" : "bg-sunset-600") : "ring-[1.5px] ring-inset ring-stone-400 peer-hover:ring-stone-600"
                   )}
                 />
               )}

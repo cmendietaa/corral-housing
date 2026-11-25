@@ -12,7 +12,7 @@ async function openRank(page: Page) {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Our place by the bluffs" }).first()).toBeVisible();
   await page.getByRole("group", { name: "View" }).filter({ visible: true }).getByRole("button", { name: "Rank" }).click();
-  await expect(page.getByText(/Best fit for you · \d/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Best fit for you" }).first()).toBeVisible();
 }
 
 /** The priorities: the side panel on desktop, a sheet on phones. */
@@ -31,12 +31,12 @@ async function done(page: Page) {
   }
 }
 
-const cards = (page: Page) => page.getByRole("article").filter({ hasText: "/10" });
+const cards = (page: Page) => page.getByRole("article", { name: /out of 10/ });
 
 test("ranks the places that meet the requirements and says why the others don't", async ({ page }) => {
   await openRank(page);
   await expect(cards(page)).toHaveCount(3);
-  await expect(cards(page).first()).toContainText("/10");
+  await expect(cards(page).first().getByRole("img", { name: /^Fit .* out of 10$/ })).toBeVisible();
 
   // Rent unknown: held back as missing info, with a way to fill it in.
   const missing = page.getByText(/Might fit, but missing info · 1/).locator("..");
@@ -50,8 +50,8 @@ test("ranks the places that meet the requirements and says why the others don't"
   await expect(page.getByText("1 washed-out place isn't ranked (Passed or Unavailable).")).toBeVisible();
   await expect(page.getByText("$1,800/person is over your $1,400 max")).toBeVisible();
 
-  // Why? opens the breakdown.
-  await cards(page).nth(1).getByRole("button", { name: "Why?" }).click();
+  // See the math opens the breakdown.
+  await cards(page).nth(1).getByRole("button", { name: "See the math" }).click();
   await expect(cards(page).nth(1)).toContainText(/Ranks below/);
 });
 

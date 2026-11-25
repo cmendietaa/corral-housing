@@ -159,8 +159,8 @@ export function fitWord(score: number): string {
  * each board is two points, filled from the bottom (full, half or empty).
  * One color on purpose, so it reads as a meter rather than decoration.
  */
-export function FitFence({ score, className }: { score: number; className?: string }) {
-  const shown = score.toFixed(1);
+export function FitFence({ score, text, className }: { score: number; /** The number as shown, e.g. "~7.5" when a fact is unknown. */ text?: string; className?: string }) {
+  const shown = text ?? score.toFixed(1);
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span role="img" aria-label={`Fit ${shown} out of 10`} className="flex items-end gap-[3px]">
