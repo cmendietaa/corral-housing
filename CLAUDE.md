@@ -10,3 +10,4 @@ Shared apartment-search board for UCSB roommate groups (Isla Vista / Goleta).
 - Keep database changes in `supabase/migrations/`.
 - Run lint, tests and build before committing, and report anything you could not verify.
 - Commits: no `Co-Authored-By` or other Claude attribution trailers, and no "Generated with Claude Code" lines in commits or PRs.
+- Design: follow README → "Design identity". Use Corral's motifs (components/brand/motifs.tsx), not generic UI; keep small print minimal; check new UI in Safari (`--project=safari`).
