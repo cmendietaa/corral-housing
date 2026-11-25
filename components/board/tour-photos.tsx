@@ -1,14 +1,18 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Eye, EyeOff, ImagePlus, Loader2, Trash2, X } from "lucide-react";
+import type { Cover } from "@/lib/cover";
+import type { Listing } from "@/lib/listing";
+import { streetViewSrc } from "@/lib/streetview";
 import { MAX_PHOTOS_PER_PLACE, type Photo } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Tour photos: roommates add up to 8 photos per place. The board owns the
- * state and provides it here, so any photo frame (row, card, sheet, compare)
- * can show a place's first tour photo instead of Street View.
+ * A place's photos: up to 8 the group adds (tour photos, pictures saved from
+ * the listing) plus Street View. The group picks which one leads (the cover)
+ * and can hide Street View. The board owns the state and provides it here, so
+ * every photo frame (row, card, sheet, compare) shows the same cover.
  */
 
 type TourPhotos = {
@@ -17,6 +21,10 @@ type TourPhotos = {
   add: (listingId: string, files: File[]) => Promise<void>;
   remove: (photo: Photo) => Promise<void>;
   memberName: (id: string | null) => string | null;
+  coverFor: (listingId: string) => Cover;
+  /** "street" or a photo's id. */
+  setCover: (listingId: string, cover: string) => void;
+  setStreetView: (listingId: string, show: boolean) => void;
 };
 
 export const TourPhotosContext = createContext<TourPhotos | null>(null);
@@ -25,49 +33,110 @@ export function useTourPhotos(): TourPhotos | null {
   return useContext(TourPhotosContext);
 }
 
-/** The place's first tour photo, if it has one. */
-export function useFirstTourPhoto(listingId: string | undefined): Photo | null {
+/** What the place's photo frames lead with. Without photo storage, that's Street View. */
+export function useCover(listingId: string | undefined): Cover {
   const ctx = useTourPhotos();
-  return listingId && ctx ? (ctx.photosFor(listingId)[0] ?? null) : null;
+  return listingId && ctx ? ctx.coverFor(listingId) : { kind: "street" };
 }
 
 const addedOn = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
 
-/** Thumbnails plus an "Add photos" tile, for the place card and the phone sheet. */
-export function TourPhotoStrip({ listingId, label, className }: { listingId: string; label: string; className?: string }) {
+type Item = { kind: "street"; url: string } | { kind: "photo"; photo: Photo };
+const itemKey = (i: Item) => (i.kind === "street" ? "street" : i.photo.id);
+
+/** Street View plus the group's photos, an "Add photos" tile and cover controls. For the place card and the phone sheet. */
+export function TourPhotoStrip({
+  listing,
+  label,
+  streetEnabled,
+  className
+}: {
+  listing: Listing;
+  label: string;
+  /** Whether Street View is configured on this deployment. */
+  streetEnabled: boolean;
+  className?: string;
+}) {
   const ctx = useTourPhotos();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [viewing, setViewing] = useState<number | null>(null);
+  // The open photo, by key: the list can change while it's open (Street View failing, a roommate's upload).
+  const [viewingKey, setViewingKey] = useState<string | null>(null);
+  // Street View has no imagery everywhere; drop its tile when the image fails.
+  const [streetFailed, setStreetFailed] = useState(false);
   if (!ctx) return null;
 
-  const photos = ctx.photosFor(listingId);
-  const uploading = ctx.uploadingFor(listingId);
+  const photos = ctx.photosFor(listing.id);
+  const uploading = ctx.uploadingFor(listing.id);
   const full = photos.length + uploading >= MAX_PHOTOS_PER_PLACE;
+  const cover = ctx.coverFor(listing.id);
+  const coverKey = cover.kind === "photo" ? cover.photo.id : cover.kind;
+
+  const streetSrc = streetEnabled ? streetViewSrc(listing.lat, listing.lng, "sheet") : null;
+  const streetThumb = streetEnabled ? streetViewSrc(listing.lat, listing.lng, "row") : null;
+  const streetAvailable = streetSrc !== null && !streetFailed;
+  const items: Item[] = [
+    ...(streetAvailable && listing.streetView ? [{ kind: "street" as const, url: streetSrc }] : []),
+    ...photos.map((photo) => ({ kind: "photo" as const, photo }))
+  ];
+  const found = viewingKey === null ? -1 : items.findIndex((i) => itemKey(i) === viewingKey);
+  const viewing = found === -1 ? null : found;
+  const view = (i: number | null) => setViewingKey(i === null || !items[i] ? null : itemKey(items[i]));
 
   return (
-    <section aria-label={`Tour photos of ${label}`} className={className}>
-      <div className="mb-1.5 flex items-baseline justify-between">
-        <h3 className="label text-stone-700">Tour photos</h3>
-        {photos.length ? (
-          <span className="text-[11px] text-stone-700">
-            {photos.length} of {MAX_PHOTOS_PER_PLACE}
-          </span>
-        ) : null}
-      </div>
-      <ul className="flex gap-2 overflow-x-auto pb-1">
-        {photos.map((p, i) => (
-          <li key={p.id} className="shrink-0">
+    <section aria-label={`Photos of ${label}`} className={className}>
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <h3 className="label text-stone-700">Photos</h3>
+        <span className="flex items-baseline gap-3 text-[11px] text-stone-700">
+          {streetAvailable && !listing.streetView ? (
             <button
               type="button"
-              onClick={() => setViewing(i)}
-              aria-label={`Open tour photo ${i + 1} of ${photos.length}`}
-              className="block h-14 w-14 overflow-hidden rounded-2xl bg-shell-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sea-700"
+              onClick={() => ctx.setStreetView(listing.id, true)}
+              className="inline-flex items-center gap-1 font-semibold text-sea-700 underline underline-offset-2 hover:text-sea-900"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <Eye className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
+              Show Street View
             </button>
-          </li>
-        ))}
+          ) : null}
+          {photos.length ? (
+            <span>
+              {photos.length} of {MAX_PHOTOS_PER_PLACE}
+            </span>
+          ) : null}
+        </span>
+      </div>
+      <ul className="flex gap-2 overflow-x-auto pb-1">
+        {items.map((item, i) => {
+          const isCover = itemKey(item) === coverKey;
+          const name =
+            item.kind === "street" ? "Open Street View" : `Open photo ${photos.indexOf(item.photo) + 1} of ${photos.length}`;
+          return (
+            <li key={itemKey(item)} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => view(i)}
+                aria-label={isCover ? `${name} (cover)` : name}
+                className={cn(
+                  "relative block h-14 w-14 overflow-hidden rounded-2xl bg-shell-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sea-700",
+                  isCover && "ring-2 ring-sea-700 ring-offset-2 ring-offset-shell"
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.kind === "street" ? (streetThumb ?? item.url) : item.photo.url}
+                  alt=""
+                  className={cn("h-full w-full object-cover", item.kind === "street" && "photo-tone")}
+                  loading="lazy"
+                  onError={item.kind === "street" ? () => setStreetFailed(true) : undefined}
+                />
+                {item.kind === "street" ? (
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-tar/70 py-px text-center text-[8px] font-bold uppercase tracking-wide text-shell">
+                    Street
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
         {Array.from({ length: uploading }, (_, i) => (
           <li key={`up-${i}`} className="shrink-0">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-shell-mid" role="status">
@@ -87,7 +156,7 @@ export function TourPhotoStrip({ listingId, label, className }: { listingId: str
               )}
             >
               <ImagePlus className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-              {photos.length + uploading === 0 ? "Add photos from your tour" : <span className="sr-only">Add photos</span>}
+              {photos.length + uploading === 0 ? "Add photos" : <span className="sr-only">Add photos</span>}
             </button>
           </li>
         ) : null}
@@ -98,25 +167,33 @@ export function TourPhotoStrip({ listingId, label, className }: { listingId: str
         accept="image/*"
         multiple
         hidden
-        aria-label={`Add tour photos of ${label}`}
+        aria-label={`Add photos of ${label}`}
         onChange={(e) => {
           const files = [...(e.target.files ?? [])];
           e.target.value = "";
-          if (files.length) void ctx.add(listingId, files);
+          if (files.length) void ctx.add(listing.id, files);
         }}
       />
-      {viewing !== null && photos[viewing] ? (
+      {viewing !== null && items[viewing] ? (
         <PhotoViewer
-          photos={photos}
+          items={items}
           index={viewing}
           label={label}
+          coverKey={coverKey}
+          photoCount={photos.length}
           memberName={ctx.memberName}
-          onIndex={setViewing}
-          onClose={() => setViewing(null)}
+          onIndex={view}
+          onClose={() => view(null)}
+          onMakeCover={(item) => ctx.setCover(listing.id, itemKey(item))}
+          onHideStreet={() => {
+            ctx.setStreetView(listing.id, false);
+            // Street View is first, so the next photo takes its place.
+            view(items[viewing + 1] ? viewing + 1 : null);
+          }}
           onDelete={async (p) => {
+            const nextItem = items[viewing + 1] ?? items[viewing - 1] ?? null;
             await ctx.remove(p);
-            const left = photos.length - 1;
-            setViewing(left === 0 ? null : Math.min(viewing, left - 1));
+            setViewingKey(nextItem ? itemKey(nextItem) : null);
           }}
         />
       ) : null}
@@ -125,37 +202,55 @@ export function TourPhotoStrip({ listingId, label, className }: { listingId: str
 }
 
 function PhotoViewer({
-  photos,
+  items,
   index,
   label,
+  coverKey,
+  photoCount,
   memberName,
   onIndex,
   onClose,
+  onMakeCover,
+  onHideStreet,
   onDelete
 }: {
-  photos: Photo[];
+  items: Item[];
   index: number;
   label: string;
+  coverKey: string;
+  photoCount: number;
   memberName: (id: string | null) => string | null;
   onIndex: (i: number) => void;
   onClose: () => void;
+  onMakeCover: (item: Item) => void;
+  onHideStreet: () => void;
   onDelete: (p: Photo) => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [deleting, setDeleting] = useState(false);
-  const photo = photos[index]!;
-  const prev = () => onIndex((index - 1 + photos.length) % photos.length);
-  const next = () => onIndex((index + 1) % photos.length);
+  const item = items[index]!;
+  const prev = () => onIndex((index - 1 + items.length) % items.length);
+  const next = () => onIndex((index + 1) % items.length);
+  const isCover = itemKey(item) === coverKey;
 
   useEffect(() => {
     const d = ref.current;
     if (d && !d.open) d.showModal();
   }, []);
 
-  const by = memberName(photo.uploadedBy);
-  const caption = [`Photo ${index + 1} of ${photos.length}`, by ? `added by ${by}` : null, addedOn.format(new Date(photo.createdAt))]
-    .filter(Boolean)
-    .join(" · ");
+  let caption: string;
+  if (item.kind === "street") {
+    caption = "Street View · © Google";
+  } else {
+    const n = items.filter((i) => i.kind === "photo").indexOf(item) + 1;
+    const by = memberName(item.photo.uploadedBy);
+    caption = [`Photo ${n} of ${photoCount}`, by ? `added by ${by}` : null, addedOn.format(new Date(item.photo.createdAt))]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  const toolButton =
+    "inline-flex h-10 items-center gap-1.5 rounded-full bg-shell/10 px-3 text-sm font-semibold hover:bg-shell/20 disabled:opacity-60";
 
   return (
     <dialog
@@ -166,36 +261,54 @@ function PhotoViewer({
         onClose();
       }}
       onKeyDown={(e) => {
-        if (photos.length < 2) return;
+        if (items.length < 2) return;
         if (e.key === "ArrowLeft") prev();
         if (e.key === "ArrowRight") next();
       }}
-      aria-label={`Tour photos of ${label}`}
+      aria-label={`Photos of ${label}`}
       className="m-0 h-dvh max-h-none w-full max-w-none bg-tar/95 p-0 text-shell backdrop:bg-tar/60"
     >
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="min-w-0 truncate text-sm">
             <span className="font-display">{label}</span> <span className="text-shell/80">· {caption}</span>
           </p>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              disabled={deleting}
-              onClick={async () => {
-                if (!window.confirm("Remove this photo for everyone on the board?")) return;
-                setDeleting(true);
-                try {
-                  await onDelete(photo);
-                } finally {
-                  setDeleting(false);
-                }
-              }}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-shell/10 px-3 text-sm font-semibold hover:bg-shell/20 disabled:opacity-60"
-            >
-              <Trash2 className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-              Remove
-            </button>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {isCover ? (
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sea-700 px-3 text-sm font-semibold">
+                <Check className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
+                Cover photo
+              </span>
+            ) : (
+              <button type="button" onClick={() => onMakeCover(item)} className={toolButton}>
+                <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                Make cover
+              </button>
+            )}
+            {item.kind === "street" ? (
+              <button type="button" onClick={onHideStreet} className={toolButton}>
+                <EyeOff className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                Hide Street View
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  if (!window.confirm("Remove this photo for everyone on the board?")) return;
+                  setDeleting(true);
+                  try {
+                    await onDelete(item.photo);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                className={toolButton}
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                Remove
+              </button>
+            )}
             <button
               type="button"
               onClick={() => ref.current?.close()}
@@ -208,8 +321,13 @@ function PhotoViewer({
         </div>
         <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.url} alt={`Tour photo ${index + 1} of ${label}`} className="max-h-full max-w-full rounded-2xl object-contain" />
-          {photos.length > 1 ? (
+          <img
+            key={itemKey(item)}
+            src={item.kind === "street" ? item.url : item.photo.url}
+            alt={item.kind === "street" ? `Street View near ${label}` : `Photo of ${label}`}
+            className={cn("max-h-full max-w-full rounded-2xl object-contain", item.kind === "street" && "photo-tone")}
+          />
+          {items.length > 1 ? (
             <>
               <button
                 type="button"

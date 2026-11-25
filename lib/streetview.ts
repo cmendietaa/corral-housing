@@ -15,7 +15,9 @@ export const SERVICE_AREA = { south: 34.38, north: 34.47, west: -119.95, east: -
  * displays (Street View Static caps at 640px a side). CSS crops to the frame.
  */
 export const PHOTO_SIZES = {
-  row: "132x192",
+  // Twice the frame size: Google draws its logo at a fixed pixel size, so a
+  // larger image keeps it small in the thumbnail.
+  row: "264x384",
   card: "640x446",
   compare: "640x320",
   kanban: "560x220",
@@ -46,7 +48,7 @@ export function bearing(from: { lat: number; lng: number }, to: { lat: number; l
 }
 
 /** Bump when the framing or sizes change, so browsers don't keep a day-old photo. */
-export const PHOTO_VERSION = 2;
+export const PHOTO_VERSION = 3;
 
 /** The client-side URL for a place's photo, or null when the place has no pin. */
 export function streetViewSrc(lat: number | null, lng: number | null, size: PhotoSize = "card"): string | null {

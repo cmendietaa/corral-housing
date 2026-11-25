@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
   if (!parsed.success) return notFound("Street View is only available around Isla Vista and Goleta.");
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (limited(ip)) {
+  // Local development is one person behind one address; the limit is for the public site.
+  if (process.env.NODE_ENV === "production" && limited(ip)) {
     return NextResponse.json({ error: "Too many photo requests. Try again later." }, { status: 429 });
   }
 
