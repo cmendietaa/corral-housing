@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Check, Crown, Link2, UserPlus, X } from "lucide-react";
-import { CrewPill } from "@/components/brand/band";
+import { Check, UserPlus, X } from "lucide-react";
+import { LassoIcon } from "@/components/brand/motifs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
@@ -10,6 +10,10 @@ import { boardDetailsSchema, displayNameSchema, type Board } from "@/lib/listing
 import type { BoardSettings, MemberInfo, SettingsSnapshot } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 import { SendSetup } from "./send-setup";
+import { CREW } from "./status-style";
+
+/** Slightly uneven, like a real fence. */
+const BOARD_HEIGHTS = ["h-[92px]", "h-[84px]", "h-[88px]", "h-20"] as const;
 
 type Confirm = { kind: "remove" | "owner"; member: MemberInfo } | { kind: "leave" } | { kind: "delete" } | null;
 
@@ -96,6 +100,10 @@ export function BoardSettingsDialog({
   const iOwn = me?.role === "owner";
   const nameOf = (id: string | null) => snap?.members.find((m) => m.id === id)?.name ?? "A roommate";
 
+  const [picked, setPicked] = useState<string | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
+  const pickedMember = snap?.members.find((m) => m.id === picked) ?? null;
+
   return (
     <dialog
       ref={ref}
@@ -105,35 +113,46 @@ export function BoardSettingsDialog({
       }}
       aria-labelledby="settings-title"
       className={cn(
-        "bg-shell-deep p-0 text-tar shadow-lg backdrop:bg-tar/40",
+        "bg-shell p-0 text-tar shadow-lg backdrop:bg-tar/40",
         // Phones: a sheet from the bottom. Desktop: a centered dialog.
         "mb-0 mt-auto max-h-[92dvh] w-full max-w-none rounded-t-[32px]",
-        "sm:m-auto sm:max-h-[min(860px,calc(100dvh-4rem))] sm:w-[min(36rem,calc(100vw-2rem))] sm:rounded-[32px]"
+        "sm:m-auto sm:max-h-[min(880px,calc(100dvh-4rem))] sm:w-[min(40rem,calc(100vw-2rem))] sm:rounded-[34px]"
       )}
     >
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-shell-deep px-5 pb-3 pt-5 sm:px-6">
-        <h2 id="settings-title" className="font-display text-2xl">
-          Board settings
-        </h2>
-        <button
-          type="button"
-          onClick={() => ref.current?.close()}
-          aria-label="Close settings"
-          className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full hover:bg-shell-mid"
-        >
-          <X className="h-5 w-5" strokeWidth={2.75} aria-hidden="true" />
-        </button>
+      {/* The board's own band: its name over the sunset, the stripe and the wave. */}
+      <div className="relative overflow-hidden bg-sunset-300 px-5 pt-5 sm:px-7">
+        <span aria-hidden="true" className="absolute -bottom-10 right-24 h-24 w-24 rounded-full bg-sunset-200" />
+        <div className="relative flex items-start gap-4 pb-4">
+          <div className="min-w-0 flex-1">
+            <h2 id="settings-title" className="text-xs font-bold uppercase tracking-[0.12em] text-sunset-800">
+              Board settings
+            </h2>
+            <p className="mt-1 font-display text-[28px] leading-tight text-tar">{board.name}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => ref.current?.close()}
+            aria-label="Close settings"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-shell-light hover:bg-shell"
+          >
+            <X className="h-5 w-5" strokeWidth={2.75} aria-hidden="true" />
+          </button>
+        </div>
+        <div aria-hidden="true" className="-mx-7 h-[5px] bg-sunset-400" />
+        <div aria-hidden="true" className="-mx-7 h-[5px] bg-sunset-500" />
+        <div aria-hidden="true" className="-mx-7 h-1.5 bg-sea-500" />
       </div>
+      <div aria-hidden="true" className="h-4" style={{ background: "radial-gradient(circle at 50% 0, var(--color-sea-500) 12px, transparent 13px) -2px 0 / 26px 16px repeat-x" }} />
 
-      <div className="space-y-4 px-5 pb-6 sm:px-6">
+      <div className="space-y-6 px-5 pb-2 pt-2 sm:px-7">
         {error ? (
-          <p role="alert" className="rounded-[18px] bg-sunset-100 px-4 py-2.5 text-sm font-semibold text-danger">
+          <p role="alert" className="text-sm font-semibold text-danger">
             {error}
           </p>
         ) : null}
 
         {!snap ? (
-          error ? null : <p className="px-1 py-6 text-sm text-stone-700">Loading…</p>
+          error ? null : <p className="px-1 py-6 text-sm text-stone-700">Opening the gate…</p>
         ) : (
           <>
             <DetailsSection
@@ -144,147 +163,206 @@ export function BoardSettingsDialog({
               busy={busy}
             />
 
-            {me && settings.renameMe ? (
-              <Section title="Your name" hint="How you show up on this board: on next steps, photos and the crew boards.">
-                <NameForm key={me.name} current={me.name} busy={busy} onSave={(n) => run(() => settings.renameMe!(n))} />
-              </Section>
-            ) : null}
-
-            <Section
-              title={`Roommates · ${snap.members.length}`}
-              hint={
-                isDemo
-                  ? "The demo's roommates are fictional. On your own board, the owner can remove people or hand the board to someone else."
-                  : iOwn
-                    ? "You're the owner: you can remove people and hand the board to someone else."
-                    : `${owner?.name ?? "The owner"} is the owner and can remove people.`
-              }
-            >
-              <ul className="-my-1 divide-y divide-divider">
-                {snap.members.map((m, i) => (
-                  <li key={m.id} className="py-2.5">
-                    <div className="flex items-center gap-3">
-                      <CrewPill name={m.name} index={i} size="xs" />
-                      <p className="min-w-0 flex-1 truncate text-sm text-tar">
-                        <span className="font-semibold">{m.name}</span>
-                        {m.isMe ? <span className="text-stone-700"> (you)</span> : null}
-                      </p>
-                      {m.role === "owner" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-sunset-100 px-2.5 py-1 text-xs font-semibold text-tar">
-                          <Crown className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
-                          Owner
-                        </span>
-                      ) : null}
-                      {iOwn && !m.isMe && m.role !== "owner" ? (
-                        <span className="flex shrink-0 gap-1">
-                          {settings.makeOwner ? (
-                            <Button size="sm" variant="ghost" onClick={() => setConfirm({ kind: "owner", member: m })} aria-label={`Make ${m.name} the owner`}>
-                              Make owner
-                            </Button>
-                          ) : null}
-                          {settings.removeMember ? (
-                            <Button size="sm" variant="ghost" onClick={() => setConfirm({ kind: "remove", member: m })} aria-label={`Remove ${m.name}`} className="text-danger hover:text-danger">
-                              Remove
-                            </Button>
-                          ) : null}
-                        </span>
-                      ) : null}
-                    </div>
-                    {confirm && "member" in confirm && confirm.member.id === m.id ? (
-                      <ConfirmBox
-                        busy={busy}
-                        danger={confirm.kind === "remove"}
-                        action={confirm.kind === "remove" ? `Remove ${m.name}` : `Make ${m.name} the owner`}
-                        onCancel={() => setConfirm(null)}
-                        onConfirm={() =>
-                          run(() => (confirm.kind === "remove" ? settings.removeMember!(m.id) : settings.makeOwner!(m.id)))
-                        }
+            <section aria-labelledby="crew-title">
+              <h3 id="crew-title" className="font-display text-[22px] text-tar">
+                The crew <span className="font-sans text-sm text-stone-700">· {snap.members.length}</span>
+              </h3>
+              {/* Each roommate is a fence board in their color; the owner has the sun behind them. */}
+              <ul className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-3 pl-2 pt-5">
+                {snap.members.map((m, i) => {
+                  const c = CREW[i % CREW.length]!;
+                  const selectable = m.isMe ? Boolean(settings.renameMe) : iOwn && m.role !== "owner";
+                  const on = picked === m.id;
+                  const boardEl = (
+                    <>
+                      {m.role === "owner" ? <span aria-hidden="true" className="absolute -top-6 left-1/2 h-[76px] w-[76px] -translate-x-1/2 rounded-full bg-sunset-200" /> : null}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "relative flex w-12 justify-center rounded-t-full rounded-b-[9px] pt-2.5 font-display text-lg",
+                          c.bg,
+                          c.fg,
+                          BOARD_HEIGHTS[i % BOARD_HEIGHTS.length],
+                          on && "ring-2 ring-tar ring-offset-2 ring-offset-shell"
+                        )}
                       >
-                        {confirm.kind === "remove"
-                          ? `${m.name} loses access right away. Their next steps become unassigned and invite links they made stop working. Places and photos they added stay.`
-                          : `${m.name} becomes the owner and you become a regular roommate. Only they can undo this.`}
-                      </ConfirmBox>
-                    ) : null}
+                        {m.name[0]}
+                      </span>
+                      <span className="relative mt-1.5 block max-w-[84px] truncate text-sm font-bold text-tar">
+                        {m.name}
+                        {m.isMe ? <span className="font-normal text-stone-700"> (you)</span> : null}
+                      </span>
+                      <span className="relative block h-4 text-xs text-stone-700">{m.role === "owner" ? "Owner" : ""}</span>
+                    </>
+                  );
+                  return (
+                    <li key={m.id} className="relative flex flex-col items-center">
+                      {selectable ? (
+                        <button
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={m.isMe ? "Change your name" : `${m.name}: roommate options`}
+                          onClick={() => {
+                            setPicked(on ? null : m.id);
+                            setConfirm(null);
+                          }}
+                          className="relative flex flex-col items-center rounded-[14px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+                        >
+                          {boardEl}
+                        </button>
+                      ) : (
+                        <div className="relative flex flex-col items-center">{boardEl}</div>
+                      )}
+                    </li>
+                  );
+                })}
+                {onInvite ? (
+                  <li className="flex flex-col items-center">
+                    <button
+                      type="button"
+                      onClick={onInvite}
+                      className="flex flex-col items-center rounded-[14px] text-sunset-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+                    >
+                      <span aria-hidden="true" className="flex h-20 w-12 items-center justify-center rounded-t-full rounded-b-[9px] border-2 border-dashed border-sunset-600">
+                        <UserPlus className="h-5 w-5" strokeWidth={2.5} />
+                      </span>
+                      <span className="mt-1.5 text-sm font-bold">Invite</span>
+                      <span className="h-4" />
+                    </button>
                   </li>
-                ))}
+                ) : null}
               </ul>
-              {onInvite ? (
-                <Button variant="secondary" size="sm" className="mt-3" onClick={onInvite}>
-                  <UserPlus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                  Invite someone
-                </Button>
-              ) : null}
-            </Section>
 
-            <Section title="Send to Corral" hint="Add a listing from any site in one tap, rent included. Pasting a link still works.">
-              <SendSetup />
-            </Section>
+              {pickedMember?.isMe && settings.renameMe ? (
+                <div className="mt-3 rounded-[20px] bg-shell-light p-3.5">
+                  <NameForm key={pickedMember.name} current={pickedMember.name} busy={busy} onSave={(n) => run(() => settings.renameMe!(n))} />
+                </div>
+              ) : null}
+              {pickedMember && !pickedMember.isMe && iOwn ? (
+                <div className="mt-3 rounded-[20px] bg-shell-light p-3.5">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <p className="min-w-0 flex-1 font-display text-[17px] text-tar">{pickedMember.name}</p>
+                    {settings.makeOwner ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ kind: "owner", member: pickedMember })}
+                        aria-label={`Make ${pickedMember.name} the owner`}
+                        className="text-sm font-bold text-sea-700"
+                      >
+                        Hand the board to {pickedMember.name}
+                      </button>
+                    ) : null}
+                    {settings.removeMember ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ kind: "remove", member: pickedMember })}
+                        aria-label={`Remove ${pickedMember.name}`}
+                        className="text-sm font-bold text-danger"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  {confirm && "member" in confirm && confirm.member.id === pickedMember.id ? (
+                    <ConfirmBox
+                      busy={busy}
+                      danger={confirm.kind === "remove"}
+                      action={confirm.kind === "remove" ? `Remove ${pickedMember.name}` : `Make ${pickedMember.name} the owner`}
+                      onCancel={() => setConfirm(null)}
+                      onConfirm={() =>
+                        run(
+                          () => (confirm.kind === "remove" ? settings.removeMember!(pickedMember.id) : settings.makeOwner!(pickedMember.id)),
+                          undefined
+                        ).then((ok) => ok && setPicked(null))
+                      }
+                    >
+                      {confirm.kind === "remove"
+                        ? `${pickedMember.name} loses access right away. Their next steps become unassigned and invite links they made stop working. Places and photos they added stay.`
+                        : `${pickedMember.name} becomes the owner and you become a regular roommate. Only they can undo this.`}
+                    </ConfirmBox>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
 
             {settings.revokeInvite && snap.invites.length > 0 ? (
-              <Section title={`Open invite links · ${snap.invites.length}`} hint="Anyone with one of these links can join. Turn off any you didn't mean to share.">
-                <ul className="-my-1 divide-y divide-divider">
+              <section aria-labelledby="links-title">
+                <h3 id="links-title" className="font-display text-[19px] text-tar">
+                  Invite links
+                </h3>
+                <ul className="mt-2.5 space-y-2">
                   {snap.invites.map((inv) => (
-                    <li key={inv.token} className="flex items-center gap-3 py-2.5">
-                      <Link2 className="h-4 w-4 shrink-0 text-stone-700" strokeWidth={2.5} aria-hidden="true" />
-                      <p className="min-w-0 flex-1 text-sm text-tar">
-                        Made by {snap.members.find((m) => m.id === inv.createdBy)?.isMe ? "you" : nameOf(inv.createdBy)}
-                        <span className="block text-xs text-stone-700">Works until {formatDay(inv.expiresAt)}</span>
-                      </p>
-                      <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(() => settings.revokeInvite!(inv.token))}>
+                    <li key={inv.token} className="flex flex-wrap items-center gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-l-[10px] rounded-r-[18px] border-[1.5px] border-tar bg-shell-light py-1.5 pl-2.5 pr-4 text-sm">
+                        <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full border-[1.5px] border-tar" />
+                        {snap.members.find((m) => m.id === inv.createdBy)?.isMe ? "Your link" : `${nameOf(inv.createdBy)}'s link`} · until {formatDay(inv.expiresAt)}
+                      </span>
+                      <button type="button" disabled={busy} onClick={() => run(() => settings.revokeInvite!(inv.token))} className="text-sm font-bold text-danger disabled:opacity-50">
                         Turn off
-                      </Button>
+                      </button>
                     </li>
                   ))}
                 </ul>
-              </Section>
+              </section>
             ) : null}
 
-            {me && (settings.leave || settings.deleteBoard) ? (
-              <Section title={iOwn ? "Delete this board" : "Leave this board"} tone="danger">
-                {iOwn ? (
-                  <>
-                    <p className="text-sm text-stone-800">
-                      Deletes every place, note and photo on this board for everyone. This can&apos;t be undone.
-                      {snap.members.length > 1 ? " To leave but keep the board going, make someone else the owner first." : ""}
-                    </p>
-                    {confirm?.kind === "delete" ? (
-                      <DeleteConfirm
-                        boardName={board.name}
-                        busy={busy}
-                        onCancel={() => setConfirm(null)}
-                        onConfirm={() => run(() => settings.deleteBoard!(), onGone)}
-                      />
-                    ) : (
-                      <Button variant="danger" size="sm" className="mt-3" onClick={() => setConfirm({ kind: "delete" })}>
-                        Delete board…
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-stone-800">You&apos;ll stop seeing this board. Places and photos you added stay for everyone else.</p>
-                    {confirm?.kind === "leave" ? (
-                      <ConfirmBox
-                        busy={busy}
-                        danger
-                        action="Leave board"
-                        onCancel={() => setConfirm(null)}
-                        onConfirm={() => run(() => settings.leave!(), onGone)}
-                      >
-                        To come back, you&apos;ll need a new invite link from a roommate.
-                      </ConfirmBox>
-                    ) : (
-                      <Button variant="danger" size="sm" className="mt-3" onClick={() => setConfirm({ kind: "leave" })}>
-                        Leave board…
-                      </Button>
-                    )}
-                  </>
-                )}
-              </Section>
-            ) : null}
+            <section aria-labelledby="send-title" className="rounded-[20px] bg-sea-100 p-3.5">
+              <div className="flex items-center gap-3">
+                <LassoIcon className="h-6 w-6 shrink-0 text-sea-800" strokeWidth={2.2} />
+                <h3 id="send-title" className="min-w-0 flex-1 font-display text-[18px] text-sea-800">
+                  Send to Corral
+                </h3>
+                <button type="button" aria-expanded={sendOpen} onClick={() => setSendOpen((o) => !o)} className="text-sm font-bold text-sea-700">
+                  {sendOpen ? "Hide" : "Set it up"}
+                </button>
+              </div>
+              {sendOpen ? (
+                <div className="mt-3">
+                  <SendSetup />
+                </div>
+              ) : null}
+            </section>
           </>
         )}
       </div>
+
+      {snap && me && (settings.leave || settings.deleteBoard) ? (
+        <section aria-labelledby="tide-title" className="mt-6">
+          <div aria-hidden="true" className="h-3.5" style={{ background: "radial-gradient(circle at 50% 100%, var(--color-shell-deep) 12px, transparent 13px) -2px 0 / 26px 14px repeat-x" }} />
+          <div className="bg-shell-deep px-5 pb-6 pt-2 sm:px-7">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <h3 id="tide-title" className="min-w-0 flex-1 font-display text-[17px] text-stone-800">
+                Low tide
+              </h3>
+              {iOwn ? (
+                <button type="button" onClick={() => setConfirm({ kind: "delete" })} className="text-sm font-bold text-danger">
+                  Delete the board…
+                </button>
+              ) : (
+                <button type="button" onClick={() => setConfirm({ kind: "leave" })} className="text-sm font-bold text-danger">
+                  Leave the board…
+                </button>
+              )}
+            </div>
+            {confirm?.kind === "delete" ? (
+              <>
+                <p className="mt-2 text-sm text-stone-800">
+                  Deletes every place, note and photo on this board for everyone. This can&apos;t be undone.
+                  {snap.members.length > 1 ? " To leave but keep the board going, hand it to someone else first." : ""}
+                </p>
+                <DeleteConfirm boardName={board.name} busy={busy} onCancel={() => setConfirm(null)} onConfirm={() => run(() => settings.deleteBoard!(), onGone)} />
+              </>
+            ) : null}
+            {confirm?.kind === "leave" ? (
+              <ConfirmBox busy={busy} danger action="Leave board" onCancel={() => setConfirm(null)} onConfirm={() => run(() => settings.leave!(), onGone)}>
+                You&apos;ll stop seeing this board, and you&apos;ll need a new invite link to come back. Places and photos you added stay.
+              </ConfirmBox>
+            ) : null}
+          </div>
+        </section>
+      ) : (
+        <div className="h-6" />
+      )}
     </dialog>
   );
 }
@@ -351,7 +429,7 @@ function DetailsSection({
   }
 
   return (
-    <Section title="Board">
+    <section aria-label="Board details">
       <form onSubmit={(e) => void submit(e)} className="space-y-3" noValidate>
         <div>
           <label htmlFor={`${id}-name`} className="text-[13px] font-semibold">
@@ -370,11 +448,21 @@ function DetailsSection({
             <label htmlFor={`${id}-budget`} className="text-[13px] font-semibold">
               Budget per person
             </label>
-            <div className="relative mt-1.5">
-              <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-stone-700">
+            {/* A rent tag: knot on the left, rounded on the right. */}
+            <div className="mt-1.5 flex h-11 items-center gap-2 rounded-l-[12px] rounded-r-[22px] border-[1.5px] border-tar bg-shell-light pl-3 pr-4">
+              <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full border-[1.5px] border-tar" />
+              <span aria-hidden="true" className="font-display text-lg text-tar">
                 $
               </span>
-              <Input id={`${id}-budget`} inputMode="numeric" value={budget} placeholder="No budget" onChange={(e) => setBudget(e.target.value)} className="pl-8" />
+              <input
+                id={`${id}-budget`}
+                inputMode="numeric"
+                value={budget}
+                placeholder="No budget"
+                onChange={(e) => setBudget(e.target.value)}
+                className="w-full min-w-0 border-0 bg-transparent font-display text-lg text-tar outline-none placeholder:font-sans placeholder:text-sm placeholder:text-stone-600"
+              />
+              <span className="shrink-0 text-xs text-stone-700">each</span>
             </div>
           </div>
         </div>
@@ -395,7 +483,7 @@ function DetailsSection({
           ) : null}
         </div>
       </form>
-    </Section>
+    </section>
   );
 }
 
