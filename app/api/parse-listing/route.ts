@@ -3,6 +3,7 @@ import { z } from "zod";
 import { aiConfigured, extractWithAI } from "@/lib/ai-extract";
 import { MAX_SCREENSHOTS, MAX_SCREENSHOT_BYTES, sniffImageType } from "@/lib/extract/image";
 import type { Screenshot } from "@/lib/extract/model";
+import { takeAiSlots } from "@/lib/ai-limit";
 import { MAX_PASTE_CHARS, parseListingText } from "@/lib/parse-listing";
 
 /**
@@ -19,29 +20,6 @@ import { MAX_PASTE_CHARS, parseListingText } from "@/lib/parse-listing";
  */
 
 const MIN_TEXT = 10;
-
-// Best-effort per-IP limit on AI calls (serverless instances don't share memory).
-// Over the limit, text still gets the free parser. A request with screenshots
-// costs 2 slots: it uses several times the tokens of a text paste. The real
-// cost ceiling is the OpenAI project's budget limit.
-const WINDOW_MS = 60 * 60 * 1000;
-const AI_PER_WINDOW = 10;
-const hits = new Map<string, { count: number; resetAt: number }>();
-
-function takeAiSlots(ip: string, cost: number): boolean {
-  const now = Date.now();
-  // Forget expired entries now and then so the map can't grow without bound.
-  if (hits.size > 1000) for (const [key, value] of hits) if (value.resetAt < now) hits.delete(key);
-  const entry = hits.get(ip);
-  if (!entry || entry.resetAt < now) {
-    if (cost > AI_PER_WINDOW) return false;
-    hits.set(ip, { count: cost, resetAt: now + WINDOW_MS });
-    return true;
-  }
-  if (entry.count + cost > AI_PER_WINDOW) return false;
-  entry.count += cost;
-  return true;
-}
 
 type Parsed = { text: string; images: Screenshot[] };
 type Failure = { error: string; status: number };
