@@ -165,11 +165,58 @@
   );
 }
 
-/* The wave edge under the stripe: scallops 28px apart, 13px radius. */
+/*
+ * The tide: where the sea meets the next band. A front swell in the sea's
+ * color with a lighter swell peeking out behind it. Set --tide-front (the
+ * color above) and --tide-back (the lighter water); the element's own
+ * background is the color below (transparent shows the page). Add
+ * .corral-tide-drift to let the two swells drift past each other.
+ */
+.corral-tide,
 .corral-wave {
-  height: 18px;
-  margin-top: -1px;
-  background: radial-gradient(circle at 50% 0, var(--color-sea-700) 13px, transparent 14px) 0 0 / 28px 18px repeat-x;
+  position: relative;
+  height: 22px;
+}
+.corral-wave { margin-top: -1px; }
+.corral-tide::before,
+.corral-tide::after,
+.corral-wave::before,
+.corral-wave::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  -webkit-mask-size: 320px 22px;
+  mask-size: 320px 22px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+}
+.corral-tide::before,
+.corral-wave::before {
+  background: var(--tide-back, var(--color-sea-300));
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V10C240%2010%20240%2022%20160%2022C80%2022%2080%2010%200%2010Z%22/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V10C240%2010%20240%2022%20160%2022C80%2022%2080%2010%200%2010Z%22/%3E%3C/svg%3E");
+  -webkit-mask-position: 150px 0;
+  mask-position: 150px 0;
+}
+.corral-tide::after,
+.corral-wave::after {
+  background: var(--tide-front, var(--color-sea-700));
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V5C240%205%20240%2016%20160%2016C80%2016%2080%205%200%205Z%22/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%2222%22%20viewBox%3D%220%200%20320%2022%22%3E%3Cpath%20d%3D%22M0%200H320V5C240%205%20240%2016%20160%2016C80%2016%2080%205%200%205Z%22/%3E%3C/svg%3E");
+}
+@keyframes corral-tide-front {
+  from { -webkit-mask-position: 0 0; mask-position: 0 0; }
+  to { -webkit-mask-position: -320px 0; mask-position: -320px 0; }
+}
+@keyframes corral-tide-back {
+  from { -webkit-mask-position: 150px 0; mask-position: 150px 0; }
+  to { -webkit-mask-position: 470px 0; mask-position: 470px 0; }
+}
+.corral-tide-drift::after { animation: corral-tide-front 14s linear infinite; }
+.corral-tide-drift::before { animation: corral-tide-back 22s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .corral-tide-drift::before,
+  .corral-tide-drift::after { animation: none; }
 }
 
 /* The stripe running sideways: a tab underline, a heading rule, the top edge of a card. */

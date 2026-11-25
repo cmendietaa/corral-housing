@@ -13,14 +13,14 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-shell">
       <Hero />
-      <Wave color="var(--color-sea-700)" bg="bg-sea-800" />
+      <Wave color="var(--color-sea-700)" back="var(--color-sea-500)" bg="bg-sea-800" />
       <RoundItUp />
-      <Wave color="var(--color-sea-800)" bg="bg-shell" />
+      <Wave color="var(--color-sea-800)" back="var(--color-sea-300)" bg="bg-shell" />
       <KeepItMoving />
       <PickTheOne />
-      <Wave color="var(--color-sunset-200)" bg="bg-sea-900" />
+      <Wave color="var(--color-sunset-200)" back="var(--color-sunset-300)" bg="bg-sea-900" />
       <WhatsInside />
-      <Wave color="var(--color-sea-900)" bg="bg-sunset-300" />
+      <Wave color="var(--color-sea-900)" back="var(--color-sea-700)" bg="bg-sunset-300" />
       <Closing />
       <FenceFooter />
     </div>
@@ -32,13 +32,13 @@ export default function Home() {
 
 const FENCE = ["bg-sea-700", "bg-sunset-500", "bg-glass-500", "bg-sea-300", "bg-sunset-300"] as const;
 
-/** The scalloped edge where one band meets the next. */
-function Wave({ color, bg }: { color: string; bg: string }) {
+/** The tide where one band meets the next: two swells drifting past each other. */
+function Wave({ color, back, bg }: { color: string; back: string; bg: string }) {
   return (
     <div
       aria-hidden="true"
-      className={cn("h-[22px]", bg)}
-      style={{ background: `radial-gradient(circle at 50% 0, ${color} 15px, transparent 16px) -2px 0 / 32px 22px repeat-x` }}
+      className={cn("corral-tide corral-tide-drift", bg)}
+      style={{ ["--tide-front" as string]: color, ["--tide-back" as string]: back }}
     />
   );
 }
