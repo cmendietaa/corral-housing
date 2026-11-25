@@ -32,6 +32,7 @@ export function StatusMenu({
   onChange,
   label,
   variant = "chip",
+  moveText = "Move",
   className
 }: {
   value: ListingStatus;
@@ -39,6 +40,8 @@ export function StatusMenu({
   /** Accessible name, e.g. "Status for Sabado Tarde, 6512". */
   label: string;
   variant?: "chip" | "move";
+  /** The visible word on the "move" variant. */
+  moveText?: string;
   className?: string;
 }) {
   const move = variant === "move";
@@ -46,13 +49,14 @@ export function StatusMenu({
     <span className={cn("relative inline-flex", className)}>
       <select
         aria-label={label}
+        style={move ? { width: `${moveText.length * 0.5 + 3}rem` } : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value as ListingStatus)}
         className={cn(
           "status-select appearance-none rounded-full pr-7 font-semibold transition",
           move
             ? // The select's own text is hidden behind the "Move" label; options keep their color.
-              "h-9 w-[5.5rem] border border-divider bg-shell-light pl-4 text-[13px] text-transparent hover:bg-shell-mid [&>option]:text-tar"
+              "h-9 border border-divider bg-shell-light pl-4 text-[13px] text-transparent hover:bg-shell-mid [&>option]:text-tar"
             : cn("h-8 pl-3 text-xs", STATUS_STYLES[value].chip)
         )}
       >
@@ -64,7 +68,7 @@ export function StatusMenu({
       </select>
       {move ? (
         <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-tar">
-          Move
+          {moveText}
         </span>
       ) : null}
       <ChevronDown
