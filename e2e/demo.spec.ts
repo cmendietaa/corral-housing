@@ -93,7 +93,8 @@ test("set a status and a next step, and they persist", async ({ page }) => {
   await scope.getByLabel("Status for Trigo Rd, 6545").selectOption("contacted");
   await scope.getByRole("button", { name: /Add a next step/ }).click();
   await scope.getByLabel("Next step").fill("Call about the price");
-  await scope.getByLabel("Who").selectOption({ label: "Priya" });
+  await scope.getByRole("radiogroup", { name: "Who" }).getByText("Priya", { exact: true }).click();
+  await expect(scope.getByRole("radio", { name: "Priya" })).toBeChecked();
   await scope.getByRole("button", { name: "Save next step" }).click();
   await expect(scope.getByText("Call about the price")).toBeVisible();
 
