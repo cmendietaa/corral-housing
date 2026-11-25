@@ -58,7 +58,7 @@ Status colors already exist as `st-<status>`, `st-<status>-bg` and `st-<status>-
 
 ## What exists already (reuse it)
 
-- `components/brand/motifs.tsx`: `FENCE_COLORS`, `FenceRow`, `SunMark`, `LassoIcon`, `KnotIcon`, `FenceIcon`, `HorizonSunIcon`, `PinIcon`, `PencilIcon`, `SettingSun`.
+- `components/brand/motifs.tsx`: `FENCE_COLORS`, `FenceRow`, `SunMark`, `LassoIcon`, `FenceIcon`, `HorizonSunIcon`, `PinIcon`, `PencilIcon`, `SettingSun`.
 - `components/brand/band.tsx`: `Band`, `BandSun`, `CrewBoards`, `CrewPill`, `BandToggle`, `FenceFooter`, `FinePrint`.
 - `components/board/add-place.tsx` has private helpers that the edit form needs too: `Tile`, `Stepper` (with `zeroLabel="Studio"`), `Choices`, `FenceCount`, `FieldError`.
 - `components/board/street-photo.tsx`: `StreetPhoto`, `FenceFallback`.
@@ -120,7 +120,7 @@ Replace the no-photo states with `EmptyLot` (see step 1). Remove the dashed-buil
   - Title "What matters to you". No sentence under it.
   - Must-haves become tags: set ones solid-outlined, unset ones dashed. The max-rent tag holds the inline dollar input.
   - Weights become `LevelControl` restyled as fence boards: a leaning gray board for "Don't care", then three boards that get taller (sunset-400/500/600 when on, outlined when off), with `LEVEL_LABELS[value]` beside them. Keep the radio-group semantics.
-- **Close call:** replace the green box with one line under the heading, with `KnotIcon` in front.
+- **Close call:** replace the green box with one plain line under the heading (no icon: the knot read as a little person).
 - **Rank cards:**
   - A big fence-board photo on the left.
   - The rank number on a small fence-board badge: #1 `sunset-500`, #2 `sunset-400`, #3 `sunset-300`.

@@ -61,16 +61,6 @@ export function LassoIcon({ className, strokeWidth = 2.5 }: IconProps) {
   );
 }
 
-/** The knot on a rope loop (drop zones). */
-export function KnotIcon({ className, strokeWidth = 2.5 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
-      <circle cx="12" cy="9" r="3.5" />
-      <path d="M10 12c-1 3-3 5-5 7M14 12c1 3 3 5 5 7" />
-    </svg>
-  );
-}
-
 /** Two fence boards with a rail: "into the corral". */
 export function FenceIcon({ className, strokeWidth = 2.5 }: IconProps) {
   return (

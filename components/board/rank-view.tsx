@@ -22,7 +22,7 @@ import {
   type Requirement
 } from "@/lib/rank";
 import { RopeInToggle } from "@/components/brand/controls";
-import { EmptyLot, FitStars, KnotIcon } from "@/components/brand/motifs";
+import { EmptyLot, FitStars } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
@@ -211,8 +211,7 @@ function Notes({ ranking, openCount }: { ranking: ReturnType<typeof rankPlaces>;
   return (
     <ul className="space-y-1.5">
       {notes.map((n) => (
-        <li key={n} className="flex items-start gap-2 text-sm text-stone-800">
-          <KnotIcon className="mt-0.5 h-4 w-4 shrink-0 text-sunset-600" />
+        <li key={n} className="text-sm text-stone-800">
           {n}
         </li>
       ))}
