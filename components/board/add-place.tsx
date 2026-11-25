@@ -566,14 +566,12 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
                   </p>
                 ) : null}
 
-                {/* Sand meets sea. */}
-                <div className="relative mt-6 flex items-center gap-3 bg-sea-800 px-5 pb-5 pt-8 [--wave-sand:var(--color-shell-deep)] max-sm:flex-col max-sm:items-stretch">
-                  <span aria-hidden="true" className="corral-wave-top absolute inset-x-0 top-0 h-3.5" />
+                <div className="flex items-center justify-end px-5 pb-5 pt-4 max-sm:flex-col max-sm:items-stretch">
                   <button
                     type="button"
                     onClick={() => void roundUp()}
                     disabled={!canRead}
-                    className="inline-flex h-[52px] shrink-0 items-center justify-center gap-2.5 rounded-full bg-sunset-300 pl-4 pr-6 font-display text-lg text-tar transition hover:bg-sunset-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-[52px] shrink-0 items-center justify-center gap-2.5 rounded-full bg-sunset-500 pl-4 pr-6 font-display text-lg text-tar shadow-sm transition hover:bg-sunset-400 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <LassoIcon className="h-6 w-6" />
                     Round it up

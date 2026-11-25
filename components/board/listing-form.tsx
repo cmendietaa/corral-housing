@@ -5,7 +5,6 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LassoIcon, EmptyLot, PinIcon, SunMark } from "@/components/brand/motifs";
 import { streetHeadline } from "@/lib/address";
-import { commuteToCampus } from "@/lib/commute";
 import { MAX_SCREENSHOT_BYTES, MAX_SCREENSHOTS } from "@/lib/extract/image";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
 import {
@@ -308,7 +307,6 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
     const current = Number(draft[key]) || 0;
     set(key)(String(Math.min(20, Math.max(0, current + delta))));
   };
-  const commute = listing ? commuteToCampus(listing.lat, listing.lng) : null;
   const headline = listing ? streetHeadline(listing.address, listing.title) : null;
   const canRead = /^https?:\/\/\S+\.\S+/i.test(draft.url.trim());
 
@@ -379,11 +377,6 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
                   />
                 </div>
                 <FieldError id={`${id}-address-error`} text={errors.address} />
-                {commute ? (
-                  <p className="mt-1.5 text-xs">
-                    <span className="rounded-full bg-glass-200 px-2.5 py-0.5 font-bold text-glass-800">Pinned · {commute.bikeMin} min bike to campus</span>
-                  </p>
-                ) : null}
               </div>
             </div>
           </div>

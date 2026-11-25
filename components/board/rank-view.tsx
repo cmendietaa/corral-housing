@@ -11,7 +11,7 @@ import {
   FACTOR_LABELS,
   LEVEL_LABELS,
   defaultPriorities,
-  formatScore,
+  formatStars,
   headline,
   rankPlaces,
   type Factor,
@@ -22,7 +22,7 @@ import {
   type Requirement
 } from "@/lib/rank";
 import { RopeInToggle } from "@/components/brand/controls";
-import { EmptyLot, FitFence, KnotIcon } from "@/components/brand/motifs";
+import { EmptyLot, FitStars, KnotIcon } from "@/components/brand/motifs";
 import { cn } from "@/lib/utils";
 import { FinePrint } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
@@ -242,10 +242,10 @@ function RankCard({
   const whyId = useId();
   const name = streetHeadline(r.place.address, r.place.title);
   const line = headline(r);
-  const score = formatScore(r);
+  const score = formatStars(r);
 
   return (
-    <article aria-label={`#${r.rank} ${name}, ${score} out of 10`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
+    <article aria-label={`#${r.rank} ${name}, ${score} out of 5`} className="rounded-[28px] bg-shell p-2.5 shadow-sm sm:p-3">
       <div className="flex items-start gap-3 sm:gap-4">
         <div className="h-[112px] w-[84px] shrink-0 overflow-hidden rounded-t-[42px] rounded-b-[14px] sm:h-[132px] sm:w-[100px] sm:rounded-t-[50px] sm:rounded-b-[16px]">
           {r.place.lat === null ? (
@@ -270,7 +270,7 @@ function RankCard({
               {name}
             </button>
           </div>
-          <FitFence score={r.score / 10} text={score} className="mt-2" />
+          <FitStars stars={r.score / 20} text={score} className="mt-2" />
           {line.length ? (
             <p className="mt-1.5 space-y-0.5 text-[13px] leading-snug text-stone-800">
               {line.map((x) => (

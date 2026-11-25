@@ -558,6 +558,8 @@ export function Board({
               if (l) openForm({ mode: "edit", listing: l });
             }}
           />
+          {/* Desktop: places roped in on Rank get the same tray as on the map. */}
+          {checked.length > 0 ? <div className="fixed bottom-6 right-6 z-30 hidden lg:block">{tray("")}</div> : null}
         </main>
       ) : (
         <main className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[540px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 lg:px-6 lg:pb-6">

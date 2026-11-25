@@ -310,6 +310,12 @@ export type Ranking<T extends RankPlace = RankPlace> = {
   priceRef: number | null;
 };
 
+/** The score out of 5 for the stars: "4.3", or "~3.8" when a weighted factor is unknown. */
+export function formatStars(r: Pick<RankedPlace, "score" | "missing">): string {
+  const five = (Math.round(r.score / 2) / 10).toFixed(1);
+  return r.missing.length ? `~${five}` : five;
+}
+
 /** "8.6", or "~7.5" when a weighted factor is unknown (the card adds "/10"). */
 export function formatScore(r: Pick<RankedPlace, "score" | "missing">): string {
   const ten = (Math.round(r.score) / 10).toFixed(1);

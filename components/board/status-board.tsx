@@ -209,33 +209,33 @@ function StatusCard({
     .join(" · ");
   const next = NEXT[listing.status];
   return (
-    <article className="space-y-2.5 rounded-[20px] bg-shell-light p-3 shadow-sm">
-      <div className="flex gap-2.5">
-        <div className="h-[68px] w-[52px] shrink-0 overflow-hidden rounded-t-[26px] rounded-b-[10px]">
-          {listing.lat === null ? (
-            <EmptyLot size="sm" />
-          ) : (
-            <StreetPhoto listingId={listing.id} lat={listing.lat} lng={listing.lng} label={headline} size="row" enabled={photos} attribution="tiny" className="h-full w-full" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-1">
-            <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left font-display text-base leading-tight text-tar">
+    <article className="overflow-hidden rounded-[22px] bg-shell-light shadow-sm">
+      {/* A big photo, with the star on it. */}
+      <div className="relative h-[130px] w-full">
+        {listing.lat === null ? (
+          <EmptyLot />
+        ) : (
+          <StreetPhoto listingId={listing.id} lat={listing.lat} lng={listing.lng} label={headline} size="kanban" enabled={photos} className="h-full w-full" />
+        )}
+        <StarButton
+          starred={listing.starred}
+          label={headline}
+          onToggle={() => void onPatch({ starred: !listing.starred })}
+          className="absolute left-2.5 top-2.5 h-[30px] w-[30px] bg-shell shadow-sm hover:bg-shell-mid"
+        />
+      </div>
+      <div className="space-y-2.5 p-3.5">
+        <div>
+          <div className="flex items-baseline justify-between gap-2">
+            <button type="button" onClick={onOpen} className="min-w-0 text-left font-display text-base leading-tight text-tar">
               {headline}
             </button>
-            <StarButton
-              starred={listing.starred}
-              label={headline}
-              onToggle={() => void onPatch({ starred: !listing.starred })}
-              className="-mr-1 -mt-1 h-7 w-7 shrink-0"
-            />
+            <span className={cn("shrink-0 font-display text-base", listing.rentCents === null ? "text-stone-700" : "text-tar")}>
+              {listing.rentCents === null ? "Rent?" : formatRent(listing.rentCents)}
+            </span>
           </div>
           {meta ? <p className="mt-0.5 text-[13px] leading-snug text-stone-700">{meta}</p> : null}
-          <p className={cn("mt-0.5 font-display text-base", listing.rentCents === null ? "text-stone-700" : "text-tar")}>
-            {listing.rentCents === null ? "Rent not listed" : formatRent(listing.rentCents)}
-          </p>
         </div>
-      </div>
       {listing.nextAction ? <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {next ? (
@@ -250,6 +250,7 @@ function StatusCard({
           label={`Move ${headline} to another status`}
           onChange={(status) => void onPatch({ status })}
         />
+      </div>
       </div>
     </article>
   );

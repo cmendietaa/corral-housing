@@ -31,12 +31,12 @@ async function done(page: Page) {
   }
 }
 
-const cards = (page: Page) => page.getByRole("article", { name: /out of 10/ });
+const cards = (page: Page) => page.getByRole("article", { name: /out of 5$/ });
 
 test("ranks the places that meet the requirements and says why the others don't", async ({ page }) => {
   await openRank(page);
   await expect(cards(page)).toHaveCount(3);
-  await expect(cards(page).first().getByRole("img", { name: /^Fit .* out of 10$/ })).toBeVisible();
+  await expect(cards(page).first().getByRole("img", { name: /^Fit .* out of 5$/ })).toBeVisible();
 
   // Rent unknown: held back as missing info, with a way to fill it in.
   const missing = page.getByText(/Might fit, but missing info · 1/).locator("..");

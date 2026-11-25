@@ -146,33 +146,39 @@ export function EmptyLot({ className, size = "md" }: { className?: string; size?
   );
 }
 
-/** The word for a fit score out of 10. */
-export function fitWord(score: number): string {
-  if (score >= 8) return "Great fit";
-  if (score >= 6) return "Good fit";
-  if (score >= 4) return "Okay fit";
+/** The word for a fit out of 5. */
+export function fitWord(stars: number): string {
+  if (stars >= 4) return "Great fit";
+  if (stars >= 3) return "Good fit";
+  if (stars >= 2) return "Okay fit";
   return "Long shot";
 }
 
+const STAR = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z";
+
 /**
- * A rank score out of 10 as five fence boards, read like a five-star rating:
- * each board is two points, filled from the bottom (full, half or empty).
- * One color on purpose, so it reads as a meter rather than decoration.
+ * A rank as five stars, the number out of 5 beside them so the two match,
+ * and a word ("4.3 · Great fit"). Stars fill in halves.
  */
-export function FitFence({ score, text, className }: { score: number; /** The number as shown, e.g. "~7.5" when a fact is unknown. */ text?: string; className?: string }) {
-  const shown = text ?? score.toFixed(1);
+export function FitStars({ stars, text, className }: { stars: number; /** As shown, e.g. "~3.8" when a fact is unknown. */ text?: string; className?: string }) {
+  const shown = text ?? stars.toFixed(1);
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <span role="img" aria-label={`Fit ${shown} out of 10`} className="flex items-end gap-[3px]">
+      <span role="img" aria-label={`Fit ${shown} out of 5`} className="flex items-center gap-0.5">
         {Array.from({ length: 5 }, (_, i) => {
-          const part = Math.max(0, Math.min(1, score / 2 - i));
+          const part = Math.max(0, Math.min(1, stars - i));
           const fill = part >= 0.75 ? 100 : part >= 0.25 ? 50 : 0;
           return (
-            <span
-              key={i}
-              className="block h-[22px] w-3 rounded-t-full rounded-b-[2px] ring-[1.5px] ring-inset ring-sea-700"
-              style={{ background: `linear-gradient(to top, var(--color-sea-700) ${fill}%, transparent ${fill}%)` }}
-            />
+            <span key={i} className="relative block h-[18px] w-[18px]">
+              <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full text-sunset-600" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+                <path d={STAR} />
+              </svg>
+              <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${fill}%` }}>
+                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] text-sunset-600" fill="var(--color-sunset-500)" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+                  <path d={STAR} />
+                </svg>
+              </span>
+            </span>
           );
         })}
       </span>
@@ -180,7 +186,7 @@ export function FitFence({ score, text, className }: { score: number; /** The nu
         {shown}
       </span>
       <span aria-hidden="true" className="text-sm font-bold text-stone-800">
-        · {fitWord(score)}
+        · {fitWord(stars)}
       </span>
     </span>
   );

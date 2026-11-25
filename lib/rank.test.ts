@@ -6,6 +6,7 @@ import {
   FACTORS,
   defaultPriorities,
   formatScore,
+  formatStars,
   headline,
   rankPlaces,
   type Level,
@@ -114,6 +115,12 @@ describe("scoring", () => {
 
   it("formats a fully known score out of 10", () => {
     expect(formatScore({ score: 86.2, missing: [] })).toBe("8.6");
+  });
+
+  it("formats the score out of 5 for the stars", () => {
+    expect(formatStars({ score: 86.2, missing: [] })).toBe("4.3");
+    expect(formatStars({ score: 63, missing: [] })).toBe("3.2");
+    expect(formatStars({ score: 75, missing: ["amenities"] })).toBe("~3.8");
   });
 
   it("all Don't care falls back to price", () => {

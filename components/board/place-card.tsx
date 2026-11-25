@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Pencil, Plus, X } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Bike, Footprints, Pencil, Plus, X } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
 import { formatRent, rentPerPerson } from "@/lib/compare";
 import { formatBeds, formatBedsBaths } from "@/lib/format";
-import { commuteToCampus, formatCommute } from "@/lib/commute";
+import { commuteToCampus } from "@/lib/commute";
 import type { Board, Listing, ListingPatch } from "@/lib/listing";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -155,15 +155,9 @@ export function PlaceNotes({
 export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: Shared & { onClose: () => void }) {
   const headline = streetHeadline(listing.address, listing.title);
   const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
-  const commute = formatCommute(commuteToCampus(listing.lat, listing.lng));
-  const meta = [
-    headline !== listing.title ? listing.title : null,
-    formatBedsBaths(listing.beds, listing.baths) || null,
-    perPerson !== null ? `${formatRent(perPerson)} / person` : null,
-    commute ? `about ${commute} to UCSB` : null
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const commute = commuteToCampus(listing.lat, listing.lng);
+  const nickname = headline !== listing.title ? listing.title : null;
+  const size = formatBedsBaths(listing.beds, listing.baths) || null;
 
   return (
     <section
@@ -197,7 +191,27 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
             {listing.rentCents === null ? <span className="text-stone-700">Unknown</span> : formatRent(listing.rentCents)}
           </p>
         </div>
-        {meta ? <p className="text-sm text-stone-700">{meta}</p> : null}
+        {nickname ? <p className="-mt-2 text-sm text-stone-700">{nickname}</p> : null}
+        {/* The facts as small tags instead of one long line. */}
+        {size || perPerson !== null || commute ? (
+          <ul className="flex flex-wrap gap-1.5 text-[13px] text-tar">
+            {size ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{size}</li> : null}
+            {perPerson !== null ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{formatRent(perPerson)} each</li> : null}
+            {commute ? (
+              <li className="inline-flex items-center gap-2 rounded-full bg-glass-200 px-2.5 py-1 font-semibold text-glass-800">
+                <span className="inline-flex items-center gap-1">
+                  <Bike className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  {commute.bikeMin} min
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Footprints className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
+                  {commute.walkMin} min
+                </span>
+                <span className="font-normal">to campus</span>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
         <div className="flex items-center justify-between gap-2">
           <StatusMenu value={listing.status} label={`Status for ${headline}`} onChange={(status) => void onPatch({ status })} />
           {listing.url ? <OpenListing url={listing.url} /> : null}
