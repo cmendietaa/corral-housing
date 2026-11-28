@@ -150,10 +150,15 @@ function parseLease(text: string, now: Date): Pick<ParsedListing, "leaseStart" |
 function parsePrice(text: string): Pick<ParsedListing, "rentCents" | "priceBasis"> {
   const whole = parseRent(text);
   if (whole !== null) return { rentCents: whole, priceBasis: null };
-  const each = /\$\s?(\d{1,2},\d{3}|\d{3,4})(?:\.\d{2})?\s*(?:\/|per|a|each)?\s*(?:person|bed|space|spot|pp\b|each\b)/i.exec(text);
-  if (!each) return { rentCents: null, priceBasis: null };
-  const cents = Number(each[1].replace(",", "")) * 100;
-  return cents >= 30000 && cents <= 500000 ? { rentCents: cents, priceBasis: "per_person" } : { rentCents: null, priceBasis: null };
+  const perPerson = /\$\s?(\d{1,2},\d{3}|\d{3,4})(?:\.(\d{2}))?\s*(?:\/|per|a|each)?\s*(?:person|bed|space|spot|pp\b|each\b)/gi;
+  for (const m of text.matchAll(perPerson)) {
+    // A deposit or fee quoted per person isn't the rent; keep looking.
+    const before = text.slice(Math.max(0, m.index! - 30), m.index!).toLowerCase();
+    if (/deposit|fee|utilit|application|holding/.test(before)) continue;
+    const cents = Number(m[1]!.replace(",", "")) * 100 + (m[2] ? Number(m[2]) : 0);
+    if (cents >= 30000 && cents <= 500000) return { rentCents: cents, priceBasis: "per_person" };
+  }
+  return { rentCents: null, priceBasis: null };
 }
 
 function parseRent(text: string): number | null {

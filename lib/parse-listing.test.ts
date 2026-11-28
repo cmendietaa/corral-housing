@@ -92,6 +92,11 @@ describe("how a price is quoted", () => {
   it("reads per bed too", () => {
     expect(parseListingText("Spaces available: $975 per bed in a 3 bd duplex").priceBasis).toBe("per_person");
   });
+  it("skips a per-person deposit and keeps the cents", () => {
+    const r = parseListingText("Deposit $600 per person. Monthly rent $975.50/person");
+    expect(r.rentCents).toBe(97550);
+    expect(r.priceBasis).toBe("per_person");
+  });
   it("prefers the whole-unit rent when both are given", () => {
     const r = parseListingText("Rent $4,600/mo ($1,150 per person)");
     expect(r.rentCents).toBe(460000);

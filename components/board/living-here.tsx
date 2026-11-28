@@ -108,14 +108,14 @@ export function LivingHereTile({
               <span key={`s${i}`} className="block h-[22px] w-2.5 rounded-t-full rounded-b-[2px] border-[1.5px] border-dashed border-sunset-600" />
             ))}
           </span>
-          <span className="text-sm font-bold text-sunset-800">
+          <span aria-live="polite" className="text-sm font-bold text-sunset-800">
             {group} of you + {spots} {spots === 1 ? "spot" : "spots"} to fill
           </span>
         </div>
       ) : null}
 
       {each !== null ? (
-        <p className="mt-2.5 rounded-[14px] bg-glass-200 px-3 py-2 text-sm text-glass-900">
+        <p aria-live="polite" className="mt-2.5 rounded-[14px] bg-glass-200 px-3 py-2 text-sm text-glass-900">
           <span className="font-display text-[17px]">{formatRent(each)} each</span>
           {basis === "per_person"
             ? total !== null
