@@ -194,3 +194,24 @@ test("a per-person price reads as each person's share", async ({ page }) => {
   await dialog.getByLabel("Price per person").fill("1150");
   await expect(dialog.getByText("$4,600 for your 4")).toBeVisible();
 });
+
+test("the split starts undecided as a range, and can be set evenly or by hand", async ({ page }) => {
+  await openDemo(page);
+  // Pardall Rd: $4,800, 3 bedrooms, 4 of us. Undecided, a shared spot costs less than a single.
+  if (isPhone(page)) await page.getByRole("button", { name: "Pardall Rd, 6550", exact: true }).click();
+  else await page.locator("section[aria-label=Places] li").filter({ hasText: "Pardall Rd, 6550" }).click();
+  const split = page.getByText("not decided").filter({ visible: true }).first().locator("..").locator("..");
+  await expect(split).toContainText("$1,029–$1,371 each");
+  await split.getByRole("button", { name: "Change" }).click();
+
+  const editor = page.getByRole("dialog", { name: /How you'll split \$4,800/ });
+  await editor.getByText("Custom", { exact: true }).click();
+  await editor.getByLabel("Amount for person 1").fill("1500");
+  await editor.getByRole("button", { name: "Save split" }).click();
+  await expect(editor.getByRole("alert")).toContainText("not $4,800");
+
+  await editor.getByText("Even", { exact: true }).click();
+  await editor.getByRole("button", { name: "Save split" }).click();
+  await expect(editor).toBeHidden();
+  await expect(page.getByText("$1,200 each").filter({ visible: true }).first()).toBeVisible();
+});

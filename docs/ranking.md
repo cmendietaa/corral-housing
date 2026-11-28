@@ -26,9 +26,11 @@ Each factor becomes a 0–1 score against fixed reference points:
 |---|---|---|
 | Price per person | ≤ 60% of your max | your max |
 | Bike time to campus | ≤ 5 min | ≥ 20 min |
-| Bedrooms per person | ≥ 1 | 0 (0.5 per person scores 0.3) |
+| Bedrooms per person (room sharing) | up to 2 people per bedroom (doubles are normal) | — (3 per room scores 0.75, 4 scores 0.4, more 0.15; a studio is one room) |
 | Bathrooms per person | ≥ 0.5 | 0 (0.25 per person scores 0.3) |
 | Parking & laundry | average of parking and laundry | |
+
+Everyone living there counts, spots to fill included. Price per person is the even share; the max-rent must-have passes when the low end of a place's range fits (a spot in a shared room), and a decided split uses its own amounts.
 
 Parking scores garage 1, driveway or lot 0.8, street 0.3, none 0. Laundry scores in unit 1, on site 0.6, none 0. Bike time is the app's usual estimate from the pin.
 

@@ -1,5 +1,6 @@
 import { commuteToCampus } from "./commute";
 import { evenShare, formatRent, peopleLiving } from "./compare";
+import { shareRange } from "./split";
 import { isClosedStatus, type Listing } from "./listing";
 
 /**
@@ -22,7 +23,7 @@ export type RankPlace = Pick<
   Listing,
   "id" | "title" | "status" | "rentCents" | "beds" | "baths" | "leaseStart" | "parking" | "laundry" | "lat" | "lng"
 > &
-  Partial<Pick<Listing, "priceBasis" | "peopleCount">>;
+  Partial<Pick<Listing, "priceBasis" | "peopleCount" | "split">>;
 
 export const FACTORS = ["price", "bike", "bedrooms", "bathrooms", "amenities"] as const;
 export type Factor = (typeof FACTORS)[number];
@@ -84,7 +85,7 @@ const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 function checkRequirements(p: RankPlace, pr: Priorities, people: number | null): Check[] {
   const checks: Check[] = [];
   if (pr.maxRentPerPersonCents !== null) {
-    const pp = evenShare(p, people);
+    const pp = shareRange(p, people)?.lo ?? evenShare(p, people);
     checks.push(
       pp === null
         ? { requirement: "maxRent", result: "unknown", text: p.rentCents === null ? "Rent unknown" : "Rent per person unknown (no group size)" }
@@ -152,6 +153,30 @@ function perPerson(ratio: number, full: number, half: number, mid = 0.3) {
   return (ratio / half) * mid;
 }
 
+/**
+ * How well people fit the bedrooms. Sharing a double is normal in IV, so up to
+ * two people per bedroom scores full marks; triples lose a little, and four or
+ * more to a room count against a place. A studio is one room.
+ */
+export function roomSharingScore(people: number, bedrooms: number): number {
+  const perRoom = people / Math.max(1, bedrooms);
+  if (perRoom <= 2) return 1;
+  if (perRoom <= 3) return 0.75;
+  if (perRoom <= 4) return 0.4;
+  return 0.15;
+}
+
+/** The room setup in words: "doubles", "triples needed", "singles for everyone". */
+function sharingPhrase(people: number, bedrooms: number): string {
+  const rooms = Math.max(1, bedrooms);
+  const perRoom = people / rooms;
+  const roomsWord = bedrooms === 0 ? "a studio" : plural(bedrooms, "bedroom");
+  if (perRoom <= 1) return `singles for all ${people} (${roomsWord})`;
+  if (perRoom <= 2) return `doubles: ${people} people in ${roomsWord}`;
+  if (perRoom <= 3) return `triples needed: ${people} people in ${roomsWord}`;
+  return `${people} people in ${roomsWord}`;
+}
+
 export const PARKING_SCORE = { garage: 1, driveway: 0.8, street: 0.3, none: 0 } as const;
 export const LAUNDRY_SCORE = { in_unit: 1, on_site: 0.6, none: 0 } as const;
 
@@ -191,7 +216,7 @@ function factorScores(p: RankPlace, ctx: Context): Record<Factor, FactorScore> {
         ? UNKNOWN_SCORE
         : exact(lowerIsBetter(pp, REF.priceGoodShare * ctx.priceRef, ctx.priceRef)),
     bike: bike === null ? UNKNOWN_SCORE : exact(lowerIsBetter(bike.bikeMin, REF.bikeGoodMin, REF.bikeBadMin)),
-    bedrooms: p.beds === null || !living ? UNKNOWN_SCORE : exact(perPerson(p.beds / living, REF.bedsFull, REF.bedsHalf)),
+    bedrooms: p.beds === null || !living ? UNKNOWN_SCORE : exact(roomSharingScore(living, p.beds)),
     bathrooms: p.baths === null || !living ? UNKNOWN_SCORE : exact(perPerson(p.baths / living, REF.bathsFull, REF.bathsHalf)),
     amenities
   };
@@ -234,7 +259,7 @@ function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: num
     }
     case "bedrooms": {
       const n = peopleLiving(p, people);
-      return p.beds === null || !n ? null : `${p.beds === 0 ? "studio" : plural(p.beds, "bedroom")} for ${plural(n, "person").replace("persons", "people")}`;
+      return p.beds === null || !n ? null : sharingPhrase(n, p.beds);
     }
     case "bathrooms": {
       const n = peopleLiving(p, people);

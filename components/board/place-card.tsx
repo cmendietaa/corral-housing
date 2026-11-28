@@ -3,7 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Bike, Footprints, Pencil, Plus, X } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
-import { evenShare, formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
+import { formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
+import { shareRange } from "@/lib/split";
 import { formatBeds, formatBedsBaths } from "@/lib/format";
 import { commuteToCampus } from "@/lib/commute";
 import type { Board, Listing, ListingPatch } from "@/lib/listing";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NextAction, ownerDue } from "./next-action";
 import { StarButton } from "./listing-row";
+import { SplitRow } from "./split-editor";
 import { StatusChip, StatusMenu } from "./status";
 import { StreetPhoto } from "./street-photo";
 import { TourPhotoStrip } from "./tour-photos";
@@ -154,7 +156,7 @@ export function PlaceNotes({
 /** Desktop: the selected place, floating over the map's bottom-left corner. */
 export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: Shared & { onClose: () => void }) {
   const headline = streetHeadline(listing.address, listing.title);
-  const perPerson = evenShare(listing, groupSizeOf(board));
+  const perPerson = eachText(shareRange(listing, groupSizeOf(board)));
   const commute = commuteToCampus(listing.lat, listing.lng);
   const nickname = headline !== listing.title ? listing.title : null;
   const size = formatBedsBaths(listing.beds, listing.baths) || null;
@@ -196,7 +198,7 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         {size || perPerson !== null || commute || spotsToFill(listing, groupSizeOf(board)) > 0 ? (
           <ul className="flex flex-wrap gap-1.5 text-[13px] text-tar">
             {size ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{size}</li> : null}
-            {perPerson !== null ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{formatRent(perPerson)} each</li> : null}
+            {perPerson !== null ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{perPerson} each</li> : null}
             {spotsToFill(listing, groupSizeOf(board)) > 0 ? (
               <li className="rounded-full bg-sunset-200 px-2.5 py-1 font-bold text-sunset-800">
                 {spotsToFill(listing, groupSizeOf(board))} to fill
@@ -223,6 +225,7 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
           <StatusMenu value={listing.status} label={`Status for ${headline}`} onChange={(status) => void onPatch({ status })} />
           {listing.url ? <OpenListing url={listing.url} /> : null}
         </div>
+        <SplitRow listing={listing} members={board.members} group={groupSizeOf(board)} onSave={(split) => onPatch({ split })} />
         <NextAction listing={listing} members={board.members} onSave={onPatch} />
         <PlaceNotes notes={listing.notes} label={headline} onSave={(notes) => onPatch({ notes })} />
         <TourPhotoStrip listing={listing} label={headline} streetEnabled={photos} />
@@ -318,7 +321,7 @@ export function PlaceSheet({
   const ref = useRef<HTMLDialogElement>(null);
   const headline = streetHeadline(listing.address, listing.title);
   const area = areaLabel(listing.address);
-  const perPerson = evenShare(listing, groupSizeOf(board));
+  const perPerson = eachText(shareRange(listing, groupSizeOf(board)));
 
   useEffect(() => {
     const d = ref.current;
@@ -379,7 +382,7 @@ export function PlaceSheet({
           <div className="mt-4 grid grid-cols-3 gap-2">
             {listing.rentCents === null
               ? stat("Unknown", "Rent unknown", true)
-              : stat(formatRent(listing.rentCents), perPerson !== null ? `${formatRent(perPerson)} / person` : null)}
+              : stat(formatRent(listing.rentCents), perPerson !== null ? `${perPerson} / person` : null)}
             {listing.beds === null
               ? stat("Beds?", listing.baths === null ? null : `${listing.baths} ba`, true)
               : stat(formatBeds(listing.beds), listing.baths === null ? "Baths unknown" : `${listing.baths} ba`)}
@@ -391,6 +394,9 @@ export function PlaceSheet({
             {listing.url ? <OpenListing url={listing.url} /> : null}
           </div>
 
+          <div className="mt-4">
+            <SplitRow listing={listing} members={board.members} group={groupSizeOf(board)} onSave={(split) => onPatch({ split })} />
+          </div>
           <NextAction listing={listing} members={board.members} onSave={onPatch} variant="crew" className="mt-4" />
 
           <PlaceNotes notes={listing.notes} label={headline} onSave={(notes) => onPatch({ notes })} className="mt-4" />
@@ -436,4 +442,9 @@ function leaseTile(listing: Listing, stat: (big: string, small: string | null, u
     listing.leaseStart ? fmt(listing.leaseStart) : "Start?",
     listing.leaseEnd ? `to ${fmt(listing.leaseEnd)}` : "End unknown"
   );
+}
+
+/** "$1,350" or "$1,029–$1,371": what each person pays, as a range while the split is open. */
+function eachText(r: { lo: number; hi: number } | null): string | null {
+  return r === null ? null : r.lo === r.hi ? formatRent(r.lo) : `${formatRent(r.lo)}–${formatRent(r.hi)}`;
 }
