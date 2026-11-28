@@ -1,6 +1,6 @@
 import { commuteToCampus } from "./commute";
 import { evenShare, formatRent, peopleLiving } from "./compare";
-import { shareRange } from "./split";
+import { myShare, shareRange } from "./split";
 import { isClosedStatus, type Listing } from "./listing";
 
 /**
@@ -82,10 +82,11 @@ const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric
 const fmtDate = (iso: string) => dateFmt.format(new Date(`${iso}T00:00:00Z`));
 const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
-function checkRequirements(p: RankPlace, pr: Priorities, people: number | null): Check[] {
+function checkRequirements(p: RankPlace, pr: Priorities, people: number | null, me: string | null): Check[] {
   const checks: Check[] = [];
   if (pr.maxRentPerPersonCents !== null) {
-    const pp = shareRange(p, people)?.lo ?? evenShare(p, people);
+    // Your own share once a split names you; until then, a spot in a shared room.
+    const pp = myShare(p, people, me) ?? shareRange(p, people)?.lo ?? evenShare(p, people);
     checks.push(
       pp === null
         ? { requirement: "maxRent", result: "unknown", text: p.rentCents === null ? "Rent unknown" : "Rent per person unknown (no group size)" }
@@ -242,16 +243,18 @@ export type Reason = { factor: Factor; sign: "+" | "-"; text: string };
  * way: parking and laundry are one factor, so a place with on-site laundry and
  * street parking only lists the parking as a minus, and the laundry as a plus.
  */
-function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: number | null, side: "fact" | "+" | "-" = "fact"): string | null {
+function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: number | null, side: "fact" | "+" | "-" = "fact", me: string | null = null): string | null {
   const minus = side === "-";
   switch (f) {
     case "price": {
-      const pp = evenShare(p, people);
+      const mine = myShare(p, people, me);
+      const pp = mine ?? evenShare(p, people);
       if (pp === null) return null;
-      if (maxRent === null) return `${formatRent(pp)}/person`;
+      const amount = mine !== null ? `your share ${formatRent(pp)}` : `${formatRent(pp)}/person`;
+      if (maxRent === null) return amount;
       const under = maxRent - pp;
-      if (under <= 0) return `${formatRent(pp)}/person, right at your max`;
-      return `${formatRent(pp)}/person, ${minus ? "only " : ""}${formatRent(under)} under your max`;
+      if (under <= 0) return `${amount}, right at your max`;
+      return `${amount}, ${minus ? "only " : ""}${formatRent(under)} under your max`;
     }
     case "bike": {
       const c = commuteToCampus(p.lat, p.lng);
@@ -377,7 +380,8 @@ function median(xs: number[]): number | null {
 
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
-export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities: Priorities, people: number | null): Ranking<T> {
+/** `me` is the member viewing (private boards): a decided split's amount for them counts instead of the range. */
+export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities: Priorities, people: number | null, me: string | null = null): Ranking<T> {
   const groupSize = people && people > 0 ? people : null;
   const open = places.filter((p) => !isClosedStatus(p.status));
 
@@ -386,7 +390,7 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
   const doesntMeet: HeldPlace<T>[] = [];
   const failCount = new Map<Requirement, number>();
   for (const p of open) {
-    const checks = checkRequirements(p, priorities, groupSize);
+    const checks = checkRequirements(p, priorities, groupSize, me);
     const fails = checks.filter((c) => c.result === "fail");
     const unknowns = checks.filter((c) => c.result === "unknown");
     if (fails.length) {
@@ -444,11 +448,11 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
     const neg = pulls.filter((x) => x.pull < 0).sort((a, b) => a.pull - b.pull).slice(0, 1);
     const reasons: Reason[] = [];
     for (const { f } of pos) {
-      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "+");
+      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "+", me);
       if (text) reasons.push({ factor: f, sign: "+", text });
     }
     for (const { f } of neg) {
-      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "-");
+      const text = factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "-", me);
       if (text) reasons.push({ factor: f, sign: "-", text });
     }
 
@@ -480,7 +484,7 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
       contributions,
       missing,
       reasons,
-      facts: Object.fromEntries(FACTORS.map((f) => [f, factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents)])) as Record<Factor, string | null>,
+      facts: Object.fromEntries(FACTORS.map((f) => [f, factorFact(f, s.place, groupSize, priorities.maxRentPerPersonCents, "fact", me)])) as Record<Factor, string | null>,
       vsAbove
     };
   });

@@ -78,6 +78,24 @@ export function shareRange(p: SplitPlace, group: number | null): ShareRange | nu
   return { lo: Math.min(...shares), hi: Math.max(...shares), decided: current };
 }
 
+/**
+ * What `me` pays at this place, when a decided split names them and still
+ * holds (a room split follows today's rent; custom amounts must still add up).
+ * Null otherwise: then the place's range is what counts.
+ */
+export function myShare(p: SplitPlace, group: number | null, me: string | null | undefined): number | null {
+  if (!me || !p.split?.shares?.length || p.priceBasis === "per_person") return null;
+  const i = p.split.shares.findIndex((s) => s.who === me);
+  if (i < 0) return null;
+  const range = shareRange(p, group);
+  if (!range?.decided) return null;
+  if (p.split.mode === "by_room" && p.split.rooms?.length) {
+    const rent = totalRent(p, group);
+    return rent === null ? null : (sharesByRoom(rent, p.split.rooms.map((r) => ROOM_SIZE[r]))[i] ?? null);
+  }
+  return p.split.shares[i]!.cents;
+}
+
 /** The room setup a place starts from in the editor: its bedrooms filled as evenly as possible. */
 export function defaultRoomTypes(people: number, bedrooms: number | null): RoomType[] {
   // Unknown bedrooms: assume doubles. A studio is one room.
