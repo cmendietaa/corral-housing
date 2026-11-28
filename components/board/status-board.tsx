@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { ARRIVE, MOVE } from "@/lib/motion";
 import { streetHeadline } from "@/lib/address";
 import { formatRent } from "@/lib/compare";
 import { formatBeds } from "@/lib/format";
@@ -95,6 +97,7 @@ export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props)
         })}
       </nav>
 
+      <LayoutGroup>
       <div
         // Phones: swiping between columns moves the highlight in the stage row too.
         onScroll={(e) => {
@@ -139,9 +142,9 @@ export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props)
               </div>
               <ul className="space-y-3">
                 {cards.map((l) => (
-                  <li key={l.id}>
+                  <motion.li key={l.id} layoutId={`status-${l.id}`} transition={MOVE} className="relative">
                     <StatusCard listing={l} board={board} photos={photos} onPatch={(p) => onPatch(l.id, p)} onOpen={() => onOpen(l.id)} />
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             </section>
@@ -189,6 +192,7 @@ export function StatusBoard({ listings, board, photos, onPatch, onOpen }: Props)
           </div>
         </section>
       </div>
+      </LayoutGroup>
     </div>
   );
 }
@@ -199,9 +203,19 @@ function MiniFence({ count, className }: { count: number; className: string }) {
   if (count === 0) return <span aria-hidden="true" className="block h-[22px] w-[7px] rounded-t-full rounded-b-[1px] border border-dashed border-stone-500" />;
   return (
     <span aria-hidden="true" className="flex h-[22px] items-end gap-[3px]">
-      {Array.from({ length: Math.min(count, 8) }, (_, i) => (
-        <span key={i} className={cn("block w-[7px] rounded-t-full rounded-b-[1px]", className)} style={{ height: heights[i % heights.length] }} />
-      ))}
+      <AnimatePresence initial={false}>
+        {Array.from({ length: Math.min(count, 8) }, (_, i) => (
+          <motion.span
+            key={i}
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            exit={{ scaleY: 0, transition: { duration: 0.15 } }}
+            transition={ARRIVE}
+            className={cn("block w-[7px] origin-bottom rounded-t-full rounded-b-[1px]", className)}
+            style={{ height: heights[i % heights.length] }}
+          />
+        ))}
+      </AnimatePresence>
     </span>
   );
 }

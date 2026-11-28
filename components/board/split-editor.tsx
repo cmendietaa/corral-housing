@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { QUICK } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { formatRent, peopleLiving, totalRent } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
@@ -17,6 +19,19 @@ const MODES: [Mode, string][] = [
   ["by_room", "By room"],
   ["custom", "Custom"]
 ];
+/** An amount that rolls up to its new number when it changes (not when it first shows). */
+function Rolling({ text, className }: { text: string; className?: string }) {
+  return (
+    <span className={cn("inline-block overflow-hidden align-bottom", className)}>
+      <AnimatePresence initial={false}>
+        <motion.span key={text} className="inline-block" initial={{ y: "70%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={QUICK}>
+          {text}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 const ROOM_LABEL: Record<RoomType, string> = { single: "Single", double: "Double", triple: "Triple" };
 
 /** "$1,350–$1,800 each", or "$1,200 each" when everyone pays the same. */
@@ -32,10 +47,9 @@ export function SplitRow({ listing, members, group, onSave }: { listing: Listing
   if (!range || listing.priceBasis === "per_person") return null;
   return (
     <div className="flex items-center gap-3 rounded-[18px] bg-shell-mid px-4 py-3">
-      <span className="label flex-1 text-stone-700">Split</span>
-      <span className="text-sm text-tar">
-        <span className="font-display text-[16px]">{rangeText(range.lo, range.hi)}</span>
-        <span className="text-stone-700"> · {range.decided ? `${people} people` : "not decided"}</span>
+      <span className="min-w-0 flex-1">
+        <span className="label block text-stone-700">Split · {range.decided ? `${people} people` : "not decided"}</span>
+        <Rolling text={rangeText(range.lo, range.hi)} className="mt-0.5 block font-display text-[17px] text-tar" />
       </span>
       <button type="button" onClick={() => setOpen(true)} className="text-[13px] font-bold text-sea-700 underline-offset-4 hover:underline">
         Change
@@ -174,14 +188,14 @@ export function SplitEditor({
 
         {mode === "undecided" ? (
           <p className="rounded-[16px] bg-shell-light p-4 text-sm text-stone-800">
-            {range ? <span className="font-display text-[18px] text-tar">{rangeText(range.lo, range.hi)}</span> : null}
+            {range ? <Rolling text={rangeText(range.lo, range.hi)} className="font-display text-[18px] text-tar" /> : null}
             <span className="mt-1 block">From a spot in a shared room up to a room of your own. Decide whenever you&apos;re ready.</span>
           </p>
         ) : null}
 
         {mode === "even" ? (
           <p className="rounded-[16px] bg-shell-light p-4 text-sm text-stone-800">
-            <span className="font-display text-[18px] text-tar">{formatRent(Math.ceil(rent / people))} each</span> for all {people}.
+            <Rolling text={`${formatRent(Math.ceil(rent / people))} each`} className="font-display text-[18px] text-tar" /> for all {people}.
           </p>
         ) : null}
 
@@ -225,7 +239,7 @@ export function SplitEditor({
                       }),
                     `Who's in ${roomOf[i]} (spot ${i + 1})`
                   )}
-                  <span className="w-20 text-right font-display text-[16px]">{formatRent(r.cents)}</span>
+                  <Rolling text={formatRent(r.cents)} className="w-20 text-right font-display text-[16px]" />
                 </div>
               ))}
             </div>

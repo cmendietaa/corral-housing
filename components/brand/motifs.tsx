@@ -163,7 +163,7 @@ export function FitStars({ stars, text, className }: { stars: number; /** As sho
               <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full text-sunset-600" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
                 <path d={STAR} />
               </svg>
-              <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${fill}%` }}>
+              <span className="absolute inset-y-0 left-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none" style={{ width: `${fill}%` }}>
                 <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] text-sunset-600" fill="var(--color-sunset-500)" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
                   <path d={STAR} />
                 </svg>

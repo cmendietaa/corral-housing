@@ -7,6 +7,8 @@ import { resolveCover } from "@/lib/cover";
 import { MAX_PHOTOS_PER_PLACE, type Photo } from "@/lib/stores/types";
 import { TourPhotosContext } from "./tour-photos";
 import dynamic from "next/dynamic";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { ARRIVE, MOVE, withViewTransition } from "@/lib/motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { List, ListOrdered, Map as MapIcon, Plus, Settings, SquareKanban } from "lucide-react";
@@ -61,6 +63,8 @@ export function Board({
   const [snap, setSnap] = useState<BoardSnapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const mapFrameRef = useRef<HTMLElement>(null);
+  const [pinFrom, setPinFrom] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [checked, setChecked] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
   const [tab, setTab] = useState<Tab>("map");
@@ -304,6 +308,10 @@ export function Board({
 
   const selectFromMap = useCallback(
     (id: string) => {
+      const pin = document.querySelector(`[data-pin-id="${CSS.escape(id)}"]`)?.getBoundingClientRect();
+      const frame = mapFrameRef.current?.getBoundingClientRect();
+      // The card sits 18px in from the map's bottom-left corner; this is the pin's offset from that corner.
+      setPinFrom(pin && frame ? { id, dx: pin.left + pin.width / 2 - (frame.left + 18), dy: pin.bottom - (frame.bottom - 18) } : null);
       setSelectedId(id);
       scrollToRow(id);
     },
@@ -360,7 +368,7 @@ export function Board({
     <BandToggle
       label="View"
       value={tab}
-      onChange={setTab}
+      onChange={(t) => withViewTransition(() => setTab(t))}
       options={[
         { value: "map", label: "Map" },
         { value: "status", label: "Status" },
@@ -371,8 +379,17 @@ export function Board({
 
   const rows = (items: Listing[]) => (
     <ul className="space-y-1 max-lg:divide-y max-lg:divide-divider max-lg:space-y-0">
+      <AnimatePresence initial={false}>
       {items.map((l) => (
-        <li key={l.id} className="max-lg:py-1">
+        <motion.li
+          key={l.id}
+          layout="position"
+          initial={{ opacity: 0, y: -28 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, transition: { duration: 0.15 } }}
+          transition={MOVE}
+          className="max-lg:py-1"
+        >
           <ListingRow
             ref={(el) => {
               if (el) rowRefs.current.set(l.id, el);
@@ -388,8 +405,9 @@ export function Board({
             onActivate={() => activate(l.id)}
             onPatch={(changes) => patch(l.id, changes)}
           />
-        </li>
+        </motion.li>
       ))}
+      </AnimatePresence>
     </ul>
   );
 
@@ -448,6 +466,7 @@ export function Board({
 
   return (
     <TourPhotosContext.Provider value={photoCtx}>
+    <MotionConfig reducedMotion="user">
     <div
       className={cn(
         "flex min-h-screen flex-col",
@@ -570,6 +589,7 @@ export function Board({
           </div>
 
           <section
+            ref={mapFrameRef}
             aria-label="Map of places"
             className={cn(
               "relative overflow-hidden bg-shell-light",
@@ -587,7 +607,18 @@ export function Board({
             {/* Desktop: the selected place, bottom-left; the compare tray, bottom-right.
                 With square map corners the card never runs under a curve, so its close button stays visible. */}
             {selected ? (
-              <div className="no-scrollbar absolute bottom-[18px] left-[18px] z-20 hidden max-h-[calc(100%-36px)] overflow-y-auto rounded-[30px] lg:block">
+              <motion.div
+                key={selected.id}
+                initial={
+                  pinFrom?.id === selected.id
+                    ? { opacity: 0, scale: 0.15, x: pinFrom.dx, y: pinFrom.dy }
+                    : { opacity: 0, y: 16 }
+                }
+                animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                transition={ARRIVE}
+                style={{ transformOrigin: "0% 100%" }}
+                className="no-scrollbar absolute bottom-[18px] left-[18px] z-20 hidden max-h-[calc(100%-36px)] overflow-y-auto rounded-[30px] lg:block"
+              >
                 <PlaceCard
                   key={selected.id}
                   listing={selected}
@@ -597,7 +628,7 @@ export function Board({
                   onEdit={() => openForm({ mode: "edit", listing: selected })}
                   onClose={() => setSelectedId(null)}
                 />
-              </div>
+              </motion.div>
             ) : null}
             {tray("absolute bottom-[30px] right-[18px] z-20 hidden lg:flex")}
 
@@ -610,9 +641,15 @@ export function Board({
 
             {/* Phones: the selected place floats above the switch. */}
             {selected && pane === "map" ? (
-              <div className="fixed inset-x-3 bottom-[5.75rem] z-30 lg:hidden">
+              <motion.div
+                key={selected.id}
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={ARRIVE}
+                className="fixed inset-x-3 bottom-[5.75rem] z-30 lg:hidden"
+              >
                 <MapMiniCard listing={selected} board={board} photos={photos} onOpen={() => setSheetId(selected.id)} />
-              </div>
+              </motion.div>
             ) : null}
           </section>
         </main>
@@ -644,20 +681,23 @@ export function Board({
               key={o.key}
               type="button"
               aria-pressed={o.active}
-              onClick={() => {
-                if (o.key === "status" || o.key === "rank") setTab(o.key);
-                else {
-                  setTab("map");
-                  setPane(o.key);
-                }
-              }}
+              onClick={() =>
+                withViewTransition(() => {
+                  if (o.key === "status" || o.key === "rank") setTab(o.key);
+                  else {
+                    setTab("map");
+                    setPane(o.key);
+                  }
+                })
+              }
               className={cn(
-                "inline-flex h-11 items-center gap-1 rounded-full px-3 font-display text-[15px] transition min-[400px]:gap-1.5 min-[400px]:px-4",
-                o.active ? "bg-sunset-300 text-tar" : "text-sea-100"
+                "relative inline-flex h-11 items-center gap-1 rounded-full px-3 font-display text-[15px] transition-colors min-[400px]:gap-1.5 min-[400px]:px-4",
+                o.active ? "text-tar" : "text-sea-100"
               )}
             >
-              <o.icon className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
-              {o.label}
+              {o.active ? <motion.span layoutId="phone-switch" transition={MOVE} aria-hidden="true" className="absolute inset-0 rounded-full bg-sunset-300" /> : null}
+              <o.icon className="relative h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
+              <span className="relative">{o.label}</span>
             </button>
           ))}
         </div>
@@ -751,11 +791,23 @@ export function Board({
       ) : null}
 
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4 lg:bottom-6">
-        {notice ? (
-          <p className="pointer-events-auto rounded-full bg-tar px-5 py-2.5 text-sm font-semibold text-shell shadow-lg">{notice}</p>
-        ) : null}
+        <AnimatePresence>
+          {notice ? (
+            <motion.p
+              key={notice}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40, transition: { duration: 0.2, ease: "easeIn" } }}
+              transition={ARRIVE}
+              className="pointer-events-auto rounded-full bg-tar px-5 py-2.5 text-sm font-semibold text-shell shadow-lg"
+            >
+              {notice}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
+    </MotionConfig>
     </TourPhotosContext.Provider>
   );
 }

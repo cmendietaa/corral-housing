@@ -520,8 +520,8 @@ function DetailsSection({
             Save changes
           </Button>
           {saved ? (
-            <span role="status" className="inline-flex items-center gap-1 text-sm font-semibold text-sea-900">
-              <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
+            <span role="status" className="corral-saved inline-flex items-center gap-1 text-sm font-semibold text-sea-900">
+              <Check className="corral-check-draw h-4 w-4" strokeWidth={3} aria-hidden="true" />
               Saved
             </span>
           ) : null}

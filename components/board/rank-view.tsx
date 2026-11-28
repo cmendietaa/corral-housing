@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "motion/react";
+import { MOVE } from "@/lib/motion";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
@@ -158,7 +160,7 @@ export function RankView({ footNote, listings, board, photos, checked, checkDisa
         {ranking.ranked.length > 0 ? (
           <ol className="space-y-3">
             {ranking.ranked.map((r) => (
-              <li key={r.place.id}>
+              <motion.li key={r.place.id} layout="position" transition={MOVE}>
                 <RankCard
                   r={r}
                   photos={photos}
@@ -167,7 +169,7 @@ export function RankView({ footNote, listings, board, photos, checked, checkDisa
                   onToggleCheck={() => onToggleCheck(r.place.id)}
                   onOpen={() => onOpen(r.place.id)}
                 />
-              </li>
+              </motion.li>
             ))}
           </ol>
         ) : null}

@@ -1,8 +1,8 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { Bike, Check, Star } from "lucide-react";
-import { areaLabel, streetHeadline } from "@/lib/address";
+import { streetHeadline } from "@/lib/address";
 import { formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
 import { shareRange } from "@/lib/split";
 import { formatBedsBaths } from "@/lib/format";
@@ -28,6 +28,14 @@ type Props = {
 };
 
 /** The shortlist star: filled sunset with a sunset-600 edge when on, a stone-600 outline when off (both clear 3:1 on Shell). */
+const SPARKS = [
+  [-13, -11],
+  [13, -11],
+  [-14, 8],
+  [14, 8],
+  [0, -16]
+] as const;
+
 export function StarButton({
   starred,
   label,
@@ -39,16 +47,29 @@ export function StarButton({
   onToggle: () => void;
   className?: string;
 }) {
+  // Counts stars given, so each one pops once; zero means none yet (no pop on load).
+  const [pops, setPops] = useState(0);
   return (
     <button
       type="button"
       aria-pressed={starred}
       aria-label={starred ? `Remove ${label} from shortlist` : `Add ${label} to shortlist`}
-      onClick={onToggle}
-      className={cn("flex items-center justify-center rounded-full transition hover:bg-shell-deep", className)}
+      onClick={() => {
+        if (!starred) setPops((n) => n + 1);
+        onToggle();
+      }}
+      className={cn("relative flex items-center justify-center rounded-full transition hover:bg-shell-deep", className)}
     >
+      {pops > 0 && starred ? (
+        <span key={`sparks-${pops}`} aria-hidden="true">
+          {SPARKS.map(([dx, dy], i) => (
+            <span key={i} className="corral-spark" style={{ ["--dx" as string]: `${dx}px`, ["--dy" as string]: `${dy}px` }} />
+          ))}
+        </span>
+      ) : null}
       <Star
-        className={cn("h-4 w-4", starred ? "text-sunset-600" : "text-stone-600")}
+        key={starred ? `star-${pops}` : "off"}
+        className={cn("h-4 w-4", starred ? "text-sunset-600" : "text-stone-600", starred && pops > 0 && "corral-star-pop")}
         strokeWidth={2.25}
         fill={starred ? "var(--color-sunset-500)" : "none"}
         aria-hidden="true"
@@ -67,7 +88,6 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
 ) {
   const closed = isClosedStatus(listing.status);
   const headline = streetHeadline(listing.address, listing.title);
-  const area = areaLabel(listing.address);
   const perPerson = eachText(shareRange(listing, groupSizeOf(board)));
   const spots = spotsToFill(listing, groupSizeOf(board));
   const od = ownerDue(listing, board.members);
@@ -139,7 +159,6 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           >
             {headline}
           </button>
-          {area ? <span className="label hidden text-stone-700 lg:inline">{area}</span> : null}
         </h3>
         {nickname ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{nickname}</p> : null}
         {size || commute ? (
