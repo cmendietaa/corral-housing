@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowUpRight, X } from "lucide-react";
 import { Band } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
 import { streetHeadline } from "@/lib/address";
-import { buildComparison, formatRent, type CompareCell } from "@/lib/compare";
+import { buildComparison, formatRent, groupSizeOf, type CompareCell } from "@/lib/compare";
 import { formatLease } from "@/lib/format";
 import { LAUNDRY_LABELS, PARKING_LABELS, type Board, type Listing } from "@/lib/listing";
 import { cn } from "@/lib/utils";
@@ -97,7 +97,7 @@ export function CompareView({
   onBack: () => void;
 }) {
   const rows = buildComparison(places, {
-    people: board.members.length || null,
+    people: groupSizeOf(board),
     budgetPerPersonCents: board.budgetPerPersonCents,
     formatLease,
     parkingLabel: (p) => PARKING_LABELS[p],

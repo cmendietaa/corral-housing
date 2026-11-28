@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Bike, Footprints, Pencil, Plus, X } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
-import { formatRent, rentPerPerson } from "@/lib/compare";
+import { evenShare, formatRent, groupSizeOf } from "@/lib/compare";
 import { formatBeds, formatBedsBaths } from "@/lib/format";
 import { commuteToCampus } from "@/lib/commute";
 import type { Board, Listing, ListingPatch } from "@/lib/listing";
@@ -154,7 +154,7 @@ export function PlaceNotes({
 /** Desktop: the selected place, floating over the map's bottom-left corner. */
 export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: Shared & { onClose: () => void }) {
   const headline = streetHeadline(listing.address, listing.title);
-  const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
+  const perPerson = evenShare(listing, groupSizeOf(board));
   const commute = commuteToCampus(listing.lat, listing.lng);
   const nickname = headline !== listing.title ? listing.title : null;
   const size = formatBedsBaths(listing.beds, listing.baths) || null;
@@ -313,7 +313,7 @@ export function PlaceSheet({
   const ref = useRef<HTMLDialogElement>(null);
   const headline = streetHeadline(listing.address, listing.title);
   const area = areaLabel(listing.address);
-  const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
+  const perPerson = evenShare(listing, groupSizeOf(board));
 
   useEffect(() => {
     const d = ref.current;

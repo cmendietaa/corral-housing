@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestIndices, buildComparison, formatRent, meetsBudget, rentPerPerson, sortByRent } from "./compare";
+import { bestIndices, buildComparison, formatRent, meetsBudget, rentPerPerson, sortByRent, evenShare, groupSizeOf, peopleLiving, totalRent } from "./compare";
 
 describe("bestIndices", () => {
   it("picks the lowest or highest known value, ties included", () => {
@@ -121,5 +121,36 @@ describe("formatRent", () => {
     expect(formatRent(null)).toBe("Unknown");
     expect(formatRent(0)).toBe("$0");
     expect(formatRent(425000)).toBe("$4,250");
+  });
+});
+
+describe("rent splitting", () => {
+  const whole = { rentCents: 720000 };
+  it("uses the board's group size, else its members", () => {
+    expect(groupSizeOf({ members: [1, 2, 3, 4], groupSize: null })).toBe(4);
+    expect(groupSizeOf({ members: [1, 2], groupSize: 5 })).toBe(5);
+    expect(groupSizeOf({ members: [], groupSize: null })).toBeNull();
+  });
+  it("splits a whole-place rent by the people living there", () => {
+    expect(evenShare(whole, 4)).toBe(180000);
+    // Aiming for 6: two spots to fill share the rent too.
+    expect(evenShare({ ...whole, peopleCount: 6 }, 4)).toBe(120000);
+    expect(totalRent({ ...whole, peopleCount: 6 }, 4)).toBe(720000);
+  });
+  it("takes a per-person price as each person's share", () => {
+    const pp = { rentCents: 115000, priceBasis: "per_person" as const };
+    expect(evenShare(pp, 4)).toBe(115000);
+    expect(totalRent(pp, 4)).toBe(460000);
+    expect(totalRent(pp, null)).toBeNull();
+  });
+  it("treats 'just our part' as what the group pays, split by who lives there", () => {
+    const part = { rentCents: 120000, priceBasis: "our_part" as const, peopleCount: 1 };
+    expect(evenShare(part, 4)).toBe(120000);
+    expect(totalRent(part, 4)).toBe(120000);
+  });
+  it("knows nothing without a rent or a group", () => {
+    expect(evenShare({ rentCents: null }, 4)).toBeNull();
+    expect(evenShare(whole, null)).toBeNull();
+    expect(peopleLiving({ rentCents: 1, peopleCount: 3 }, null)).toBe(3);
   });
 });

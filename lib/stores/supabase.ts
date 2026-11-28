@@ -85,11 +85,14 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
 
     async updateBoard(details) {
       const d = boardDetailsSchema.parse(details);
-      const { data, error } = await supabase
+      const base = { name: d.name, lease_year: d.leaseYear, budget_per_person_cents: d.budgetPerPersonCents };
+      let { data, error } = await supabase
         .from("boards")
-        .update({ name: d.name, lease_year: d.leaseYear, budget_per_person_cents: d.budgetPerPersonCents })
+        .update({ ...base, group_size: d.groupSize })
         .eq("id", boardId)
         .select("id");
+      // Before the rent-split migration there's no group_size column (42703): save the rest.
+      if (error?.code === "42703") ({ data, error } = await supabase.from("boards").update(base).eq("id", boardId).select("id"));
       if (error) fail("Couldn't save the board's details. Try again.");
       if (!data?.length) fail("Only the board's owner can change these.");
     },
@@ -138,7 +141,8 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
 
     async load() {
       const [board, members, listings] = await Promise.all([
-        supabase.from("boards").select("id, name, lease_year, budget_per_person_cents").eq("id", boardId).maybeSingle(),
+        // "*" so a column added by a later migration (group_size) is simply absent before it runs.
+        supabase.from("boards").select("*").eq("id", boardId).maybeSingle(),
         supabase.from("board_members").select("user_id, display_name, joined_at").eq("board_id", boardId).order("joined_at"),
         supabase.from("listings").select("*").eq("board_id", boardId).order("created_at", { ascending: false })
       ]);
@@ -150,6 +154,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
         name: board.data.name,
         leaseYear: board.data.lease_year,
         budgetPerPersonCents: board.data.budget_per_person_cents,
+        groupSize: (board.data as { group_size?: number | null }).group_size ?? null,
         members: (members.data ?? []).map((m) => ({ id: m.user_id, name: m.display_name }))
       };
       return { board: b, listings: (listings.data as ListingRow[]).map(rowToListing) };
@@ -161,6 +166,10 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
       const fields = patchToRow(data);
       delete fields.cover_photo;
       delete fields.street_view;
+      // Rent-split fields are written only when they differ from the defaults.
+      if (fields.price_basis === "whole") delete fields.price_basis;
+      if (fields.people_count === null) delete fields.people_count;
+      if (fields.split === null) delete fields.split;
       const { data: row, error } = await supabase
         .from("listings")
         .insert({ board_id: boardId, ...fields })

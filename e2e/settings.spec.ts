@@ -40,3 +40,18 @@ test("rename the demo board and change its budget; it stays after a reload", asy
   await page.getByRole("button", { name: "Board settings" }).filter({ visible: true }).first().click();
   await expect(page.getByRole("dialog", { name: "Board settings" }).getByLabel("Budget per person")).toHaveValue("1500");
 });
+
+test("a bigger group splits the rent more ways", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByText("$1,350 / person").first()).toBeVisible();
+  await page.getByRole("button", { name: "Board settings" }).filter({ visible: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Board settings" });
+  await expect(dialog.getByRole("group", { name: "People in your group" })).toContainText("4");
+  await dialog.getByRole("button", { name: "One more person" }).click();
+  await expect(dialog.getByText("1 not on the board yet")).toBeVisible();
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("Saved");
+  await dialog.getByRole("button", { name: "Close settings" }).click();
+  // Sabado Tarde: $5,400 split 5 ways.
+  await expect(page.getByText("$1,080 / person").first()).toBeVisible();
+});

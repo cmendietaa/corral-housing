@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 import { Bike, Check, Star } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
-import { formatRent, rentPerPerson } from "@/lib/compare";
+import { evenShare, formatRent, groupSizeOf } from "@/lib/compare";
 import { formatBedsBaths } from "@/lib/format";
 import { commuteToCampus } from "@/lib/commute";
 import { isClosedStatus, type Board, type Listing, type ListingPatch } from "@/lib/listing";
@@ -67,7 +67,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
   const closed = isClosedStatus(listing.status);
   const headline = streetHeadline(listing.address, listing.title);
   const area = areaLabel(listing.address);
-  const perPerson = rentPerPerson(listing.rentCents, board.members.length || null);
+  const perPerson = evenShare(listing, groupSizeOf(board));
   const od = ownerDue(listing, board.members);
   const commute = commuteToCampus(listing.lat, listing.lng);
   // The nickname gets its own line (desktop); the facts stay short enough to never cut off.

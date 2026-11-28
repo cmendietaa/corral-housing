@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { streetHeadline } from "@/lib/address";
-import { formatRent } from "@/lib/compare";
+import { formatRent, groupSizeOf } from "@/lib/compare";
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
 import { isClosedStatus, type Board, type Listing } from "@/lib/listing";
 import {
@@ -89,7 +89,7 @@ type Props = {
 /** The Rank tab: your priorities on the left, the places that fit them best on the right. */
 export function RankView({ footNote, listings, board, photos, checked, checkDisabled, onToggleCheck, onCompare, onOpen, onEdit }: Props) {
   const { priorities, update, reset } = usePriorities(board);
-  const people = board.members.length || null;
+  const people = groupSizeOf(board);
   const ranking = useMemo(() => rankPlaces(listings, priorities, people), [listings, priorities, people]);
   const [editing, setEditing] = useState(false);
   const openCount = ranking.ranked.length + ranking.missingInfo.length + ranking.doesntMeet.length;

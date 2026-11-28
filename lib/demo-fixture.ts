@@ -57,7 +57,8 @@ export function createDemoSnapshot(now: Date = new Date()): BoardSnapshot {
     name: "Our place by the bluffs",
     leaseYear: `${year}–${String(year + 1).slice(2)}`,
     members: DEMO_MEMBERS.map((m) => ({ ...m })),
-    budgetPerPersonCents: 140000
+    budgetPerPersonCents: 140000,
+    groupSize: null
   };
 
   const base = {
@@ -68,6 +69,9 @@ export function createDemoSnapshot(now: Date = new Date()): BoardSnapshot {
     nextActionDue: null,
     cover: null,
     streetView: true,
+    priceBasis: "whole" as const,
+    peopleCount: null,
+    split: null,
     starred: false,
     updatedAt: stamp
   } satisfies Partial<Listing>;
