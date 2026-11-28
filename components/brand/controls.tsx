@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { LassoIcon } from "./motifs";
 
@@ -23,6 +24,7 @@ export function RopeInToggle({
   onToggle: () => void;
   className?: string;
 }) {
+  const [pulls, setPulls] = useState(0);
   return (
     <button
       type="button"
@@ -30,7 +32,10 @@ export function RopeInToggle({
       aria-checked={on}
       aria-label={`Compare ${label}`}
       disabled={disabled}
-      onClick={onToggle}
+      onClick={() => {
+        if (!on) setPulls((n) => n + 1);
+        onToggle();
+      }}
       title={disabled ? "You can compare up to 3 places" : undefined}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
@@ -38,7 +43,7 @@ export function RopeInToggle({
         className
       )}
     >
-      <span className={cn("flex h-7 w-7 items-center justify-center rounded-full", on ? "bg-sea-100" : "")}>
+      <span key={on ? pulls : "off"} className={cn("flex h-7 w-7 items-center justify-center rounded-full", on ? "bg-sea-100" : "", on && pulls > 0 && "corral-lasso")}>
         <LassoIcon className={cn("h-5 w-5", on ? "" : "[&_path]:[stroke-dasharray:3_3]")} strokeWidth={2.2} />
       </span>
       <span aria-hidden="true">{on ? "Roped in" : "Rope in"}</span>

@@ -157,6 +157,7 @@ export default function MapPanel({ listings, selectedId, onSelect, onMovePin }: 
         const el = document.createElement("button");
         el.type = "button";
         el.className = "corral-tag";
+        el.dataset.pinId = l.id;
         el.innerHTML = '<span class="corral-tag-label"></span>';
         el.addEventListener("click", (e) => {
           e.stopPropagation();

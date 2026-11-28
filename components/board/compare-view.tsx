@@ -1,6 +1,8 @@
 "use client";
 
 import { ArrowLeft, ArrowUpRight, X } from "lucide-react";
+import { motion } from "motion/react";
+import { ARRIVE } from "@/lib/motion";
 import { Band } from "@/components/brand/band";
 import { Button } from "@/components/ui/button";
 import { streetHeadline } from "@/lib/address";
@@ -25,15 +27,22 @@ export function CompareTray({
 }) {
   if (count === 0) return null;
   return (
-    <div
+    <motion.div
       role="status"
+      initial={{ y: 48, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={ARRIVE}
       className={cn("flex items-center gap-3 rounded-full bg-sea-800 py-2 pl-5 pr-2 text-sea-100 shadow-lg", className)}
     >
       {/* One board per place picked, a dashed one for each open spot (up to 3). */}
       <span aria-hidden="true" className="flex items-end gap-1">
         {[0, 1, 2].map((i) => (
-          <span
-            key={i}
+          <motion.span
+            key={`${i}-${i < count}`}
+            initial={i < count ? { scaleY: 0 } : false}
+            animate={{ scaleY: 1 }}
+            transition={ARRIVE}
+            style={{ originY: 1 }}
             className={cn(
               "block h-[22px] w-2.5 rounded-t-full rounded-b-[2px]",
               i < count ? (i % 2 ? "bg-sea-300" : "bg-sunset-400") : "border-[1.5px] border-dashed border-sea-300"
@@ -55,7 +64,7 @@ export function CompareTray({
       >
         <X className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
       </button>
-    </div>
+    </motion.div>
   );
 }
 

@@ -309,6 +309,70 @@
   .corral-sunset-settle, .corral-drop { animation: none; }
 }
 
+/* ---------- Animations pass: small moments ---------- */
+
+/* Star: a short pop, and a few sun-colored sparks flying out. */
+@keyframes corral-star-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.corral-star-pop { animation: corral-star-pop 0.32s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes corral-spark {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); }
+}
+.corral-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-sunset-400);
+  pointer-events: none;
+  animation: corral-spark 0.45s ease-out forwards;
+}
+
+/* Rope it in: the loop pulls tight. */
+@keyframes corral-lasso {
+  0% { transform: scale(0.8) rotate(-12deg); }
+  60% { transform: scale(1.12) rotate(4deg); }
+  100% { transform: none; }
+}
+.corral-lasso { animation: corral-lasso 0.35s cubic-bezier(0.3, 1.4, 0.6, 1); }
+
+/* Saved: the check draws itself, then the line fades away. */
+@keyframes corral-check-draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.corral-check-draw path {
+  stroke-dasharray: 24;
+  animation: corral-check-draw 0.35s ease-out 0.05s both;
+}
+@keyframes corral-saved {
+  0% { opacity: 0; transform: translateX(-4px); }
+  12% { opacity: 1; transform: none; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.corral-saved { animation: corral-saved 2.5s ease forwards; }
+
+/* Switching tabs: a quick cross-fade (View Transitions, where the browser has them). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corral-star-pop, .corral-lasso, .corral-saved { animation: none; }
+  .corral-spark { display: none; }
+  .corral-check-draw path { animation: none; stroke-dasharray: none; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
+
 /* Street View photos: a little more color and punch than Google's flat daylight. */
 .photo-tone {
   filter: saturate(1.3) contrast(1.08) brightness(1.03);

@@ -174,34 +174,4 @@ export function FinePrint({ className, note }: { className?: string; note?: stri
   );
 }
 
-/** A two-or-three way switch in the band (desktop Map / Status). */
-export function BandToggle<T extends string>({
-  value,
-  options,
-  onChange,
-  label
-}: {
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-  label: string;
-}) {
-  return (
-    <div role="group" aria-label={label} className="inline-flex rounded-full border border-divider bg-shell-light p-0.5 shadow-sm">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          aria-pressed={value === o.value}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "h-10 rounded-full px-4 text-[15px] transition",
-            value === o.value ? "bg-sea-100 font-semibold text-sea-900" : "text-tar hover:bg-shell-mid"
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+export { BandToggle } from "./band-toggle";
