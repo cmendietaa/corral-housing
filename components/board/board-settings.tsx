@@ -436,6 +436,8 @@ function DetailsSection({
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Check these and try again.");
     setError(null);
     if (!(await onSave(parsed.data))) return;
+    // Saved as automatic (null) means: follow the board's members again.
+    setChosen(parsed.data.groupSize);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2500);
   }
