@@ -396,7 +396,10 @@ function DetailsSection({
   const id = useId();
   const members = board.members.length || 1;
   // The group defaults to everyone on the board; a different number is saved only when it differs.
-  const [group, setGroup] = useState(board.groupSize ?? members);
+  // null while the group follows the board's members; a number once someone picks one.
+  const [chosen, setChosen] = useState<number | null>(board.groupSize);
+  const group = chosen ?? members;
+  const setGroup = (f: (g: number) => number) => setChosen(f(group));
   const [name, setName] = useState(board.name);
   const [leaseYear, setLeaseYear] = useState(board.leaseYear);
   const [budget, setBudget] = useState(centsToDollarsInput(board.budgetPerPersonCents));
@@ -406,7 +409,7 @@ function DetailsSection({
     name !== board.name ||
     leaseYear !== board.leaseYear ||
     budget !== centsToDollarsInput(board.budgetPerPersonCents) ||
-    group !== (board.groupSize ?? members);
+    chosen !== board.groupSize;
 
   if (!canEdit) {
     return (
@@ -429,7 +432,7 @@ function DetailsSection({
     e.preventDefault();
     const cents = parseDollars(budget);
     if (Number.isNaN(cents)) return setError("Enter the budget as a number, like 1400.");
-    const parsed = boardDetailsSchema.safeParse({ name, leaseYear, budgetPerPersonCents: cents, groupSize: group === members ? null : group });
+    const parsed = boardDetailsSchema.safeParse({ name, leaseYear, budgetPerPersonCents: cents, groupSize: chosen === null || chosen === members ? null : chosen });
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Check these and try again.");
     setError(null);
     if (!(await onSave(parsed.data))) return;
