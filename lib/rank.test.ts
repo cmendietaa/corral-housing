@@ -1,18 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CAMPUS } from "./commute";
 import { LISTING_STATUSES, LAUNDRY_OPTIONS, PARKING_OPTIONS } from "./listing";
-import {
-  DEFAULT_WEIGHTS,
-  FACTORS,
-  defaultPriorities,
-  formatScore,
-  formatStars,
-  headline,
-  rankPlaces,
-  type Level,
-  type Priorities,
-  type RankPlace
-} from "./rank";
+import { DEFAULT_WEIGHTS, FACTORS, defaultPriorities, formatScore, formatStars, headline, rankPlaces, type Level, type Priorities, type RankPlace, roomSharingScore } from "./rank";
 
 let n = 0;
 function place(over: Partial<RankPlace> = {}): RankPlace {
@@ -144,7 +133,8 @@ describe("scoring", () => {
 
   it("handles a studio and an unknown group size", () => {
     const r = rankPlaces([place({ beds: 0 })], { ...base, minBeds: null }, people);
-    expect(r.ranked[0]!.factors.bedrooms.lo).toBe(0);
+    // Four people in a studio: crowded, but not impossible.
+    expect(r.ranked[0]!.factors.bedrooms.lo).toBe(0.4);
     const unknownGroup = rankPlaces([place()], base, null);
     expect(unknownGroup.missingInfo[0]!.reasons).toEqual(["Rent per person unknown (no group size)"]);
   });
@@ -155,12 +145,30 @@ describe("people living there", () => {
     const r = rankPlaces([place({ rentCents: 720000, beds: 6, peopleCount: 6 })], base, people);
     const top = r.ranked[0]!;
     expect(top.facts.price).toContain("$1,200/person");
-    expect(top.facts.bedrooms).toBe("6 bedrooms for 6 people");
+    expect(top.facts.bedrooms).toBe("singles for all 6 (6 bedrooms)");
   });
 
   it("reads a per-person price as each person's share", () => {
     const r = rankPlaces([place({ rentCents: 115000, priceBasis: "per_person" })], base, people);
     expect(r.ranked[0]!.facts.price).toContain("$1,150/person");
+  });
+});
+
+describe("sharing rooms", () => {
+  it("scores doubles as well as singles, triples a little lower", () => {
+    expect(roomSharingScore(4, 2)).toBe(1);
+    expect(roomSharingScore(4, 4)).toBe(1);
+    expect(roomSharingScore(6, 2)).toBe(0.75);
+    expect(roomSharingScore(8, 2)).toBe(0.4);
+  });
+  it("says how people would share", () => {
+    const r = rankPlaces([place({ beds: 2 })], { ...base, minBeds: null }, people);
+    expect(r.ranked[0]!.facts.bedrooms).toBe("doubles: 4 people in 2 bedrooms");
+  });
+  it("passes the budget when a shared spot fits, even if a single wouldn't", () => {
+    // $5,000 for 5 people in 3 bedrooms: $900–$1,200 each; max $1,000.
+    const r = rankPlaces([place({ rentCents: 500000, beds: 3, peopleCount: 5 })], { ...base, minBeds: null, maxRentPerPersonCents: 100000 }, people);
+    expect(r.ranked).toHaveLength(1);
   });
 });
 

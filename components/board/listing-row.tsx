@@ -3,7 +3,8 @@
 import { forwardRef } from "react";
 import { Bike, Check, Star } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
-import { evenShare, formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
+import { formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
+import { shareRange } from "@/lib/split";
 import { formatBedsBaths } from "@/lib/format";
 import { commuteToCampus } from "@/lib/commute";
 import { isClosedStatus, type Board, type Listing, type ListingPatch } from "@/lib/listing";
@@ -67,7 +68,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
   const closed = isClosedStatus(listing.status);
   const headline = streetHeadline(listing.address, listing.title);
   const area = areaLabel(listing.address);
-  const perPerson = evenShare(listing, groupSizeOf(board));
+  const perPerson = eachText(shareRange(listing, groupSizeOf(board)));
   const spots = spotsToFill(listing, groupSizeOf(board));
   const od = ownerDue(listing, board.members);
   const commute = commuteToCampus(listing.lat, listing.lng);
@@ -187,7 +188,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           <>
             <p className="font-display text-[15px] text-tar lg:text-[21px]">{formatRent(listing.rentCents)}</p>
             {perPerson !== null ? (
-              <p className="text-xs text-stone-700">{formatRent(perPerson)} / person</p>
+              <p className="text-xs text-stone-700">{perPerson} / person</p>
             ) : null}
           </>
         )}
@@ -201,3 +202,8 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
     </article>
   );
 });
+
+/** "$1,350" or "$1,029–$1,371": what each person pays, as a range while the split is open. */
+function eachText(r: { lo: number; hi: number } | null): string | null {
+  return r === null ? null : r.lo === r.hi ? formatRent(r.lo) : `${formatRent(r.lo)}–${formatRent(r.hi)}`;
+}

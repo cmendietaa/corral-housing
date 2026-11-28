@@ -57,7 +57,7 @@ test("ranks the places that meet the requirements and says why the others don't"
 
 test("changing priorities re-ranks, and they're saved on this device", async ({ page }) => {
   await openRank(page);
-  await expect(cards(page).first()).toContainText("Sabado Tarde");
+  await expect(cards(page).first()).toContainText("Pardall Rd");
 
   let panel = await priorities(page);
   // Raise the max: Del Playa moves from "doesn't meet" into the ranking.
@@ -80,7 +80,7 @@ test("changing priorities re-ranks, and they're saved on this device", async ({ 
   await panel.getByRole("button", { name: "Reset" }).click();
   await done(page);
   await expect(cards(page)).toHaveCount(3);
-  await expect(cards(page).first()).toContainText("Sabado Tarde");
+  await expect(cards(page).first()).toContainText("Pardall Rd");
 });
 
 test("Compare top 3 opens Compare with the top places", async ({ page }) => {

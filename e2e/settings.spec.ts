@@ -52,6 +52,6 @@ test("a bigger group splits the rent more ways", async ({ page }) => {
   await dialog.getByRole("button", { name: "Save changes" }).click();
   await expect(dialog.getByRole("status")).toHaveText("Saved");
   await dialog.getByRole("button", { name: "Close settings" }).click();
-  // Sabado Tarde: $5,400 split 5 ways.
-  await expect(page.getByText("$1,080 / person").first()).toBeVisible();
+  // Sabado Tarde: $5,400 for 5 people in 4 bedrooms, one double: a range until the group decides.
+  await expect(page.getByText("$900–$1,200 / person").first()).toBeVisible();
 });
