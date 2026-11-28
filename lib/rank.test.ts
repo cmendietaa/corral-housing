@@ -150,6 +150,20 @@ describe("scoring", () => {
   });
 });
 
+describe("people living there", () => {
+  it("splits by the people a place is aiming for, spots to fill included", () => {
+    const r = rankPlaces([place({ rentCents: 720000, beds: 6, peopleCount: 6 })], base, people);
+    const top = r.ranked[0]!;
+    expect(top.facts.price).toContain("$1,200/person");
+    expect(top.facts.bedrooms).toBe("6 bedrooms for 6 people");
+  });
+
+  it("reads a per-person price as each person's share", () => {
+    const r = rankPlaces([place({ rentCents: 115000, priceBasis: "per_person" })], base, people);
+    expect(r.ranked[0]!.facts.price).toContain("$1,150/person");
+  });
+});
+
 describe("explanations", () => {
   it("states real values: one plus and one minus on the card", () => {
     const r = rankPlaces([place({ rentCents: 320000, parking: "street", laundry: "none", ...bikeAway(4) })], base, people);

@@ -25,6 +25,10 @@ export type ListingRow = {
   /** Missing until the photo-choices migration is applied; the schema defaults fill in. */
   cover_photo?: string | null;
   street_view?: boolean;
+  /** Missing until the rent-split migration is applied; the schema defaults fill in. */
+  price_basis?: string;
+  people_count?: number | null;
+  split?: unknown;
   updated_at: string;
 };
 
@@ -54,6 +58,9 @@ export function rowToListing(r: ListingRow): Listing {
     nextActionDue: r.next_action_due,
     cover: r.cover_photo ?? null,
     streetView: r.street_view ?? true,
+    priceBasis: r.price_basis ?? "whole",
+    peopleCount: r.people_count ?? null,
+    split: r.split ?? null,
     updatedAt: r.updated_at
   });
 }
@@ -78,7 +85,10 @@ const COLUMN: Record<keyof ListingPatch, keyof ListingRow> = {
   nextActionAssignee: "next_action_assignee",
   nextActionDue: "next_action_due",
   cover: "cover_photo",
-  streetView: "street_view"
+  streetView: "street_view",
+  priceBasis: "price_basis",
+  peopleCount: "people_count",
+  split: "split"
 };
 
 /** App patch → column update. Only known, writable columns pass through. */

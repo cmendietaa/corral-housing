@@ -27,7 +27,8 @@ const snapshotSchema = z.object({
     name: z.string(),
     leaseYear: z.string(),
     members: z.array(z.object({ id: z.string(), name: z.string() })),
-    budgetPerPersonCents: z.number().int().nullable()
+    budgetPerPersonCents: z.number().int().nullable(),
+    groupSize: z.number().int().nullable().default(null)
   }),
   listings: z.array(listingSchema)
 });
@@ -107,7 +108,7 @@ export function createLocalStore(options: {
       async updateBoard(details) {
         const d = boardDetailsSchema.parse(details);
         const snap = read();
-        write({ ...snap, board: { ...snap.board, name: d.name, leaseYear: d.leaseYear, budgetPerPersonCents: d.budgetPerPersonCents } });
+        write({ ...snap, board: { ...snap.board, name: d.name, leaseYear: d.leaseYear, budgetPerPersonCents: d.budgetPerPersonCents, groupSize: d.groupSize } });
       }
     },
 

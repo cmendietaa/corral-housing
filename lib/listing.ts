@@ -54,6 +54,35 @@ export const httpUrl = z
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a full date");
 
+/**
+ * How a place's price is quoted: the rent for the whole place, a price per
+ * person (or bed), or "our part" (a sublet or one room: what the group pays).
+ */
+export const PRICE_BASES = ["whole", "per_person", "our_part"] as const;
+export type PriceBasis = (typeof PRICE_BASES)[number];
+export const PRICE_BASIS_LABELS: Record<PriceBasis, string> = {
+  whole: "Whole place",
+  per_person: "Per person",
+  our_part: "Just our part"
+};
+
+export const ROOM_TYPES = ["single", "double", "triple"] as const;
+export type RoomType = (typeof ROOM_TYPES)[number];
+
+/**
+ * How the rent is split once the group decides. Null on a listing means not
+ * decided yet. `who` is a member id, or "spot-1", "spot-2"… for spots to fill.
+ */
+export const splitSchema = z.object({
+  mode: z.enum(["even", "by_room", "custom"]),
+  rooms: z.array(z.enum(ROOM_TYPES)).max(20).optional(),
+  shares: z
+    .array(z.object({ who: z.string().min(1).max(64), cents: z.number().int().nonnegative() }))
+    .max(20)
+    .optional()
+});
+export type Split = z.infer<typeof splitSchema>;
+
 export const listingSchema = z.object({
   id: z.string(),
   title: z.string().trim().min(1, "Add an address or a short title").max(120),
@@ -83,6 +112,12 @@ export const listingSchema = z.object({
   cover: z.string().max(64).nullable().default(null),
   /** False hides Street View for this place (wrong building, ugly angle). */
   streetView: z.boolean().default(true),
+  /** How the price is quoted (see PRICE_BASES). */
+  priceBasis: z.enum(PRICE_BASES).default("whole"),
+  /** How many people would live there; null means the group's size. */
+  peopleCount: z.number().int().min(1).max(20).nullable().default(null),
+  /** How the rent is split; null means not decided yet. */
+  split: splitSchema.nullable().default(null),
   updatedAt: z.string()
 });
 
@@ -102,13 +137,17 @@ export type Board = {
   members: Member[];
   /** Per-person monthly budget in cents, or null when the group hasn't set one. */
   budgetPerPersonCents: number | null;
+  /** How many people are in the group; null means the number of members. */
+  groupSize: number | null;
 };
 
 /** What the settings screen can change about a board. Same limits as the database. */
 export const boardDetailsSchema = z.object({
   name: z.string().trim().min(1, "Give the board a name").max(80, "Keep the name under 80 characters"),
   leaseYear: z.string().trim().max(20, "Keep the lease year short, like 2027–28"),
-  budgetPerPersonCents: z.number().int().nonnegative().nullable()
+  budgetPerPersonCents: z.number().int().nonnegative().nullable(),
+  /** Left out or null: the group is everyone on the board. */
+  groupSize: z.number().int().min(1, "A group has at least 1 person").max(20, "Up to 20 people").nullable().default(null)
 });
 
 /** A roommate's name on a board. */
@@ -135,6 +174,9 @@ export function emptyListingInput(): ListingInput {
     nextActionAssignee: null,
     nextActionDue: null,
     cover: null,
-    streetView: true
+    streetView: true,
+    priceBasis: "whole",
+    peopleCount: null,
+    split: null
   };
 }

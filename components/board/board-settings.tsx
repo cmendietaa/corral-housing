@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Check, UserPlus, X } from "lucide-react";
+import { Check, Minus, Plus, UserPlus, X } from "lucide-react";
 import { LassoIcon } from "@/components/brand/motifs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -391,15 +391,25 @@ function DetailsSection({
   canEdit: boolean;
   ownerName: string | null;
   busy: boolean;
-  onSave: (d: { name: string; leaseYear: string; budgetPerPersonCents: number | null }) => Promise<boolean>;
+  onSave: (d: { name: string; leaseYear: string; budgetPerPersonCents: number | null; groupSize: number | null }) => Promise<boolean>;
 }) {
   const id = useId();
+  const members = board.members.length || 1;
+  // The group defaults to everyone on the board; a different number is saved only when it differs.
+  // null while the group follows the board's members; a number once someone picks one.
+  const [chosen, setChosen] = useState<number | null>(board.groupSize);
+  const group = chosen ?? members;
+  const setGroup = (f: (g: number) => number) => setChosen(f(group));
   const [name, setName] = useState(board.name);
   const [leaseYear, setLeaseYear] = useState(board.leaseYear);
   const [budget, setBudget] = useState(centsToDollarsInput(board.budgetPerPersonCents));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const dirty = name !== board.name || leaseYear !== board.leaseYear || budget !== centsToDollarsInput(board.budgetPerPersonCents);
+  const dirty =
+    name !== board.name ||
+    leaseYear !== board.leaseYear ||
+    budget !== centsToDollarsInput(board.budgetPerPersonCents) ||
+    chosen !== board.groupSize;
 
   if (!canEdit) {
     return (
@@ -411,6 +421,8 @@ function DetailsSection({
           <dd>{board.leaseYear || "Not set"}</dd>
           <dt className="text-stone-700">Budget</dt>
           <dd>{board.budgetPerPersonCents === null ? "Not set" : `$${centsToDollarsInput(board.budgetPerPersonCents)} per person`}</dd>
+          <dt className="text-stone-700">Group</dt>
+          <dd>{board.groupSize ?? members} people</dd>
         </dl>
       </Section>
     );
@@ -420,10 +432,12 @@ function DetailsSection({
     e.preventDefault();
     const cents = parseDollars(budget);
     if (Number.isNaN(cents)) return setError("Enter the budget as a number, like 1400.");
-    const parsed = boardDetailsSchema.safeParse({ name, leaseYear, budgetPerPersonCents: cents });
+    const parsed = boardDetailsSchema.safeParse({ name, leaseYear, budgetPerPersonCents: cents, groupSize: chosen === null || chosen === members ? null : chosen });
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Check these and try again.");
     setError(null);
     if (!(await onSave(parsed.data))) return;
+    // Saved as automatic (null) means: follow the board's members again.
+    setChosen(parsed.data.groupSize);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2500);
   }
@@ -465,6 +479,36 @@ function DetailsSection({
               <span className="shrink-0 text-xs text-stone-700">each</span>
             </div>
           </div>
+        </div>
+        {/* How many people the rent is split between, by default: not every roommate joins the board. */}
+        <div role="group" aria-labelledby={`${id}-group`} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span id={`${id}-group`} className="text-[13px] font-semibold">
+            People in your group
+          </span>
+          <span className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="One fewer person"
+              disabled={group <= 1}
+              onClick={() => setGroup((g) => Math.max(1, g - 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-divider bg-shell-light hover:bg-shell-mid disabled:opacity-40"
+            >
+              <Minus className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
+            </button>
+            <span aria-live="polite" className="w-7 text-center font-display text-xl text-tar">
+              {group}
+            </span>
+            <button
+              type="button"
+              aria-label="One more person"
+              disabled={group >= 20}
+              onClick={() => setGroup((g) => Math.min(20, g + 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-divider bg-shell-light hover:bg-shell-mid disabled:opacity-40"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
+            </button>
+          </span>
+          {group > members ? <span className="text-[13px] text-stone-700">{group - members} not on the board yet</span> : null}
         </div>
         {error ? (
           <p role="alert" className="text-sm font-semibold text-danger">

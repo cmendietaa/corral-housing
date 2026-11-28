@@ -14,6 +14,7 @@ import { AddBoardButton, Band, BandSun, BandToggle, CrewBoards, FenceFooter, Fin
 import { Wordmark } from "@/components/brand/wave-mark";
 import { Button } from "@/components/ui/button";
 import { streetHeadline } from "@/lib/address";
+import { groupSizeOf } from "@/lib/compare";
 import { isClosedStatus, starredFirst, type Listing, type ListingInput, type ListingPatch } from "@/lib/listing";
 import { NOT_ON_BOARD, type BoardSnapshot, type BoardStore } from "@/lib/stores/types";
 import { INCOMING_KEY, readMessage, type Incoming, type SentPage } from "@/lib/send/payload";
@@ -727,7 +728,7 @@ export function Board({
           canAddPhotos={photoCtx !== null}
           sampleScreenshot={isDemo ? "/samples/listing-screenshot.jpg" : undefined}
           streetPhotos={photos}
-          people={board.members.length || null}
+          people={groupSizeOf(board)}
           budgetPerPersonCents={board.budgetPerPersonCents}
         />
       ) : form ? (

@@ -1,4 +1,4 @@
-import type { Listing } from "./listing";
+import type { Listing, PriceBasis } from "./listing";
 import { commuteToCampus } from "./commute";
 
 export const UNKNOWN = "Unknown";
@@ -111,8 +111,9 @@ export function buildComparison(
     ownerDue: (place: ComparePlace) => string | null;
   }
 ): CompareRow[] {
-  const rents = places.map((p) => p.rentCents);
-  const perPerson = places.map((p) => rentPerPerson(p.rentCents, opts.people));
+  // Rent for everyone living there (a per-person price times the people), and each person's even share.
+  const rents = places.map((p) => totalRent(p, opts.people));
+  const perPerson = places.map((p) => evenShare(p, opts.people));
   const commutes = places.map((p) => commuteToCampus(p.lat, p.lng));
 
   return [
@@ -203,4 +204,38 @@ export function buildComparison(
       })
     }
   ];
+}
+
+/**
+ * What a place costs, given how its price is quoted and who lives there.
+ * `group` is the group's size (see groupSizeOf); a place's own people count
+ * (more than the group means spots to fill) wins over it.
+ */
+export type Priced = { rentCents: number | null; priceBasis?: PriceBasis; peopleCount?: number | null };
+
+/** The group's size: the board's setting, else its number of members. */
+export function groupSizeOf(board: { members: unknown[]; groupSize?: number | null }): number | null {
+  return board.groupSize ?? (board.members.length || null);
+}
+
+/** How many people the rent is split between. */
+export function peopleLiving(p: Priced, group: number | null): number | null {
+  return p.peopleCount ?? group;
+}
+
+/** The monthly rent for everyone living there. */
+export function totalRent(p: Priced, group: number | null): number | null {
+  if (p.rentCents === null) return null;
+  if (p.priceBasis === "per_person") {
+    const n = peopleLiving(p, group);
+    return n === null ? null : p.rentCents * n;
+  }
+  return p.rentCents;
+}
+
+/** Each person's share when the rent is split evenly. */
+export function evenShare(p: Priced, group: number | null): number | null {
+  if (p.rentCents === null) return null;
+  if (p.priceBasis === "per_person") return p.rentCents;
+  return rentPerPerson(p.rentCents, peopleLiving(p, group));
 }

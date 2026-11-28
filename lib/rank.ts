@@ -1,5 +1,5 @@
 import { commuteToCampus } from "./commute";
-import { formatRent, rentPerPerson } from "./compare";
+import { evenShare, formatRent, peopleLiving } from "./compare";
 import { isClosedStatus, type Listing } from "./listing";
 
 /**
@@ -21,7 +21,8 @@ import { isClosedStatus, type Listing } from "./listing";
 export type RankPlace = Pick<
   Listing,
   "id" | "title" | "status" | "rentCents" | "beds" | "baths" | "leaseStart" | "parking" | "laundry" | "lat" | "lng"
->;
+> &
+  Partial<Pick<Listing, "priceBasis" | "peopleCount">>;
 
 export const FACTORS = ["price", "bike", "bedrooms", "bathrooms", "amenities"] as const;
 export type Factor = (typeof FACTORS)[number];
@@ -83,7 +84,7 @@ const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 function checkRequirements(p: RankPlace, pr: Priorities, people: number | null): Check[] {
   const checks: Check[] = [];
   if (pr.maxRentPerPersonCents !== null) {
-    const pp = rentPerPerson(p.rentCents, people);
+    const pp = evenShare(p, people);
     checks.push(
       pp === null
         ? { requirement: "maxRent", result: "unknown", text: p.rentCents === null ? "Rent unknown" : "Rent per person unknown (no group size)" }
@@ -169,9 +170,10 @@ export const REF = {
 type Context = { people: number | null; priceRef: number | null };
 
 function factorScores(p: RankPlace, ctx: Context): Record<Factor, FactorScore> {
-  const pp = rentPerPerson(p.rentCents, ctx.people);
+  const pp = evenShare(p, ctx.people);
   const bike = commuteToCampus(p.lat, p.lng);
-  const people = ctx.people;
+  // Rooms are shared by everyone living there, spots to fill included.
+  const living = peopleLiving(p, ctx.people);
 
   let amenities: FactorScore;
   const park = p.parking === null ? null : PARKING_SCORE[p.parking];
@@ -189,8 +191,8 @@ function factorScores(p: RankPlace, ctx: Context): Record<Factor, FactorScore> {
         ? UNKNOWN_SCORE
         : exact(lowerIsBetter(pp, REF.priceGoodShare * ctx.priceRef, ctx.priceRef)),
     bike: bike === null ? UNKNOWN_SCORE : exact(lowerIsBetter(bike.bikeMin, REF.bikeGoodMin, REF.bikeBadMin)),
-    bedrooms: p.beds === null || !people ? UNKNOWN_SCORE : exact(perPerson(p.beds / people, REF.bedsFull, REF.bedsHalf)),
-    bathrooms: p.baths === null || !people ? UNKNOWN_SCORE : exact(perPerson(p.baths / people, REF.bathsFull, REF.bathsHalf)),
+    bedrooms: p.beds === null || !living ? UNKNOWN_SCORE : exact(perPerson(p.beds / living, REF.bedsFull, REF.bedsHalf)),
+    bathrooms: p.baths === null || !living ? UNKNOWN_SCORE : exact(perPerson(p.baths / living, REF.bathsFull, REF.bathsHalf)),
     amenities
   };
 }
@@ -219,7 +221,7 @@ function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: num
   const minus = side === "-";
   switch (f) {
     case "price": {
-      const pp = rentPerPerson(p.rentCents, people);
+      const pp = evenShare(p, people);
       if (pp === null) return null;
       if (maxRent === null) return `${formatRent(pp)}/person`;
       const under = maxRent - pp;
@@ -230,10 +232,14 @@ function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: num
       const c = commuteToCampus(p.lat, p.lng);
       return c ? `about ${c.bikeMin} min bike to campus` : null;
     }
-    case "bedrooms":
-      return p.beds === null || !people ? null : `${p.beds === 0 ? "studio" : plural(p.beds, "bedroom")} for ${plural(people, "person").replace("persons", "people")}`;
-    case "bathrooms":
-      return p.baths === null || !people ? null : `${plural(p.baths, "bath")} for ${plural(people, "person").replace("persons", "people")}`;
+    case "bedrooms": {
+      const n = peopleLiving(p, people);
+      return p.beds === null || !n ? null : `${p.beds === 0 ? "studio" : plural(p.beds, "bedroom")} for ${plural(n, "person").replace("persons", "people")}`;
+    }
+    case "bathrooms": {
+      const n = peopleLiving(p, people);
+      return p.baths === null || !n ? null : `${plural(p.baths, "bath")} for ${plural(n, "person").replace("persons", "people")}`;
+    }
     case "amenities": {
       // An item counts as good from 0.5 up (on-site laundry, a driveway) and bad below (street parking, none).
       const keep = (score: number) => side === "fact" || (side === "+" ? score >= 0.5 : score < 0.5);
@@ -250,8 +256,8 @@ function factorFact(f: Factor, p: RankPlace, people: number | null, maxRent: num
 function gapPhrase(f: Factor, a: RankPlace, above: RankPlace, people: number | null): string | null {
   switch (f) {
     case "price": {
-      const x = rentPerPerson(a.rentCents, people);
-      const y = rentPerPerson(above.rentCents, people);
+      const x = evenShare(a, people);
+      const y = evenShare(above, people);
       return x !== null && y !== null && x > y ? `it's ${formatRent(x - y)}/person more` : null;
     }
     case "bike": {
@@ -370,7 +376,7 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
   // only sensible scale (documented: then a price score does depend on the board).
   const priceRef =
     priorities.maxRentPerPersonCents ??
-    median(open.map((p) => rentPerPerson(p.rentCents, groupSize)).filter((x): x is number => x !== null));
+    median(open.map((p) => evenShare(p, groupSize)).filter((x): x is number => x !== null));
 
   const ctx: Context = { people: groupSize, priceRef };
   const scored = passing.map((place, index) => ({ place, index, factors: factorScores(place, ctx) }));
@@ -391,7 +397,7 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
         (a, b) =>
           b.mid - a.mid ||
           b.lo - a.lo ||
-          (rentPerPerson(a.place.rentCents, groupSize) ?? Infinity) - (rentPerPerson(b.place.rentCents, groupSize) ?? Infinity) ||
+          (evenShare(a.place, groupSize) ?? Infinity) - (evenShare(b.place, groupSize) ?? Infinity) ||
           a.index - b.index
       );
   };

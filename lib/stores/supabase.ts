@@ -22,6 +22,11 @@ type PhotoRow = { id: string; listing_id: string; path: string; uploaded_by: str
  * Nothing here is a security boundary; it just turns errors into plain words.
  */
 export function createSupabaseStore(supabase: SupabaseClient, boardId: string): BoardStore {
+  /** A column a later migration adds isn't there yet (Postgres 42703, or PostgREST's schema cache PGRST204). */
+  function missingColumn(error: { code?: string } | null): boolean {
+    return error?.code === "42703" || error?.code === "PGRST204";
+  }
+
   function fail(message: string): never {
     throw new Error(message);
   }
@@ -85,11 +90,14 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
 
     async updateBoard(details) {
       const d = boardDetailsSchema.parse(details);
-      const { data, error } = await supabase
+      const base = { name: d.name, lease_year: d.leaseYear, budget_per_person_cents: d.budgetPerPersonCents };
+      let { data, error } = await supabase
         .from("boards")
-        .update({ name: d.name, lease_year: d.leaseYear, budget_per_person_cents: d.budgetPerPersonCents })
+        .update({ ...base, group_size: d.groupSize })
         .eq("id", boardId)
         .select("id");
+      // Before the rent-split migration there's no group_size column: save the rest.
+      if (missingColumn(error)) ({ data, error } = await supabase.from("boards").update(base).eq("id", boardId).select("id"));
       if (error) fail("Couldn't save the board's details. Try again.");
       if (!data?.length) fail("Only the board's owner can change these.");
     },
@@ -138,7 +146,8 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
 
     async load() {
       const [board, members, listings] = await Promise.all([
-        supabase.from("boards").select("id, name, lease_year, budget_per_person_cents").eq("id", boardId).maybeSingle(),
+        // "*" so a column added by a later migration (group_size) is simply absent before it runs.
+        supabase.from("boards").select("*").eq("id", boardId).maybeSingle(),
         supabase.from("board_members").select("user_id, display_name, joined_at").eq("board_id", boardId).order("joined_at"),
         supabase.from("listings").select("*").eq("board_id", boardId).order("created_at", { ascending: false })
       ]);
@@ -150,6 +159,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
         name: board.data.name,
         leaseYear: board.data.lease_year,
         budgetPerPersonCents: board.data.budget_per_person_cents,
+        groupSize: (board.data as { group_size?: number | null }).group_size ?? null,
         members: (members.data ?? []).map((m) => ({ id: m.user_id, name: m.display_name }))
       };
       return { board: b, listings: (listings.data as ListingRow[]).map(rowToListing) };
@@ -161,6 +171,10 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
       const fields = patchToRow(data);
       delete fields.cover_photo;
       delete fields.street_view;
+      // Rent-split fields are written only when they differ from the defaults.
+      if (fields.price_basis === "whole") delete fields.price_basis;
+      if (fields.people_count === null) delete fields.people_count;
+      if (fields.split === null) delete fields.split;
       const { data: row, error } = await supabase
         .from("listings")
         .insert({ board_id: boardId, ...fields })
@@ -171,13 +185,17 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
     },
 
     async updateListing(id: string, patch: ListingPatch) {
-      const { data: row, error } = await supabase
-        .from("listings")
-        .update(patchToRow(patch))
-        .eq("id", id)
-        .eq("board_id", boardId)
-        .select("*")
-        .maybeSingle();
+      const update = (fields: Partial<ListingRow>) =>
+        supabase.from("listings").update(fields).eq("id", id).eq("board_id", boardId).select("*").maybeSingle();
+      const fields = patchToRow(patch);
+      let { data: row, error } = await update(fields);
+      // Before the rent-split migration those columns don't exist: save the rest of the edit.
+      if (missingColumn(error)) {
+        delete fields.price_basis;
+        delete fields.people_count;
+        delete fields.split;
+        ({ data: row, error } = await update(fields));
+      }
       if (error) fail(error.message.includes("not on this board") ? error.message : "Couldn't save that change. Try again.");
       // RLS turns a forbidden or missing row into "0 rows", not an error.
       if (!row) fail("That place is no longer on this board.");
