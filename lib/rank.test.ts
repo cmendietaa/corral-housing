@@ -182,6 +182,15 @@ describe("your own share", () => {
     // Not in the split (or the demo, with no one signed in): the range counts.
     expect(rankPlaces([p], { ...base, minBeds: null }, people, null).ranked).toHaveLength(1);
   });
+
+  it("scores the price on your share, so the score and its reason agree", () => {
+    const uneven = { mode: "custom" as const, shares: [{ who: "me", cents: 80000 }, { who: "b", cents: 150000 }, { who: "c", cents: 150000 }, { who: "d", cents: 100000 }] };
+    const p = place({ rentCents: 480000, beds: 3, split: uneven });
+    const mine = rankPlaces([p], { ...base, minBeds: null }, people, "me").ranked[0]!;
+    const even = rankPlaces([p], { ...base, minBeds: null }, people, null).ranked[0]!;
+    expect(mine.factors.price.lo).toBeGreaterThan(even.factors.price.lo);
+    expect(mine.reasons.find((r) => r.factor === "price")?.sign).toBe("+");
+  });
 });
 
 describe("explanations", () => {
