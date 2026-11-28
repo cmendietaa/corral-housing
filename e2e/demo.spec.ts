@@ -165,3 +165,32 @@ test("after adding, the place drops into the corral, and you can round up anothe
   await dialog.getByRole("button", { name: "Round up another" }).click();
   await expect(dialog.getByLabel("Paste a link or the listing's text")).toHaveValue("");
 });
+
+test("a place with extra rooms splits by everyone and shows the spots to fill", async ({ page }) => {
+  await openDemo(page);
+  await page.getByRole("button", { name: "Add a place" }).filter({ visible: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Add a place" });
+  await dialog.getByRole("button", { name: /Fill it in by hand/ }).click();
+  await dialog.getByLabel("Address").fill("6700 Trigo Rd, Isla Vista");
+  await dialog.getByLabel(/^Name/).fill("Big house");
+  await dialog.getByLabel("Rent for the whole place").fill("7200");
+  await dialog.getByRole("button", { name: "One more person" }).click();
+  await dialog.getByRole("button", { name: "One more person" }).click();
+  await expect(dialog.getByText("4 of you + 2 spots to fill")).toBeVisible();
+  await expect(dialog.getByText("$1,200 each")).toBeVisible();
+  await dialog.getByRole("button", { name: "Into the corral" }).click();
+  await dialog.getByRole("button", { name: "See it on the board" }).click();
+  await expect(page.getByText("2 spots to fill").filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText("$1,200 / person").filter({ visible: true }).first()).toBeVisible();
+});
+
+test("a per-person price reads as each person's share", async ({ page }) => {
+  await openDemo(page);
+  await page.getByRole("button", { name: "Add a place" }).filter({ visible: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Add a place" });
+  await dialog.getByRole("button", { name: /Fill it in by hand/ }).click();
+  await dialog.getByLabel(/^Name/).fill("Spaces on Abrego");
+  await dialog.getByText("Per person", { exact: true }).click();
+  await dialog.getByLabel("Price per person").fill("1150");
+  await expect(dialog.getByText("$4,600 for your 4")).toBeVisible();
+});

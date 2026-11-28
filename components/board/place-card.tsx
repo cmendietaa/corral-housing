@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Bike, Footprints, Pencil, Plus, X } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
-import { evenShare, formatRent, groupSizeOf } from "@/lib/compare";
+import { evenShare, formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
 import { formatBeds, formatBedsBaths } from "@/lib/format";
 import { commuteToCampus } from "@/lib/commute";
 import type { Board, Listing, ListingPatch } from "@/lib/listing";
@@ -193,10 +193,15 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         </div>
         {nickname ? <p className="-mt-2 text-sm text-stone-700">{nickname}</p> : null}
         {/* The facts as small tags instead of one long line. */}
-        {size || perPerson !== null || commute ? (
+        {size || perPerson !== null || commute || spotsToFill(listing, groupSizeOf(board)) > 0 ? (
           <ul className="flex flex-wrap gap-1.5 text-[13px] text-tar">
             {size ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{size}</li> : null}
             {perPerson !== null ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{formatRent(perPerson)} each</li> : null}
+            {spotsToFill(listing, groupSizeOf(board)) > 0 ? (
+              <li className="rounded-full bg-sunset-200 px-2.5 py-1 font-bold text-sunset-800">
+                {spotsToFill(listing, groupSizeOf(board))} to fill
+              </li>
+            ) : null}
             {commute ? (
               <li className="inline-flex items-center gap-2 rounded-full bg-glass-200 px-2.5 py-1 font-semibold text-glass-800">
                 <span className="inline-flex items-center gap-1">

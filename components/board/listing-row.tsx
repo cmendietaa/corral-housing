@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 import { Bike, Check, Star } from "lucide-react";
 import { areaLabel, streetHeadline } from "@/lib/address";
-import { evenShare, formatRent, groupSizeOf } from "@/lib/compare";
+import { evenShare, formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
 import { formatBedsBaths } from "@/lib/format";
 import { commuteToCampus } from "@/lib/commute";
 import { isClosedStatus, type Board, type Listing, type ListingPatch } from "@/lib/listing";
@@ -68,6 +68,7 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
   const headline = streetHeadline(listing.address, listing.title);
   const area = areaLabel(listing.address);
   const perPerson = evenShare(listing, groupSizeOf(board));
+  const spots = spotsToFill(listing, groupSizeOf(board));
   const od = ownerDue(listing, board.members);
   const commute = commuteToCampus(listing.lat, listing.lng);
   // The nickname gets its own line (desktop); the facts stay short enough to never cut off.
@@ -155,6 +156,11 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
         ) : null}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <StatusChip status={listing.status} />
+          {spots > 0 ? (
+            <span className="rounded-full bg-sunset-200 px-2.5 py-[2px] text-[11px] font-bold text-sunset-800">
+              {spots} {spots === 1 ? "spot" : "spots"} to fill
+            </span>
+          ) : null}
           {listing.lat === null && !closed ? (
             <button
               type="button"

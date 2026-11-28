@@ -12,7 +12,11 @@ export const aiListingSchema = z.object({
   title: z.string().nullable().describe("A short nickname for the place, under 60 characters, without the price"),
   address: z.string().nullable().describe("Street address, with the city if the text gives it"),
   url: z.string().nullable().describe("The listing's http(s) link, if the text contains one"),
-  rent_dollars: z.number().nullable().describe("Monthly rent for the whole unit in US dollars"),
+  rent_dollars: z.number().nullable().describe("The monthly price in US dollars, as the listing quotes it"),
+  price_basis: z
+    .enum(["whole", "per_person", "one_room"])
+    .nullable()
+    .describe("whole: rent for the whole unit; per_person: per person, bed or space; one_room: one room in a shared place"),
   beds: z.number().nullable(),
   baths: z.number().nullable(),
   lease_start: z.string().nullable().describe("YYYY-MM-DD"),
@@ -40,7 +44,9 @@ export function toParsed(ai: AiListing): ParsedResult {
     leaseStart: ai.lease_start,
     leaseEnd: ai.lease_end,
     parking: ai.parking,
-    laundry: ai.laundry
+    laundry: ai.laundry,
+    // "One room" means the price is just the group's part (a sublet or a room).
+    priceBasis: ai.price_basis === null ? null : ai.price_basis === "one_room" ? "our_part" : ai.price_basis
   };
   const fields: ParsedListing = { ...EMPTY_PARSE };
   const dropped: (keyof ParsedListing)[] = [];

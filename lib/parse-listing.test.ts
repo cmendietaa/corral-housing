@@ -82,3 +82,19 @@ describe("parseListingText", () => {
     expect(parseListingText("Available December 1", now).leaseStart).toBe("2026-12-01");
   });
 });
+
+describe("how a price is quoted", () => {
+  it("keeps a per-person price instead of dropping it", () => {
+    const r = parseListingText("4BR on Del Playa, $1,150/person, 12-month lease");
+    expect(r.rentCents).toBe(115000);
+    expect(r.priceBasis).toBe("per_person");
+  });
+  it("reads per bed too", () => {
+    expect(parseListingText("Spaces available: $975 per bed in a 3 bd duplex").priceBasis).toBe("per_person");
+  });
+  it("prefers the whole-unit rent when both are given", () => {
+    const r = parseListingText("Rent $4,600/mo ($1,150 per person)");
+    expect(r.rentCents).toBe(460000);
+    expect(r.priceBasis).toBeNull();
+  });
+});
