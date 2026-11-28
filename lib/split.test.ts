@@ -36,7 +36,7 @@ describe("share range", () => {
   });
   it("follows a decided split", () => {
     expect(shareRange({ ...place, split: { mode: "even" } }, 4)).toEqual({ lo: 180000, hi: 180000, decided: true });
-    const custom = { ...place, split: { mode: "custom" as const, shares: [{ who: "a", cents: 200000 }, { who: "b", cents: 173300 }] } };
+    const custom = { ...place, split: { mode: "custom" as const, shares: [{ who: "a", cents: 200000 }, { who: "b", cents: 173300 }, { who: "c", cents: 173300 }, { who: "d", cents: 173400 }] } };
     expect(shareRange(custom, 4)).toEqual({ lo: 173300, hi: 200000, decided: true });
   });
   it("a per-person price is everyone's share", () => {
@@ -46,3 +46,18 @@ describe("share range", () => {
     expect(shareRange({ rentCents: 480000, beds: null }, 4)).toEqual({ lo: 120000, hi: 120000, decided: false });
   });
 });
+
+describe("saved splits stay honest", () => {
+  it("recomputes a room split from today's rent", () => {
+    const p = { rentCents: 800000, beds: 3, peopleCount: 5, split: { mode: "by_room" as const, rooms: ["single", "double", "double"] as ("single" | "double")[], shares: [{ who: "a", cents: 1 }] } };
+    expect(shareRange(p, 4)).toEqual({ lo: 150000, hi: 200000, decided: true });
+  });
+  it("shows the range again when custom amounts no longer add up", () => {
+    const p = { rentCents: 500000, beds: 2, split: { mode: "custom" as const, shares: [{ who: "a", cents: 120000 }, { who: "b", cents: 120000 }, { who: "c", cents: 120000 }, { who: "d", cents: 120000 }] } };
+    expect(shareRange(p, 4)).toEqual({ lo: 125000, hi: 125000, decided: false });
+  });
+  it("starts a studio as one room", () => {
+    expect(defaultRoomTypes(2, 0)).toEqual(["double"]);
+  });
+});
+

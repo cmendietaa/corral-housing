@@ -57,21 +57,30 @@ export function shareRange(p: SplitPlace, group: number | null): ShareRange | nu
   if (people === null || rent === null) return null;
 
   let shares: number[] | null = null;
-  if (p.split?.shares?.length) shares = p.split.shares.map((s) => s.cents);
-  else if (p.split?.mode === "by_room" && p.split.rooms?.length) shares = sharesByRoom(rent, p.split.rooms.map((r) => ROOM_SIZE[r]));
-  else if (p.split?.mode === "even") shares = null;
-  else if (!decided && p.beds != null) shares = sharesByRoom(rent, defaultRooms(people, p.beds === 0 ? 1 : p.beds));
+  let current = decided;
+  if (p.split?.mode === "by_room" && p.split.rooms?.length) {
+    // Always from today's rent, so a rent change can't leave old amounts behind.
+    shares = sharesByRoom(rent, p.split.rooms.map((r) => ROOM_SIZE[r]));
+  } else if (p.split?.mode === "custom" && p.split.shares?.length) {
+    const saved = p.split.shares.map((s) => s.cents);
+    // Custom amounts only count while they still add up to the rent for everyone living there.
+    if (saved.length === people && saved.reduce((a, b) => a + b, 0) === rent) shares = saved;
+    else current = false;
+  }
+  if (!shares && !current && p.split?.mode !== "even" && p.beds != null) {
+    shares = sharesByRoom(rent, defaultRooms(people, p.beds === 0 ? 1 : p.beds));
+  }
 
   if (!shares || shares.length === 0) {
     const each = evenShare(p, group);
-    return each === null ? null : { lo: each, hi: each, decided };
+    return each === null ? null : { lo: each, hi: each, decided: current };
   }
-  return { lo: Math.min(...shares), hi: Math.max(...shares), decided };
+  return { lo: Math.min(...shares), hi: Math.max(...shares), decided: current };
 }
 
 /** The room setup a place starts from in the editor: its bedrooms filled as evenly as possible. */
 export function defaultRoomTypes(people: number, bedrooms: number | null): RoomType[] {
-  return defaultRooms(people, bedrooms === null || bedrooms === 0 ? Math.max(1, Math.ceil(people / 2)) : bedrooms).map((n) =>
-    n <= 1 ? "single" : n === 2 ? "double" : "triple"
-  );
+  // Unknown bedrooms: assume doubles. A studio is one room.
+  const rooms = bedrooms === null ? Math.max(1, Math.ceil(people / 2)) : bedrooms === 0 ? 1 : bedrooms;
+  return defaultRooms(people, rooms).map((n) => (n <= 1 ? "single" : n === 2 ? "double" : "triple"));
 }

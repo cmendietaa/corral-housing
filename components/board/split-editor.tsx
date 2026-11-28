@@ -102,7 +102,10 @@ export function SplitEditor({
     setError(null);
     let split: Split | null = null;
     if (mode === "even") split = { mode: "even" };
-    if (mode === "by_room") split = { mode: "by_room", rooms, shares: roomRows.map((r) => ({ who: r.who, cents: r.cents })) };
+    if (mode === "by_room") {
+      if (roomRows.length !== people) return setError(`These rooms fit ${roomRows.length}, but ${people} are living here. Change a room so everyone has a spot.`);
+      split = { mode: "by_room", rooms, shares: roomRows.map((r) => ({ who: r.who, cents: r.cents })) };
+    }
     if (mode === "custom") {
       if (customCents.some((c) => c === null || Number.isNaN(c))) return setError("Give everyone an amount, like 1350.");
       if (customTotal !== rent) return setError(`These add up to ${formatRent(customTotal)}, not ${formatRent(rent)}.`);
