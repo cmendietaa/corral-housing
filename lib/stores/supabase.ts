@@ -145,7 +145,8 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
     settings,
 
     async load() {
-      const [board, members, listings] = await Promise.all([
+      const [session, board, members, listings] = await Promise.all([
+        supabase.auth.getSession(),
         // "*" so a column added by a later migration (group_size) is simply absent before it runs.
         supabase.from("boards").select("*").eq("id", boardId).maybeSingle(),
         supabase.from("board_members").select("user_id, display_name, joined_at").eq("board_id", boardId).order("joined_at"),
@@ -160,6 +161,7 @@ export function createSupabaseStore(supabase: SupabaseClient, boardId: string): 
         leaseYear: board.data.lease_year,
         budgetPerPersonCents: board.data.budget_per_person_cents,
         groupSize: (board.data as { group_size?: number | null }).group_size ?? null,
+        meId: session.data.session?.user.id ?? null,
         members: (members.data ?? []).map((m) => ({ id: m.user_id, name: m.display_name }))
       };
       return { board: b, listings: (listings.data as ListingRow[]).map(rowToListing) };

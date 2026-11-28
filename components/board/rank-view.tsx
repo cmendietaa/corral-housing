@@ -90,7 +90,7 @@ type Props = {
 export function RankView({ footNote, listings, board, photos, checked, checkDisabled, onToggleCheck, onCompare, onOpen, onEdit }: Props) {
   const { priorities, update, reset } = usePriorities(board);
   const people = groupSizeOf(board);
-  const ranking = useMemo(() => rankPlaces(listings, priorities, people), [listings, priorities, people]);
+  const ranking = useMemo(() => rankPlaces(listings, priorities, people, board.meId ?? null), [listings, priorities, people, board.meId]);
   const [editing, setEditing] = useState(false);
   const openCount = ranking.ranked.length + ranking.missingInfo.length + ranking.doesntMeet.length;
   const top = ranking.ranked.slice(0, 3).map((r) => r.place.id);

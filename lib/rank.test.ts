@@ -172,6 +172,18 @@ describe("sharing rooms", () => {
   });
 });
 
+describe("your own share", () => {
+  const split = { mode: "custom" as const, shares: [{ who: "me", cents: 150000 }, { who: "b", cents: 110000 }, { who: "c", cents: 110000 }, { who: "d", cents: 110000 }] };
+  it("checks the budget against your amount once a split names you", () => {
+    const p = place({ rentCents: 480000, beds: 3, split });
+    // Max $1,400: the range's low end ($1,100) fits, but your $1,500 doesn't.
+    expect(rankPlaces([p], { ...base, minBeds: null }, people, "me").doesntMeet).toHaveLength(1);
+    expect(rankPlaces([p], { ...base, minBeds: null }, people, "b").ranked[0]!.facts.price).toContain("your share $1,100");
+    // Not in the split (or the demo, with no one signed in): the range counts.
+    expect(rankPlaces([p], { ...base, minBeds: null }, people, null).ranked).toHaveLength(1);
+  });
+});
+
 describe("explanations", () => {
   it("states real values: one plus and one minus on the card", () => {
     const r = rankPlaces([place({ rentCents: 320000, parking: "street", laundry: "none", ...bikeAway(4) })], base, people);

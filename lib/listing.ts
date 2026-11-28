@@ -139,6 +139,8 @@ export type Board = {
   budgetPerPersonCents: number | null;
   /** How many people are in the group; null means the number of members. */
   groupSize: number | null;
+  /** The member viewing the board (private boards); the demo has none. */
+  meId?: string | null;
 };
 
 /** What the settings screen can change about a board. Same limits as the database. */
