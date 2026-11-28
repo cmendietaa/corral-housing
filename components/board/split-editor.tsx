@@ -32,10 +32,9 @@ export function SplitRow({ listing, members, group, onSave }: { listing: Listing
   if (!range || listing.priceBasis === "per_person") return null;
   return (
     <div className="flex items-center gap-3 rounded-[18px] bg-shell-mid px-4 py-3">
-      <span className="label flex-1 text-stone-700">Split</span>
-      <span className="text-sm text-tar">
-        <span className="font-display text-[16px]">{rangeText(range.lo, range.hi)}</span>
-        <span className="text-stone-700"> · {range.decided ? `${people} people` : "not decided"}</span>
+      <span className="min-w-0 flex-1">
+        <span className="label block text-stone-700">Split · {range.decided ? `${people} people` : "not decided"}</span>
+        <span className="mt-0.5 block font-display text-[17px] text-tar">{rangeText(range.lo, range.hi)}</span>
       </span>
       <button type="button" onClick={() => setOpen(true)} className="text-[13px] font-bold text-sea-700 underline-offset-4 hover:underline">
         Change

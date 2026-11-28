@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Bike, Footprints, Pencil, Plus, X } from "lucide-react";
-import { areaLabel, streetHeadline } from "@/lib/address";
+import { streetHeadline } from "@/lib/address";
 import { formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
 import { shareRange } from "@/lib/split";
 import { formatBeds, formatBedsBaths } from "@/lib/format";
@@ -143,9 +143,10 @@ export function PlaceNotes({
           type="button"
           onClick={start}
           aria-label={`Edit notes on ${label}`}
-          className="text-xs font-semibold text-sea-700 underline underline-offset-2 hover:text-sea-900"
+          title="Edit notes"
+          className="-m-1.5 flex h-7 w-7 items-center justify-center rounded-full text-stone-600 hover:bg-shell-deep hover:text-tar"
         >
-          Edit
+          <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
         </button>
       </div>
       <p className="whitespace-pre-line break-words text-sm text-tar">{notes}</p>
@@ -185,6 +186,15 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         >
           <X className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
         </button>
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label="Edit details"
+          className="absolute right-3 top-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-shell px-3.5 text-[13px] font-bold text-tar shadow-sm hover:bg-shell-mid"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
+          Edit
+        </button>
       </StreetPhoto>
       <div className="space-y-3 p-5">
         <div className="flex items-baseline justify-between gap-3">
@@ -195,10 +205,10 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         </div>
         {nickname ? <p className="-mt-2 text-sm text-stone-700">{nickname}</p> : null}
         {/* The facts as small tags instead of one long line. */}
-        {size || perPerson !== null || commute || spotsToFill(listing, groupSizeOf(board)) > 0 ? (
+        {size || (perPerson !== null && listing.priceBasis === "per_person") || commute || spotsToFill(listing, groupSizeOf(board)) > 0 ? (
           <ul className="flex flex-wrap gap-1.5 text-[13px] text-tar">
             {size ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{size}</li> : null}
-            {perPerson !== null ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{perPerson} each</li> : null}
+            {perPerson !== null && listing.priceBasis === "per_person" ? <li className="rounded-full bg-shell-mid px-2.5 py-1 font-semibold">{perPerson} each</li> : null}
             {spotsToFill(listing, groupSizeOf(board)) > 0 ? (
               <li className="rounded-full bg-sunset-200 px-2.5 py-1 font-bold text-sunset-800">
                 {spotsToFill(listing, groupSizeOf(board))} to fill
@@ -229,14 +239,6 @@ export function PlaceCard({ listing, board, photos, onPatch, onEdit, onClose }: 
         <NextAction listing={listing} members={board.members} onSave={onPatch} />
         <PlaceNotes notes={listing.notes} label={headline} onSave={(notes) => onPatch({ notes })} />
         <TourPhotoStrip listing={listing} label={headline} streetEnabled={photos} />
-        <button
-          type="button"
-          onClick={onEdit}
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-stone-700 hover:text-tar"
-        >
-          <Pencil className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
-          Edit details
-        </button>
       </div>
     </section>
   );
@@ -320,7 +322,6 @@ export function PlaceSheet({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const headline = streetHeadline(listing.address, listing.title);
-  const area = areaLabel(listing.address);
   const perPerson = eachText(shareRange(listing, groupSizeOf(board)));
 
   useEffect(() => {
@@ -368,9 +369,18 @@ export function PlaceSheet({
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-stone-400" aria-hidden="true" />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="label text-stone-700">{[area, listing.title !== headline ? listing.title : null].filter(Boolean).join(" · ")}</p>
-              <h2 className="mt-1 font-display text-[26px] leading-tight text-tar">{headline}</h2>
+              <h2 className="font-display text-[26px] leading-tight text-tar">{headline}</h2>
+              {listing.title !== headline ? <p className="mt-0.5 text-sm text-stone-700">{listing.title}</p> : null}
             </div>
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label="Edit details"
+              className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-shell-deep px-4 text-sm font-bold text-tar"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={2.75} aria-hidden="true" />
+              Edit
+            </button>
             <StarButton
               starred={listing.starred}
               label={headline}
@@ -419,14 +429,6 @@ export function PlaceSheet({
           >
             {checked ? "Remove from compare" : checkDisabled ? "Compare is full (3)" : "Add to compare"}
           </Button>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="mx-auto mt-4 flex items-center gap-1.5 text-sm font-semibold text-stone-700"
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
-            Edit details
-          </button>
         </div>
       </div>
     </dialog>

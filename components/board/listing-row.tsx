@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { Bike, Check, Star } from "lucide-react";
-import { areaLabel, streetHeadline } from "@/lib/address";
+import { streetHeadline } from "@/lib/address";
 import { formatRent, groupSizeOf, spotsToFill } from "@/lib/compare";
 import { shareRange } from "@/lib/split";
 import { formatBedsBaths } from "@/lib/format";
@@ -67,7 +67,6 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
 ) {
   const closed = isClosedStatus(listing.status);
   const headline = streetHeadline(listing.address, listing.title);
-  const area = areaLabel(listing.address);
   const perPerson = eachText(shareRange(listing, groupSizeOf(board)));
   const spots = spotsToFill(listing, groupSizeOf(board));
   const od = ownerDue(listing, board.members);
@@ -139,7 +138,6 @@ export const ListingRow = forwardRef<HTMLElement, Props>(function ListingRow(
           >
             {headline}
           </button>
-          {area ? <span className="label hidden text-stone-700 lg:inline">{area}</span> : null}
         </h3>
         {nickname ? <p className="mt-0.5 hidden truncate text-[13px] text-stone-700 lg:block">{nickname}</p> : null}
         {size || commute ? (
