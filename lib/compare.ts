@@ -218,6 +218,12 @@ export function groupSizeOf(board: { members: unknown[]; groupSize?: number | nu
   return board.groupSize ?? (board.members.length || null);
 }
 
+/** Spots the group would still need to fill (people living there beyond the group). */
+export function spotsToFill(p: Priced, group: number | null): number {
+  const n = peopleLiving(p, group);
+  return n !== null && group !== null ? Math.max(0, n - group) : 0;
+}
+
 /** How many people the rent is split between. */
 export function peopleLiving(p: Priced, group: number | null): number | null {
   return p.peopleCount ?? group;

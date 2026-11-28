@@ -15,7 +15,8 @@ const blank: AiListing = {
   lease_start: null,
   lease_end: null,
   parking: null,
-  laundry: null
+  laundry: null,
+  price_basis: null
 };
 
 /** A stand-in for the OpenAI client that returns a canned response and records the request. */

@@ -16,7 +16,8 @@ const AI_FIELDS = {
   leaseStart: null,
   leaseEnd: null,
   parking: null,
-  laundry: null
+  laundry: null,
+  priceBasis: null
 };
 
 let ipCounter = 0;

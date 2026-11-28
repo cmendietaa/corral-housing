@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LAUNDRY_OPTIONS, PARKING_OPTIONS } from "@/lib/listing";
+import { LAUNDRY_OPTIONS, PARKING_OPTIONS, PRICE_BASES } from "@/lib/listing";
 
 /**
  * Autofill: turn pasted listing text into form fields for the person to review.
@@ -27,7 +27,9 @@ export const parsedListingSchema = z.object({
   leaseStart: isoDate.nullable(),
   leaseEnd: isoDate.nullable(),
   parking: z.enum(PARKING_OPTIONS).nullable(),
-  laundry: z.enum(LAUNDRY_OPTIONS).nullable()
+  laundry: z.enum(LAUNDRY_OPTIONS).nullable(),
+  /** How the price is quoted; null when the listing doesn't say (read as the whole place). */
+  priceBasis: z.enum(PRICE_BASES).nullable().default(null)
 });
 export type ParsedListing = z.infer<typeof parsedListingSchema>;
 
@@ -41,7 +43,8 @@ export const EMPTY_PARSE: ParsedListing = {
   leaseStart: null,
   leaseEnd: null,
   parking: null,
-  laundry: null
+  laundry: null,
+  priceBasis: null
 };
 
 export const MAX_PASTE_CHARS = 8000;
@@ -139,6 +142,25 @@ function parseLease(text: string, now: Date): Pick<ParsedListing, "leaseStart" |
   return { leaseStart: start.iso, leaseEnd: end };
 }
 
+/**
+ * The price and how it's quoted. A whole-place rent wins; a listing that only
+ * gives a per-person price ("$1,150/person", "$975 per bed") keeps that price
+ * as per person instead of dropping it.
+ */
+function parsePrice(text: string): Pick<ParsedListing, "rentCents" | "priceBasis"> {
+  const whole = parseRent(text);
+  if (whole !== null) return { rentCents: whole, priceBasis: null };
+  const perPerson = /\$\s?(\d{1,2},\d{3}|\d{3,4})(?:\.(\d{2}))?\s*(?:\/|per|a|each)?\s*(?:person|bed|space|spot|pp\b|each\b)/gi;
+  for (const m of text.matchAll(perPerson)) {
+    // A deposit or fee quoted per person isn't the rent; keep looking.
+    const before = text.slice(Math.max(0, m.index! - 30), m.index!).toLowerCase();
+    if (/deposit|fee|utilit|application|holding/.test(before)) continue;
+    const cents = Number(m[1]!.replace(",", "")) * 100 + (m[2] ? Number(m[2]) : 0);
+    if (cents >= 30000 && cents <= 500000) return { rentCents: cents, priceBasis: "per_person" };
+  }
+  return { rentCents: null, priceBasis: null };
+}
+
 function parseRent(text: string): number | null {
   const money = /\$\s?(\d{1,2},\d{3}|\d{3,5})(?:\.(\d{2}))?(?!\d)/g;
   let best: { cents: number; score: number } | null = null;
@@ -147,7 +169,7 @@ function parseRent(text: string): number | null {
     if (cents < 30000 || cents > 5_000_000) continue;
     const before = text.slice(Math.max(0, m.index! - 30), m.index!).toLowerCase();
     const after = text.slice(m.index! + m[0].length, m.index! + m[0].length + 20).toLowerCase();
-    if (/deposit|fee|utilit|per person|\/\s*person|each|pp\b|application/.test(before + " " + after.slice(0, 14))) continue;
+    if (/deposit|fee|utilit|per (?:person|bed|space|spot|room)|\/\s*(?:person|bed|space|room)|each|pp\b|application/.test(before + " " + after.slice(0, 14))) continue;
     let score = 1;
     if (/rent|price|lease|total/.test(before)) score += 2;
     if (/^\s*(?:\/\s*mo|per\s+mo|a\s+month|monthly|\/\s*month)/.test(after)) score += 2;
@@ -241,7 +263,7 @@ export function parseListingText(input: string, now: Date = new Date()): ParsedL
     title: parseTitle(text),
     address: parseAddress(text),
     url,
-    rentCents: parseRent(text),
+    ...parsePrice(text),
     ...parseCounts(text),
     ...parseLease(text, now),
     parking: parseParking(text),

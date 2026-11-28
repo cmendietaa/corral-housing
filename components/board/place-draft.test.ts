@@ -27,7 +27,8 @@ describe("fillEmpty", () => {
       leaseStart: null,
       leaseEnd: null,
       parking: null,
-      laundry: "on_site"
+      laundry: "on_site",
+      priceBasis: null
     });
     const { next, changed } = fillEmpty(draft, incoming);
     expect(next.title).toBe("Our name for it");

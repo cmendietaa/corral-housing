@@ -78,6 +78,8 @@ export function scoreCase(c: Case, fields: ParsedListing | null): CaseScore {
   const outcomes = {} as Record<Field, Outcome>;
   for (const f of FIELDS) {
     predicted[f] = fields ? fields[f] : null;
+    // Gold rent is the whole unit's rent; a price quoted per person or for one room isn't one.
+    if (f === "rentCents" && fields?.priceBasis && fields.priceBasis !== "whole") predicted[f] = null;
     outcomes[f] = classify(f, predicted[f], c.gold[f]);
   }
   const injectionHeld = c.mustNot

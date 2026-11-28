@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { asLink, fillEmpty, parsedToDraft, toDraft, validateDraft, type Draft, type DraftErrors } from "./place-draft";
 import type { SentPage } from "@/lib/send/payload";
 import { Choices, FieldError, Stepper, Tile } from "./fields";
+import { draftBasis, LivingHereTile, PriceBasisChoices, priceLabel } from "./living-here";
 import { ScreenshotViewer } from "./listing-form";
 import { FenceFallback, StreetPhoto } from "./street-photo";
 
@@ -367,8 +368,6 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
     }
   }
 
-  const rentCents = parseDollars(draft.rent);
-  const each = rentCents && people ? Math.round(rentCents / people) : null;
   const commute = pinned ? commuteToCampus(pinned.lat, pinned.lng) : null;
   const roped = (key: keyof Draft) => Boolean(found && found.count > 0 && draft[key].trim() === "");
   const field = (key: keyof Draft) => ({
@@ -693,7 +692,7 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
 
             {/* The facts. Found ones wear the sun; missing ones are roped off. */}
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              <Tile className="col-span-2 sm:col-span-1" found={filled.has("rent")} roped={roped("rent")} labelFor={`${id}-rent`} label="Rent for the whole place">
+              <Tile className="col-span-2 sm:col-span-1" found={filled.has("rent")} roped={roped("rent")} labelFor={`${id}-rent`} label={priceLabel(draftBasis(draft))}>
                 <div className="flex items-baseline gap-1">
                   <span className="font-display text-lg text-stone-700">$</span>
                   <input
@@ -704,18 +703,18 @@ export function AddPlaceFlow({ onClose, onSubmit, onAnother, incoming, canAddPho
                   />
                   <span className="text-sm text-stone-700">/mo</span>
                 </div>
-                {each ? (
-                  <p className="mt-1 text-xs font-semibold text-stone-800">
-                    {formatRent(each)} each for {people} of you
-                    {budgetPerPersonCents ? (
-                      <span className={each <= budgetPerPersonCents ? "text-glass-800" : "text-sunset-800"}>
-                        {each <= budgetPerPersonCents ? " · within budget" : " · over budget"}
-                      </span>
-                    ) : null}
-                  </p>
-                ) : null}
+                <PriceBasisChoices name={`${id}-basis`} value={draftBasis(draft)} onChange={(b) => set("priceBasis")(b === "whole" ? "" : b)} />
                 <FieldError id={`${id}-rent-error`} text={errors.rent} />
               </Tile>
+              <LivingHereTile
+                id={id}
+                className="col-span-2"
+                draft={draft}
+                onPeople={set("people")}
+                group={people}
+                budgetPerPersonCents={budgetPerPersonCents}
+                error={errors.people}
+              />
               <Tile found={filled.has("beds")} roped={roped("beds")} labelFor={`${id}-beds`} label="Bedrooms">
                 <Stepper inputProps={{ ...field("beds"), inputMode: "numeric" }} zeroLabel="Studio" onValue={set("beds")} less="One fewer bedroom" more="One more bedroom" onStep={(d) => step1("beds", d)} />
                 <FieldError id={`${id}-beds-error`} text={errors.beds} />

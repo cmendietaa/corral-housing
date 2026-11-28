@@ -745,6 +745,8 @@ export function Board({
           onDelete={form.mode === "edit" ? remove : undefined}
           sampleScreenshot={isDemo ? "/samples/listing-screenshot.jpg" : undefined}
           streetPhotos={photos}
+          people={groupSizeOf(board)}
+          budgetPerPersonCents={board.budgetPerPersonCents}
         />
       ) : null}
 

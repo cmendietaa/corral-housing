@@ -22,6 +22,7 @@ import { shrinkScreenshot } from "@/lib/photo-shrink";
 import { MAX_PHOTOS_PER_PLACE } from "@/lib/stores/types";
 import { cn } from "@/lib/utils";
 import { Choices, FieldError, Stepper, Tile } from "./fields";
+import { draftBasis, LivingHereTile, PriceBasisChoices, priceLabel } from "./living-here";
 import { StreetPhoto } from "./street-photo";
 import { fillEmpty, parsedToDraft, toDraft, validateDraft, type Draft, type DraftErrors } from "./place-draft";
 
@@ -41,6 +42,9 @@ type Props = {
   canAddPhotos?: boolean;
   /** Whether Street View is configured; without it the place shows the empty lot. */
   streetPhotos?: boolean;
+  /** The group's size (for "Living here") and its budget per person. */
+  people?: number | null;
+  budgetPerPersonCents?: number | null;
 };
 
 /** A photo picked while adding a place, previewed from memory until it uploads. */
@@ -49,7 +53,7 @@ type Pic = { id: string; file: File; url: string };
 /** A screenshot waiting to be read: shrunk in the browser, kept only in memory. */
 type Shot = { id: string; blob: Blob; url: string };
 
-export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot, canAddPhotos = false, streetPhotos = false }: Props) {
+export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sampleScreenshot, canAddPhotos = false, streetPhotos = false, people = null, budgetPerPersonCents = null }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const id = useId();
   const base = listing ?? emptyListingInput();
@@ -384,7 +388,7 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
 
           {/* The facts, as the same tiles as adding a place. */}
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            <Tile className="col-span-2 sm:col-span-1" found={filled.has("rent")} roped={false} labelFor={`${id}-rent`} label="Rent for the whole place">
+            <Tile className="col-span-2 sm:col-span-1" found={filled.has("rent")} roped={false} labelFor={`${id}-rent`} label={priceLabel(draftBasis(draft))}>
               <div className="flex items-baseline gap-1">
                 <span className="font-display text-lg text-stone-700">$</span>
                 <input
@@ -395,8 +399,18 @@ export function ListingForm({ open, listing, onClose, onSubmit, onDelete, sample
                 />
                 <span className="text-sm text-stone-700">/mo</span>
               </div>
+              <PriceBasisChoices name={`${id}-basis`} value={draftBasis(draft)} onChange={(b) => set("priceBasis")(b === "whole" ? "" : b)} />
               <FieldError id={`${id}-rent-error`} text={errors.rent} />
             </Tile>
+            <LivingHereTile
+              id={id}
+              className="col-span-2"
+              draft={draft}
+              onPeople={set("people")}
+              group={people}
+              budgetPerPersonCents={budgetPerPersonCents}
+              error={errors.people}
+            />
             <Tile found={filled.has("beds")} roped={false} labelFor={`${id}-beds`} label="Bedrooms">
               <Stepper inputProps={{ ...field("beds"), inputMode: "numeric" }} zeroLabel="Studio" onValue={set("beds")} less="One fewer bedroom" more="One more bedroom" onStep={(d) => step1("beds", d)} />
               <FieldError id={`${id}-beds-error`} text={errors.beds} />

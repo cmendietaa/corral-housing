@@ -1,5 +1,5 @@
 import { centsToDollarsInput, parseDollars } from "@/lib/format";
-import { listingInputSchema, type ListingInput } from "@/lib/listing";
+import { listingInputSchema, PRICE_BASES, type ListingInput, type PriceBasis } from "@/lib/listing";
 import type { ParsedListing } from "@/lib/parse-listing";
 
 /** What the add and edit forms hold while someone types: every field as text. */
@@ -15,6 +15,10 @@ export type Draft = {
   parking: string;
   laundry: string;
   notes: string;
+  /** "" means the whole place (the usual case), so a reader's per-person guess can fill it. */
+  priceBasis: string;
+  /** How many people would live there; "" means the group. */
+  people: string;
 };
 
 export type DraftErrors = Partial<Record<keyof Draft, string>>;
@@ -31,7 +35,9 @@ export function toDraft(l: ListingInput): Draft {
     leaseEnd: l.leaseEnd ?? "",
     parking: l.parking ?? "",
     laundry: l.laundry ?? "",
-    notes: l.notes ?? ""
+    notes: l.notes ?? "",
+    priceBasis: l.priceBasis === "whole" ? "" : l.priceBasis,
+    people: l.peopleCount === null ? "" : String(l.peopleCount)
   };
 }
 
@@ -47,7 +53,8 @@ export function parsedToDraft(f: ParsedListing): Partial<Draft> {
     leaseStart: f.leaseStart ?? undefined,
     leaseEnd: f.leaseEnd ?? undefined,
     parking: f.parking ?? undefined,
-    laundry: f.laundry ?? undefined
+    laundry: f.laundry ?? undefined,
+    priceBasis: f.priceBasis && f.priceBasis !== "whole" ? f.priceBasis : undefined
   };
 }
 
@@ -79,7 +86,12 @@ export function validateDraft(draft: Draft, base: ListingInput): { input: Listin
   const rentCents = parseDollars(draft.rent);
   const beds = num(draft.beds);
   const baths = num(draft.baths);
+  const people = num(draft.people);
   const errors: DraftErrors = {};
+  if (Number.isNaN(people) || (people !== null && (!Number.isInteger(people) || people < 1 || people > 20))) {
+    errors.people = "Between 1 and 20 people";
+  }
+  const basis = (PRICE_BASES as readonly string[]).includes(draft.priceBasis) ? (draft.priceBasis as PriceBasis) : "whole";
   if (Number.isNaN(rentCents)) errors.rent = "Enter a monthly amount like 5400";
   if (Number.isNaN(beds)) errors.beds = "Enter a number";
   if (Number.isNaN(baths)) errors.baths = "Enter a number";
@@ -96,7 +108,9 @@ export function validateDraft(draft: Draft, base: ListingInput): { input: Listin
     leaseEnd: blank(draft.leaseEnd),
     parking: (blank(draft.parking) as ListingInput["parking"]) ?? null,
     laundry: (blank(draft.laundry) as ListingInput["laundry"]) ?? null,
-    notes: blank(draft.notes)
+    notes: blank(draft.notes),
+    priceBasis: basis,
+    peopleCount: people === null || Number.isNaN(people) ? null : people
   };
 
   const parsed = listingInputSchema.safeParse(candidate);

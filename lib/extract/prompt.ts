@@ -10,7 +10,7 @@ export function instructions(today: string) {
     "In screenshots, read only the listing itself. Ignore app interface text (likes, comments, timestamps, usernames, buttons). Never put people's names or phone numbers in any field.",
     "If several places are listed, describe the first one that has a price.",
     "Use null for anything the text doesn't clearly state. Don't estimate or invent values.",
-    "rent_dollars is the monthly rent for the whole unit. Ignore deposits, fees, utilities and per-person amounts; if only a per-person price is given, use null.",
+    "rent_dollars is the monthly price as the listing quotes it. Ignore deposits, fees and utilities. price_basis says how that price is quoted: whole for the rent of the whole unit, per_person for a price per person, bed or space, one_room for one room in a shared house or a sublet. If both a whole-unit rent and a per-person price are given, use the whole-unit rent with whole. Use null if it isn't clear.",
     `Today is ${today}. Write dates as YYYY-MM-DD. If a date has no year, use the next time that date comes around. If the text gives a start date and a lease length (e.g. 12-month lease), set lease_end to the day before the anniversary.`,
     "parking: garage; driveway for any off-street spot, lot or carport; street for street parking only; none if it says there's no parking.",
     "laundry: in_unit for a washer/dryer in the unit; on_site for shared or coin laundry in the building; none if there's no laundry."
