@@ -193,10 +193,11 @@ export const REF = {
   bathsHalf: 0.25
 } as const;
 
-type Context = { people: number | null; priceRef: number | null };
+type Context = { people: number | null; priceRef: number | null; me: string | null };
 
 function factorScores(p: RankPlace, ctx: Context): Record<Factor, FactorScore> {
-  const pp = evenShare(p, ctx.people);
+  // Scored on what you pay: your share once a split names you, else the even share.
+  const pp = myShare(p, ctx.people, ctx.me) ?? evenShare(p, ctx.people);
   const bike = commuteToCampus(p.lat, p.lng);
   // Rooms are shared by everyone living there, spots to fill included.
   const living = peopleLiving(p, ctx.people);
@@ -407,7 +408,7 @@ export function rankPlaces<T extends RankPlace>(places: readonly T[], priorities
     priorities.maxRentPerPersonCents ??
     median(open.map((p) => evenShare(p, groupSize)).filter((x): x is number => x !== null));
 
-  const ctx: Context = { people: groupSize, priceRef };
+  const ctx: Context = { people: groupSize, priceRef, me };
   const scored = passing.map((place, index) => ({ place, index, factors: factorScores(place, ctx) }));
 
   const order = (levels: Record<Factor, Level>) => {
